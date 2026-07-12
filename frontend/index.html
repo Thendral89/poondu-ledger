@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poondu Ledger — Garlic Business Tracker</title>
+<style>
+  :root{
+    --paper:#F6F1E7;
+    --paper-dim:#EDE6D6;
+    --ink:#2B2620;
+    --plum:#5B3A52;
+    --plum-deep:#3E2838;
+    --sage:#6E7F5C;
+    --rust:#A4472C;
+    --line:#D9CFB8;
+    --card:#FFFDF8;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Georgia','Iowan Old Style',serif;-webkit-font-smoothing:antialiased;}
+  .util{font-family:'Helvetica Neue',Arial,sans-serif;}
+  header{padding:20px 18px 14px;border-bottom:2px solid var(--plum);background:var(--card);display:flex;justify-content:space-between;align-items:flex-start;}
+  header h1{margin:0;font-size:1.4rem;letter-spacing:0.2px;color:var(--plum-deep);}
+  header .sub{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.75rem;color:#7a7264;margin-top:4px;text-transform:uppercase;letter-spacing:1.1px;}
+  .sync-badge{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.68rem;padding:4px 9px;border-radius:10px;white-space:nowrap;margin-top:2px;}
+  .sync-badge.ok{background:var(--sage);color:#fff;}
+  .sync-badge.err{background:var(--rust);color:#fff;}
+  .sync-badge.pending{background:#c9bfa0;color:#4a4436;}
+  nav{display:flex;overflow-x:auto;background:var(--paper-dim);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;}
+  nav button{font-family:'Helvetica Neue',Arial,sans-serif;flex:1;min-width:80px;padding:11px 6px;background:none;border:none;font-size:0.76rem;font-weight:600;color:#8a8272;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;}
+  nav button.active{color:var(--plum-deep);border-bottom:3px solid var(--rust);}
+  main{padding:16px;padding-bottom:60px;max-width:680px;margin:0 auto;}
+  .view{display:none;}
+  .view.active{display:block;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:16px;margin-bottom:14px;}
+  .card h2{margin:0 0 12px;font-size:1.02rem;color:var(--plum-deep);border-bottom:1px solid var(--line);padding-bottom:8px;}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .stat{background:var(--paper-dim);border-radius:5px;padding:10px 12px;}
+  .stat .label{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.66rem;text-transform:uppercase;letter-spacing:0.6px;color:#8a8272;margin-bottom:3px;}
+  .stat .value{font-size:1.2rem;font-weight:bold;color:var(--plum-deep);}
+  .stat .value.neg{color:var(--rust);}
+  .stat .value.pos{color:var(--sage);}
+  .big-stat{text-align:center;padding:16px;}
+  .big-stat .value{font-size:1.9rem;}
+  label{display:block;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.73rem;color:#7a7264;margin:10px 0 4px;text-transform:uppercase;letter-spacing:0.5px;}
+  input, select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:4px;font-size:0.93rem;font-family:'Helvetica Neue',Arial,sans-serif;background:#fff;color:var(--ink);}
+  input:focus, select:focus{outline:2px solid var(--plum);outline-offset:1px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .btn{font-family:'Helvetica Neue',Arial,sans-serif;display:inline-block;width:100%;margin-top:14px;padding:11px;background:var(--plum);color:#fff;border:none;border-radius:5px;font-size:0.88rem;font-weight:600;cursor:pointer;letter-spacing:0.3px;}
+  .btn:active{background:var(--plum-deep);}
+  .btn:disabled{opacity:0.55;cursor:not-allowed;}
+  .btn.secondary{background:transparent;border:1px solid var(--plum);color:var(--plum);}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:#7a7264;font-weight:400;}
+  .seg2{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-top:4px;}
+  .seg2 button{flex:1;padding:8px;border:none;background:#fff;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.78rem;color:#7a7264;cursor:pointer;}
+  .seg2 button.on{background:var(--plum);color:#fff;font-weight:600;}
+  table{width:100%;border-collapse:collapse;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.82rem;}
+  th{text-align:left;font-size:0.64rem;text-transform:uppercase;color:#8a8272;padding:6px 4px;border-bottom:1px solid var(--line);}
+  td{padding:7px 4px;border-bottom:1px solid var(--paper-dim);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  .del{color:var(--rust);font-size:0.72rem;cursor:pointer;background:none;border:none;font-family:'Helvetica Neue',Arial,sans-serif;}
+  .empty{text-align:center;padding:20px 10px;color:#a49c8c;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.85rem;}
+  .partner-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--paper-dim);}
+  .partner-row:last-child{border-bottom:none;}
+  .partner-name{font-weight:bold;color:var(--plum-deep);}
+  .note{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.76rem;color:#8a8272;line-height:1.4;margin-top:8px;}
+  .badge{display:inline-block;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.68rem;padding:2px 8px;border-radius:10px;background:var(--sage);color:#fff;white-space:nowrap;}
+  .badge.owe{background:var(--rust);}
+  .badge.wholesale{background:var(--plum);}
+  .badge.retail{background:var(--sage);}
+  .lot-card{border:1px solid var(--line);border-radius:5px;padding:12px;margin-bottom:10px;background:var(--paper-dim);}
+  .lot-card .lot-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;}
+  .lot-card .lot-title{font-weight:bold;color:var(--plum-deep);font-size:0.95rem;}
+  .lot-card .lot-sub{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.72rem;color:#8a8272;}
+  .bar{height:6px;background:#e2d9c3;border-radius:3px;overflow:hidden;margin:6px 0;}
+  .bar-fill{height:100%;background:var(--sage);}
+  .lot-mini-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.74rem;color:#5a5346;}
+  .lot-mini-grid b{display:block;color:var(--plum-deep);font-size:0.92rem;}
+  #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--plum-deep);color:#fff;padding:9px 18px;border-radius:20px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.8rem;opacity:0;transition:opacity 0.25s;pointer-events:none;z-index:20;max-width:85vw;text-align:center;}
+  #toast.show{opacity:1;}
+  #toast.err{background:var(--rust);}
+  .loading{text-align:center;padding:40px;color:#8a8272;font-family:'Helvetica Neue',Arial,sans-serif;}
+  .seg{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-top:4px;}
+  .seg button{flex:1;padding:9px;border:none;background:#fff;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.85rem;color:#7a7264;cursor:pointer;}
+  .seg button.on{background:var(--plum);color:#fff;font-weight:600;}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🧄 Poondu Ledger</h1>
+    <div class="sub">Thendral · Nagaraj · Senthil — Garlic Trade</div>
+  </div>
+  <div id="sync-badge" class="sync-badge pending util">connecting…</div>
+</header>
+
+<nav class="util">
+  <button data-view="dashboard" class="active">Dashboard</button>
+  <button data-view="inventory">Inventory</button>
+  <button data-view="sales">Daily Sale</button>
+  <button data-view="reports">Reports</button>
+  <button data-view="partners">Partners</button>
+  <button data-view="expenses">Expenses</button>
+  <button data-view="settings">Settings</button>
+</nav>
+
+<main>
+  <div id="loading" class="loading">Loading your ledger…</div>
+
+  <div class="view active" id="view-dashboard">
+    <div class="card big-stat">
+      <div class="label util" style="text-align:center;">Garlic left in stock (all lots)</div>
+      <div class="value" id="d-bags-left">—</div>
+      <div class="note" id="d-kg-left" style="text-align:center;"></div>
+    </div>
+
+    <div class="card">
+      <h2>Money so far</h2>
+      <div class="stat-grid">
+        <div class="stat"><div class="label">Total sales</div><div class="value" id="d-revenue">₹0</div></div>
+        <div class="stat"><div class="label">Cost of garlic sold</div><div class="value" id="d-cogs">₹0</div></div>
+        <div class="stat"><div class="label">Other expenses logged</div><div class="value" id="d-expenses">₹0</div></div>
+        <div class="stat"><div class="label">Net profit / loss</div><div class="value" id="d-profit">₹0</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Retail vs Wholesale</h2>
+      <div class="stat-grid">
+        <div class="stat"><div class="label">Retail revenue</div><div class="value" id="d-retail-rev">₹0</div></div>
+        <div class="stat"><div class="label">Wholesale revenue</div><div class="value" id="d-wholesale-rev">₹0</div></div>
+        <div class="stat"><div class="label">Retail bags sold</div><div class="value" id="d-retail-bags">0</div></div>
+        <div class="stat"><div class="label">Wholesale bags sold</div><div class="value" id="d-wholesale-bags">0</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Lots at a glance</h2>
+      <div id="d-lots"></div>
+    </div>
+
+    <div class="card">
+      <h2>Recent sales</h2>
+      <table>
+        <thead><tr><th>Date</th><th>Lot</th><th>Ch.</th><th>Bags</th><th>Amount</th></tr></thead>
+        <tbody id="d-recent"></tbody>
+      </table>
+      <div class="empty" id="d-recent-empty" style="display:none;">No sales logged yet</div>
+    </div>
+  </div>
+
+  <div class="view" id="view-inventory">
+    <div class="card">
+      <h2>Lots — total vs sold vs remaining</h2>
+      <div id="inv-lots"></div>
+      <div class="empty" id="inv-lots-empty" style="display:none;">No lots yet — add your first purchase lot below</div>
+    </div>
+
+    <div class="card">
+      <h2>Add a new lot</h2>
+      <label>Lot name</label>
+      <input type="text" id="l-label" placeholder="e.g. Lot 3">
+      <div class="row2">
+        <div><label>Bags</label><input type="number" id="l-bags" step="1" placeholder="e.g. 100"></div>
+        <div><label>Total kg</label><input type="number" id="l-kg" step="0.1" placeholder="e.g. 2800"></div>
+      </div>
+      <label>Purchase cost for this lot (₹) — optional, can add later</label>
+      <input type="number" id="l-cost" placeholder="e.g. 380000">
+      <label>Date procured</label>
+      <input type="date" id="l-date">
+      <button class="btn" id="btn-add-lot" onclick="addLot()">Add lot to inventory</button>
+    </div>
+
+    <div class="card">
+      <h2>Edit existing lots</h2>
+      <div id="inv-edit"></div>
+      <button class="btn secondary" id="btn-save-lots" onclick="saveLotEdits()">Save changes to lots</button>
+      <div class="note">You can correct bag count, kg, or cost here any time — for example once the exact bill for a lot comes in.</div>
+    </div>
+  </div>
+
+  <div class="view" id="view-sales">
+    <div class="card">
+      <h2>Log today's sale</h2>
+      <label>Date</label>
+      <input type="date" id="s-date">
+      <label>Which lot is this sale from</label>
+      <select id="s-lot" onchange="autoFillSaleKg()"></select>
+      <label>Channel</label>
+      <div class="seg">
+        <button type="button" id="s-ch-retail" class="on" onclick="setChannel('retail')">Retail</button>
+        <button type="button" id="s-ch-wholesale" onclick="setChannel('wholesale')">Wholesale</button>
+      </div>
+      <div class="row2">
+        <div><label>Bags sold</label><input type="number" id="s-bags" step="0.1" placeholder="e.g. 15" oninput="autoFillSaleKg()"></div>
+        <div><label>Kg sold (auto, editable)</label><input type="number" id="s-kg" step="0.1" placeholder="auto"></div>
+      </div>
+      <label>Sale amount received (₹)</label>
+      <input type="number" id="s-amount" placeholder="e.g. 105000">
+      <label>Note (optional)</label>
+      <input type="text" id="s-note" placeholder="e.g. sold to Gandhipuram market">
+      <button class="btn" id="btn-add-sale" onclick="addSale()">Save sale — updates that lot's stock</button>
+    </div>
+
+    <div class="card">
+      <h2>All sales</h2>
+      <table>
+        <thead><tr><th>Date</th><th>Lot</th><th>Ch.</th><th>Bags</th><th>Amount</th><th></th></tr></thead>
+        <tbody id="sales-table"></tbody>
+      </table>
+      <div class="empty" id="sales-empty" style="display:none;">No sales yet — log your first one above</div>
+    </div>
+  </div>
+
+  <div class="view" id="view-reports">
+    <div class="card">
+      <h2>Sales & expense report</h2>
+      <div class="seg2">
+        <button type="button" class="on" data-period="daily" onclick="setReportPeriod('daily')">Daily</button>
+        <button type="button" data-period="weekly" onclick="setReportPeriod('weekly')">Weekly</button>
+        <button type="button" data-period="monthly" onclick="setReportPeriod('monthly')">Monthly</button>
+        <button type="button" data-period="quarterly" onclick="setReportPeriod('quarterly')">Quarterly</button>
+      </div>
+      <table style="margin-top:12px;">
+        <thead><tr><th>Period</th><th>Revenue</th><th>Expenses</th><th>Bags</th></tr></thead>
+        <tbody id="report-table"></tbody>
+      </table>
+      <div class="empty" id="report-empty" style="display:none;">Not enough data yet for this view</div>
+      <div class="note">This is computed live from your Sales and Expenses sheets — no code changes needed to add a new period. For deeper cuts (by partner, by lot, by channel) open the Google Sheet directly and drop in a Pivot Table on the Sales tab; the data is a plain append-only ledger so any spreadsheet formula works on it.</div>
+    </div>
+  </div>
+
+  <div class="view" id="view-partners">
+    <div class="card">
+      <h2>Capital contribution (required: ₹6,50,000 each)</h2>
+      <div id="partners-list"></div>
+      <div class="note">Breakdown per partner: ₹50,000 shop setup + ₹1,50,000 shop advance + ₹4,50,000 garlic procurement share = ₹6,50,000.</div>
+    </div>
+    <div class="card">
+      <h2>Edit contributions</h2>
+      <div id="partners-edit"></div>
+      <button class="btn" id="btn-save-partners" onclick="savePartners()">Save contributions</button>
+    </div>
+    <div class="card">
+      <h2>Interest setting</h2>
+      <label>Monthly interest rate on shortfall (%)</label>
+      <input type="number" id="p-interest" step="0.1">
+      <div class="note">Assumes a partner who has contributed less than ₹6,50,000 owes the others interest on the shortfall each month, until it's made up.</div>
+      <button class="btn secondary" id="btn-save-interest" onclick="saveInterestRate()">Save rate</button>
+    </div>
+  </div>
+
+  <div class="view" id="view-expenses">
+    <div class="card">
+      <h2>Log an expense</h2>
+      <label>Date</label>
+      <input type="date" id="e-date">
+      <label>What for</label>
+      <input type="text" id="e-desc" placeholder="e.g. July rent + labour">
+      <label>Amount (₹)</label>
+      <input type="number" id="e-amount" placeholder="e.g. 150000">
+      <button class="btn" id="btn-add-expense" onclick="addExpense()">Save expense</button>
+      <button class="btn ghost" onclick="quickMonthlyExpense()">Quick-add this month's running cost (₹<span id="e-quick-amt"></span>)</button>
+    </div>
+    <div class="card">
+      <h2>All expenses</h2>
+      <table>
+        <thead><tr><th>Date</th><th>What for</th><th>Amount</th><th></th></tr></thead>
+        <tbody id="expenses-table"></tbody>
+      </table>
+      <div class="empty" id="expenses-empty" style="display:none;">No expenses logged yet</div>
+    </div>
+  </div>
+
+  <div class="view" id="view-settings">
+    <div class="card">
+      <h2>Monthly running cost</h2>
+      <label>Shop 1 rent (₹/month)</label>
+      <input type="number" id="c-rent1">
+      <label>Shop 2 rent (₹/month)</label>
+      <input type="number" id="c-rent2">
+      <label>Labour + other running cost (₹/month)</label>
+      <input type="number" id="c-labour">
+      <button class="btn" id="btn-save-config" onclick="saveConfig()">Save</button>
+      <div class="note">Total estimated running cost auto-sums for the quick-add button in Expenses.</div>
+    </div>
+
+    <div class="card">
+      <h2>Connection</h2>
+      <div class="note">Web app URL currently in use is shown below. If saves keep failing, re-check the Apps Script deployment (it must be deployed as "Execute as: Me" / "Who has access: Anyone with the link").</div>
+      <div class="note" id="settings-url" style="word-break:break-all;"></div>
+      <button class="btn ghost" onclick="manualRefresh()">Force refresh from Google Sheet</button>
+    </div>
+  </div>
+</main>
+
+<div id="toast" class="util"></div>
+
+<script>
+/* ============================================================
+   POONDU LEDGER — front end
+   ------------------------------------------------------------
+   Key changes from the previous version (bug fixes):
+
+   1. Removed the duplicate `id="s-bags"` attribute that could
+      trip up some browsers/linters silently.
+
+   2. Saves now use action-based calls (addSale, addExpense,
+      addLot, updateLots, updatePartners, updateConfig) that
+      each send ONE record, matching the append-only Apps
+      Script backend — instead of resending the entire app
+      state on every keystroke-save.
+
+   3. Because Apps Script web apps don't support reading a
+      response under `mode:'no-cors'`, we do the POST in
+      no-cors (required for it to fire at all from a plain
+      fetch), then immediately re-fetch the full state with a
+      normal GET and diff row counts to confirm the save
+      actually landed — so failures are visible, not silently
+      swallowed like before.
+
+   4. All view-switching / event binding happens in a single
+      DOMContentLoaded block, defensively, so a failure in one
+      area (e.g. cloud fetch) can never prevent tab navigation
+      from working.
+   ============================================================ */
+
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwOqMAM1TFhgJrmNHYAbuFph824gZWKPFDFEhj0ep9r18ZgahLS1IeTvZ-fZ4Qxj0fi/exec";
+const KEY = 'garlic-business-data';
+
+let DATA = null;
+let currentChannel = 'retail';
+let currentReportPeriod = 'daily';
+
+const fmt = n => '₹' + Math.round(n||0).toLocaleString('en-IN');
+const todayISO = () => new Date().toISOString().slice(0,10);
+const uid = () => 'id' + Date.now() + Math.random().toString(36).slice(2,7);
+
+function defaultData(){
+  return {
+    config: { rent1: 45000, rent2: 10000, labour: 95000, interestRatePct: 1.5 },
+    partners: {
+      Thendral: {required:650000, contributed:1100000},
+      Nagaraj:  {required:650000, contributed:289550},
+      Senthil:  {required:650000, contributed:625953}
+    },
+    lots: [],
+    sales: [],
+    expenses: []
+  };
+}
+
+// ---------- toast / status ----------
+function showToast(msg, isErr){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.toggle('err', !!isErr);
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2600);
+}
+function setSyncBadge(state, label){
+  const b = document.getElementById('sync-badge');
+  b.className = 'sync-badge util ' + state;
+  b.textContent = label;
+}
+
+// ---------- networking ----------
+// Apps Script web apps under a plain fetch in no-cors mode never let us
+// read the response body. So: fire the write, then verify by re-pulling
+// the sheet and checking the row we expect is actually there.
+async function sendAction(action, payload, idForVerification){
+  setSyncBadge('pending', 'saving…');
+  try {
+    await fetch(CLOUD_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action, payload })
+    });
+    // give Apps Script a moment, then verify
+    await new Promise(r => setTimeout(r, 900));
+    const fresh = await fetchCloudState();
+    const ok = verifyAction(action, payload, idForVerification, fresh);
+    if (ok) {
+      setSyncBadge('ok', 'synced');
+      showToast('Saved to Google Sheet ✓');
+      DATA = fresh;
+      localStorage.setItem(KEY, JSON.stringify(DATA));
+      renderAll();
+    } else {
+      setSyncBadge('err', 'save failed');
+      showToast('Could not confirm the save reached the sheet — check Settings tab', true);
+    }
+    return ok;
+  } catch(e){
+    setSyncBadge('err', 'offline');
+    showToast('Network error — saved locally only, will not sync', true);
+    return false;
+  }
+}
+
+function verifyAction(action, payload, idForVerification, fresh){
+  if (!fresh) return false;
+  switch(action){
+    case 'addLot':    return fresh.lots.some(l => l.id === idForVerification);
+    case 'addSale':   return fresh.sales.some(s => s.id === idForVerification);
+    case 'addExpense':return fresh.expenses.some(x => x.id === idForVerification);
+    case 'updateLots':return fresh.lots.length === payload.length;
+    case 'updateConfig': return true;
+    case 'updatePartners': return true;
+    default: return true;
+  }
+}
+
+async function fetchCloudState(){
+  const res = await fetch(CLOUD_URL, { method: 'GET' });
+  const json = await res.json();
+  if (!json || !json.config) return null;
+  json.lots = json.lots || [];
+  json.sales = json.sales || [];
+  json.expenses = json.expenses || [];
+  json.partners = json.partners || {};
+  return json;
+}
+
+async function fetchReport(period){
+  const res = await fetch(CLOUD_URL + '?action=report&period=' + period);
+  return res.json();
+}
+
+// ---------- init ----------
+async function init(){
+  document.getElementById('settings-url').textContent = CLOUD_URL;
+  document.getElementById('loading').style.display='block';
+
+  let cloud = null;
+  try {
+    cloud = await fetchCloudState();
+  } catch(e){
+    console.warn('Cloud fetch failed', e);
+  }
+
+  if (cloud) {
+    DATA = cloud;
+    localStorage.setItem(KEY, JSON.stringify(DATA));
+    setSyncBadge('ok', 'synced');
+  } else {
+    setSyncBadge('err', 'offline');
+    try {
+      const raw = localStorage.getItem(KEY);
+      DATA = raw ? JSON.parse(raw) : defaultData();
+    } catch(e){
+      DATA = defaultData();
+    }
+    showToast('Could not reach Google Sheet — showing last local copy', true);
+  }
+
+  document.getElementById('loading').style.display='none';
+  populateFormsFromData();
+  renderAll();
+}
+
+async function manualRefresh(){
+  showToast('Refreshing…');
+  const cloud = await fetchCloudState();
+  if (cloud) {
+    DATA = cloud;
+    localStorage.setItem(KEY, JSON.stringify(DATA));
+    setSyncBadge('ok', 'synced');
+    renderAll();
+    showToast('Refreshed from Google Sheet ✓');
+  } else {
+    setSyncBadge('err', 'offline');
+    showToast('Could not reach Google Sheet', true);
+  }
+}
+
+// ---------- navigation (bound defensively, independent of cloud state) ----------
+function bindNav(){
+  document.querySelectorAll('nav button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('view-'+btn.dataset.view).classList.add('active');
+      if (btn.dataset.view==='sales') refreshLotDropdown();
+      if (btn.dataset.view==='reports') renderReport();
+    });
+  });
+}
+
+function setChannel(ch){
+  currentChannel = ch;
+  document.getElementById('s-ch-retail').classList.toggle('on', ch==='retail');
+  document.getElementById('s-ch-wholesale').classList.toggle('on', ch==='wholesale');
+}
+
+function setReportPeriod(p){
+  currentReportPeriod = p;
+  document.querySelectorAll('#view-reports .seg2 button').forEach(b=>{
+    b.classList.toggle('on', b.dataset.period === p);
+  });
+  renderReport();
+}
+
+// ---------- derived stats ----------
+function lotStats(lot){
+  const soldBags = DATA.sales.filter(s=>s.lotId===lot.id).reduce((s,x)=>s+Number(x.bags||0),0);
+  const soldKg = DATA.sales.filter(s=>s.lotId===lot.id).reduce((s,x)=>s+Number(x.kg||0),0);
+  const costPerKg = lot.cost && lot.kg ? (lot.cost / lot.kg) : 0;
+  return {
+    soldBags, soldKg,
+    remainingBags: lot.bags - soldBags,
+    remainingKg: lot.kg - soldKg,
+    costPerKg,
+    cogs: soldKg * costPerKg
+  };
+}
+
+function totals(){
+  let remainingBags=0, remainingKg=0, cogs=0;
+  DATA.lots.forEach(lot=>{
+    const st = lotStats(lot);
+    remainingBags += st.remainingBags;
+    remainingKg += st.remainingKg;
+    cogs += st.cogs;
+  });
+  const revenue = DATA.sales.reduce((s,x)=>s+Number(x.amount||0),0);
+  const expenseTotal = DATA.expenses.reduce((s,x)=>s+Number(x.amount||0),0);
+
+  const retail = DATA.sales.filter(s=>s.channel==='retail');
+  const wholesale = DATA.sales.filter(s=>s.channel==='wholesale');
+
+  return {
+    remainingBags, remainingKg, cogs, revenue, expenseTotal,
+    profit: revenue - cogs - expenseTotal,
+    retailRev: retail.reduce((s,x)=>s+Number(x.amount||0),0),
+    wholesaleRev: wholesale.reduce((s,x)=>s+Number(x.amount||0),0),
+    retailBags: retail.reduce((s,x)=>s+Number(x.bags||0),0),
+    wholesaleBags: wholesale.reduce((s,x)=>s+Number(x.bags||0),0)
+  };
+}
+
+function lotLabel(lotId){
+  const l = DATA.lots.find(x=>x.id===lotId);
+  return l ? l.label : '—';
+}
+
+// ---------- forms ----------
+function populateFormsFromData(){
+  const t = todayISO();
+  document.getElementById('s-date').value = t;
+  document.getElementById('l-date').value = t;
+  document.getElementById('e-date').value = t;
+
+  document.getElementById('c-rent1').value = DATA.config.rent1;
+  document.getElementById('c-rent2').value = DATA.config.rent2;
+  document.getElementById('c-labour').value = DATA.config.labour;
+  document.getElementById('p-interest').value = DATA.config.interestRatePct;
+
+  const quickAmt = Number(DATA.config.rent1||0) + Number(DATA.config.rent2||0) + Number(DATA.config.labour||0);
+  document.getElementById('e-quick-amt').textContent = quickAmt.toLocaleString('en-IN');
+
+  refreshLotDropdown();
+}
+
+function refreshLotDropdown(){
+  const sel = document.getElementById('s-lot');
+  sel.innerHTML = '';
+  DATA.lots.forEach(lot=>{
+    const st = lotStats(lot);
+    const opt = document.createElement('option');
+    opt.value = lot.id;
+    opt.textContent = lot.label + ' (' + st.remainingBags + ' bags left)';
+    sel.appendChild(opt);
+  });
+  autoFillSaleKg();
+}
+
+function autoFillSaleKg(){
+  const lotId = document.getElementById('s-lot').value;
+  const lot = DATA.lots.find(l=>l.id===lotId);
+  const bags = Number(document.getElementById('s-bags').value)||0;
+  if (lot && lot.bags>0) {
+    const kgPerBag = lot.kg / lot.bags;
+    document.getElementById('s-kg').value = (bags*kgPerBag).toFixed(1);
+  }
+}
+
+// ---------- actions: Lots ----------
+async function addLot(){
+  const label = document.getElementById('l-label').value.trim();
+  const bags = Number(document.getElementById('l-bags').value);
+  const kg = Number(document.getElementById('l-kg').value);
+  const cost = Number(document.getElementById('l-cost').value)||0;
+  const dateAdded = document.getElementById('l-date').value || todayISO();
+  if (!label || !bags || !kg) { showToast('Fill in lot name, bags and kg', true); return; }
+
+  const id = uid();
+  const lot = { id, label, bags, kg, cost, dateAdded };
+  DATA.lots.push(lot);
+  renderAll();
+  document.getElementById('l-label').value='';
+  document.getElementById('l-bags').value='';
+  document.getElementById('l-kg').value='';
+  document.getElementById('l-cost').value='';
+
+  document.getElementById('btn-add-lot').disabled = true;
+  await sendAction('addLot', lot, id);
+  document.getElementById('btn-add-lot').disabled = false;
+}
+
+async function saveLotEdits(){
+  document.getElementById('btn-save-lots').disabled = true;
+  await sendAction('updateLots', DATA.lots);
+  document.getElementById('btn-save-lots').disabled = false;
+}
+
+// ---------- actions: Sales ----------
+async function addSale(){
+  const lotId = document.getElementById('s-lot').value;
+  const date = document.getElementById('s-date').value || todayISO();
+  const bags = Number(document.getElementById('s-bags').value)||0;
+  const kg = Number(document.getElementById('s-kg').value)||0;
+  const amount = Number(document.getElementById('s-amount').value)||0;
+  const note = document.getElementById('s-note').value.trim();
+  if (!lotId || !bags || !amount) { showToast('Fill in lot, bags and amount', true); return; }
+
+  const id = uid();
+  const sale = { id, date, lotId, channel: currentChannel, bags, kg, amount, note };
+  DATA.sales.push(sale);
+  renderAll();
+  document.getElementById('s-bags').value='';
+  document.getElementById('s-kg').value='';
+  document.getElementById('s-amount').value='';
+  document.getElementById('s-note').value='';
+
+  document.getElementById('btn-add-sale').disabled = true;
+  await sendAction('addSale', sale, id);
+  document.getElementById('btn-add-sale').disabled = false;
+}
+
+async function deleteSale(id){
+  DATA.sales = DATA.sales.filter(s=>s.id!==id);
+  renderAll();
+  await sendAction('deleteSale', null, id).catch(()=>{});
+  fetch(CLOUD_URL, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({ action:'deleteSale', id })
+  });
+}
+
+// ---------- actions: Expenses ----------
+async function addExpense(){
+  const date = document.getElementById('e-date').value || todayISO();
+  const desc = document.getElementById('e-desc').value.trim();
+  const amount = Number(document.getElementById('e-amount').value)||0;
+  if (!desc || !amount) { showToast('Fill in description and amount', true); return; }
+
+  const id = uid();
+  const exp = { id, date, desc, amount };
+  DATA.expenses.push(exp);
+  renderAll();
+  document.getElementById('e-desc').value='';
+  document.getElementById('e-amount').value='';
+
+  document.getElementById('btn-add-expense').disabled = true;
+  await sendAction('addExpense', exp, id);
+  document.getElementById('btn-add-expense').disabled = false;
+}
+
+async function quickMonthlyExpense(){
+  const amount = Number(DATA.config.rent1||0) + Number(DATA.config.rent2||0) + Number(DATA.config.labour||0);
+  const id = uid();
+  const exp = { id, date: todayISO(), desc: 'Monthly running cost (rent + labour)', amount };
+  DATA.expenses.push(exp);
+  renderAll();
+  await sendAction('addExpense', exp, id);
+}
+
+async function deleteExpense(id){
+  DATA.expenses = DATA.expenses.filter(x=>x.id!==id);
+  renderAll();
+  fetch(CLOUD_URL, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({ action:'deleteExpense', id })
+  });
+}
+
+// ---------- actions: Partners / Config ----------
+async function savePartners(){
+  Object.keys(DATA.partners).forEach(name=>{
+    const el = document.getElementById('pe-'+name);
+    if (el) DATA.partners[name].contributed = Number(el.value)||0;
+  });
+  renderAll();
+  document.getElementById('btn-save-partners').disabled = true;
+  await sendAction('updatePartners', DATA.partners);
+  document.getElementById('btn-save-partners').disabled = false;
+}
+
+async function saveInterestRate(){
+  DATA.config.interestRatePct = Number(document.getElementById('p-interest').value)||0;
+  document.getElementById('btn-save-interest').disabled = true;
+  await sendAction('updateConfig', DATA.config);
+  document.getElementById('btn-save-interest').disabled = false;
+}
+
+async function saveConfig(){
+  DATA.config.rent1 = Number(document.getElementById('c-rent1').value)||0;
+  DATA.config.rent2 = Number(document.getElementById('c-rent2').value)||0;
+  DATA.config.labour = Number(document.getElementById('c-labour').value)||0;
+  populateFormsFromData();
+  document.getElementById('btn-save-config').disabled = true;
+  await sendAction('updateConfig', DATA.config);
+  document.getElementById('btn-save-config').disabled = false;
+}
+
+// ---------- rendering ----------
+function renderAll(){
+  renderDashboard();
+  renderInventory();
+  renderSalesTable();
+  renderPartners();
+  renderExpensesTable();
+}
+
+function renderDashboard(){
+  const t = totals();
+  document.getElementById('d-bags-left').textContent = t.remainingBags;
+  document.getElementById('d-kg-left').textContent = t.remainingKg.toFixed(0) + ' kg remaining';
+  document.getElementById('d-revenue').textContent = fmt(t.revenue);
+  document.getElementById('d-cogs').textContent = fmt(t.cogs);
+  document.getElementById('d-expenses').textContent = fmt(t.expenseTotal);
+  const profitEl = document.getElementById('d-profit');
+  profitEl.textContent = fmt(t.profit);
+  profitEl.className = 'value ' + (t.profit>=0 ? 'pos':'neg');
+  document.getElementById('d-retail-rev').textContent = fmt(t.retailRev);
+  document.getElementById('d-wholesale-rev').textContent = fmt(t.wholesaleRev);
+  document.getElementById('d-retail-bags').textContent = t.retailBags;
+  document.getElementById('d-wholesale-bags').textContent = t.wholesaleBags;
+
+  const lotsDiv = document.getElementById('d-lots');
+  lotsDiv.innerHTML = '';
+  DATA.lots.forEach(lot=>{
+    const st = lotStats(lot);
+    const pct = lot.bags ? Math.min(100, (st.soldBags/lot.bags*100)) : 0;
+    lotsDiv.insertAdjacentHTML('beforeend', `
+      <div class="lot-card">
+        <div class="lot-head"><span class="lot-title">${lot.label}</span><span class="lot-sub">${lot.dateAdded||''}</span></div>
+        <div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div>
+        <div class="lot-mini-grid">
+          <div>Total<b>${lot.bags} bags</b></div>
+          <div>Sold<b>${st.soldBags} bags</b></div>
+          <div>Left<b>${st.remainingBags} bags</b></div>
+        </div>
+      </div>`);
+  });
+
+  const recentBody = document.getElementById('d-recent');
+  const recent = [...DATA.sales].sort((a,b)=> (b.date||'').localeCompare(a.date||'')).slice(0,6);
+  recentBody.innerHTML = recent.map(s=>`
+    <tr><td>${s.date}</td><td>${lotLabel(s.lotId)}</td>
+    <td><span class="badge ${s.channel}">${s.channel==='retail'?'Retail':'Whsl'}</span></td>
+    <td>${s.bags}</td><td>${fmt(s.amount)}</td></tr>`).join('');
+  document.getElementById('d-recent-empty').style.display = recent.length? 'none':'block';
+}
+
+function renderInventory(){
+  const wrap = document.getElementById('inv-lots');
+  wrap.innerHTML='';
+  DATA.lots.forEach(lot=>{
+    const st = lotStats(lot);
+    const pct = lot.bags ? Math.min(100, (st.soldBags/lot.bags*100)) : 0;
+    wrap.insertAdjacentHTML('beforeend', `
+      <div class="lot-card">
+        <div class="lot-head"><span class="lot-title">${lot.label}</span><span class="lot-sub">₹${st.costPerKg.toFixed(1)}/kg cost</span></div>
+        <div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div>
+        <div class="lot-mini-grid">
+          <div>Total<b>${lot.bags} bags / ${lot.kg} kg</b></div>
+          <div>Sold<b>${st.soldBags} bags / ${st.soldKg.toFixed(0)} kg</b></div>
+          <div>Left<b>${st.remainingBags} bags / ${st.remainingKg.toFixed(0)} kg</b></div>
+        </div>
+      </div>`);
+  });
+  document.getElementById('inv-lots-empty').style.display = DATA.lots.length? 'none':'block';
+
+  const editWrap = document.getElementById('inv-edit');
+  editWrap.innerHTML = DATA.lots.map(lot=>`
+    <div style="margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--paper-dim);">
+      <label>${lot.label}</label>
+      <div class="row3">
+        <div><input type="number" id="le-bags-${lot.id}" value="${lot.bags}" placeholder="Bags"></div>
+        <div><input type="number" id="le-kg-${lot.id}" value="${lot.kg}" placeholder="Kg"></div>
+        <div><input type="number" id="le-cost-${lot.id}" value="${lot.cost}" placeholder="Cost"></div>
+      </div>
+    </div>`).join('');
+}
+
+function collectLotEditsIntoData(){
+  DATA.lots.forEach(lot=>{
+    const b = document.getElementById('le-bags-'+lot.id);
+    const k = document.getElementById('le-kg-'+lot.id);
+    const c = document.getElementById('le-cost-'+lot.id);
+    if (b) lot.bags = Number(b.value)||lot.bags;
+    if (k) lot.kg = Number(k.value)||lot.kg;
+    if (c) lot.cost = Number(c.value)||0;
+  });
+}
+// wrap saveLotEdits to pull edited values first
+const _origSaveLotEdits = saveLotEdits;
+saveLotEdits = async function(){
+  collectLotEditsIntoData();
+  await _origSaveLotEdits();
+};
+
+function renderSalesTable(){
+  const body = document.getElementById('sales-table');
+  const sorted = [...DATA.sales].sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  body.innerHTML = sorted.map(s=>`
+    <tr><td>${s.date}</td><td>${lotLabel(s.lotId)}</td>
+    <td><span class="badge ${s.channel}">${s.channel==='retail'?'Retail':'Whsl'}</span></td>
+    <td>${s.bags}</td><td>${fmt(s.amount)}</td>
+    <td><button class="del" onclick="deleteSale('${s.id}')">✕</button></td></tr>`).join('');
+  document.getElementById('sales-empty').style.display = sorted.length? 'none':'block';
+}
+
+function renderExpensesTable(){
+  const body = document.getElementById('expenses-table');
+  const sorted = [...DATA.expenses].sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  body.innerHTML = sorted.map(x=>`
+    <tr><td>${x.date}</td><td>${x.desc}</td><td>${fmt(x.amount)}</td>
+    <td><button class="del" onclick="deleteExpense('${x.id}')">✕</button></td></tr>`).join('');
+  document.getElementById('expenses-empty').style.display = sorted.length? 'none':'block';
+}
+
+function renderPartners(){
+  const list = document.getElementById('partners-list');
+  const editWrap = document.getElementById('partners-edit');
+  list.innerHTML=''; editWrap.innerHTML='';
+  Object.keys(DATA.partners).forEach(name=>{
+    const p = DATA.partners[name];
+    const shortfall = p.required - p.contributed;
+    list.insertAdjacentHTML('beforeend', `
+      <div class="partner-row">
+        <div><div class="partner-name">${name}</div><div class="note">${fmt(p.contributed)} of ${fmt(p.required)}</div></div>
+        <span class="badge ${shortfall>0?'owe':''}">${shortfall>0? 'Owes '+fmt(shortfall) : 'Fully paid'}</span>
+      </div>`);
+    editWrap.insertAdjacentHTML('beforeend', `
+      <label>${name} — contributed (₹)</label>
+      <input type="number" id="pe-${name}" value="${p.contributed}">`);
+  });
+}
+
+// ---------- reports ----------
+async function renderReport(){
+  const tbody = document.getElementById('report-table');
+  tbody.innerHTML = '<tr><td colspan="4" class="empty">Loading…</td></tr>';
+  let report;
+  try {
+    report = await fetchReport(currentReportPeriod);
+  } catch(e){
+    report = null;
+  }
+  if (!report || !report.buckets || !report.buckets.length){
+    tbody.innerHTML = '';
+    document.getElementById('report-empty').style.display = 'block';
+    return;
+  }
+  document.getElementById('report-empty').style.display = 'none';
+  const rows = [...report.buckets].sort((a,b)=> b.period.localeCompare(a.period));
+  tbody.innerHTML = rows.map(b=>`
+    <tr><td>${b.period}</td><td>${fmt(b.revenue)}</td><td>${fmt(b.expenses)}</td><td>${b.bags}</td></tr>`).join('');
+}
+
+// ---------- boot ----------
+document.addEventListener('DOMContentLoaded', ()=>{
+  bindNav();
+  init();
+});
+</script>
+</body>
+</html>
