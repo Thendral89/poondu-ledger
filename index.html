@@ -388,54 +388,37 @@ function setSyncBadge(state, label){
 }
 
 // ---------- networking ----------
-// Apps Script web apps under a plain fetch in no-cors mode never let us
-// read the response body. So: fire the write, then verify by re-pulling
-// the sheet and checking the row we expect is actually there.
-async function sendAction(action, payload, idForVerification){
+// Writes now go out as a JSONP GET (same mechanism as reads), so we get
+// a REAL response back from Apps Script — including the actual error
+// message if something fails — instead of firing a no-cors POST blind
+// and guessing whether it worked from a delayed re-fetch.
+async function sendAction(action, payload, id){
   setSyncBadge('pending', 'saving…');
   try {
-    await fetch(CLOUD_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action, payload })
-    });
-    // give Apps Script a moment, then verify
-    await new Promise(r => setTimeout(r, 900));
-    const fresh = await fetchCloudState();
-    const ok = verifyAction(action, payload, idForVerification, fresh);
-    if (ok) {
+    const url = CLOUD_URL + '?action=' + encodeURIComponent(action)
+      + '&payload=' + encodeURIComponent(JSON.stringify(payload || {}))
+      + (id ? '&id=' + encodeURIComponent(id) : '');
+    const res = await jsonp(url);
+
+    if (res && res.status === 'success') {
       setSyncBadge('ok', 'synced');
       showToast('Saved to Google Sheet ✓');
-      DATA = fresh;
-      localStorage.setItem(KEY, JSON.stringify(DATA));
-      renderAll();
+      const fresh = await fetchCloudState();
+      if (fresh) {
+        DATA = fresh;
+        localStorage.setItem(KEY, JSON.stringify(DATA));
+        renderAll();
+      }
+      return true;
     } else {
       setSyncBadge('err', 'save failed');
-      showToast('Could not confirm the save reached the sheet — check Settings tab', true);
+      showToast('Save failed: ' + (res && res.message ? res.message : 'unknown error'), true);
+      return false;
     }
-    return ok;
   } catch(e){
     setSyncBadge('err', 'offline');
-    showToast('Network error — saved locally only, will not sync', true);
+    showToast('Network error — saved locally only: ' + e.message, true);
     return false;
-  }
-}
-
-function verifyAction(action, payload, idForVerification, fresh){
-  if (!fresh) return false;
-  switch(action){
-    case 'addLot':    return fresh.lots.some(l => l.id === idForVerification);
-    case 'addSale':   return fresh.sales.some(s => s.id === idForVerification);
-    case 'addExpense':return fresh.expenses.some(x => x.id === idForVerification);
-    case 'updateLots':return fresh.lots.length === payload.length;
-    case 'addCapitalLoan':
-      return (fresh.capitalLoans||[]).some(l => l.id === idForVerification);
-    case 'updateCapitalLoan':
-      return (fresh.capitalLoans||[]).some(l => l.id === idForVerification && l.returnDate === payload.returnDate);
-    case 'updateConfig': return true;
-    case 'updatePartners': return true;
-    default: return true;
   }
 }
 
@@ -706,12 +689,7 @@ async function addSale(){
 async function deleteSale(id){
   DATA.sales = DATA.sales.filter(s=>s.id!==id);
   renderAll();
-  await sendAction('deleteSale', null, id).catch(()=>{});
-  fetch(CLOUD_URL, {
-    method:'POST', mode:'no-cors',
-    headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify({ action:'deleteSale', id })
-  });
+  await sendAction('deleteSale', null, id);
 }
 
 // ---------- actions: Expenses ----------
@@ -745,11 +723,7 @@ async function quickMonthlyExpense(){
 async function deleteExpense(id){
   DATA.expenses = DATA.expenses.filter(x=>x.id!==id);
   renderAll();
-  fetch(CLOUD_URL, {
-    method:'POST', mode:'no-cors',
-    headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify({ action:'deleteExpense', id })
-  });
+  await sendAction('deleteExpense', null, id);
 }
 
 // ---------- actions: Partners / Config ----------
@@ -844,11 +818,7 @@ async function setLoanReturnDate(id, value){
 async function deleteCapitalLoan(id){
   DATA.capitalLoans = DATA.capitalLoans.filter(l=>l.id!==id);
   renderLoans();
-  fetch(CLOUD_URL, {
-    method:'POST', mode:'no-cors',
-    headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify({ action:'deleteCapitalLoan', id })
-  });
+  await sendAction('deleteCapitalLoan', null, id);
 }
 
 function renderLoans(){
