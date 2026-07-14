@@ -327,7 +327,7 @@
       from working.
    ============================================================ */
 
-const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwOqMAM1TFhgJrmNHYAbuFph824gZWKPFDFEhj0ep9r18ZgahLS1IeTvZ-fZ4Qxj0fi/exec";
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbypnTLrBVFWGthYXvVICRw92RSULselNdCVmpD5gnL78kGn16ljvsyCKrcPH8bbyPeF/exec";
 const KEY = 'garlic-business-data';
 
 let DATA = null;
@@ -414,9 +414,34 @@ function verifyAction(action, payload, idForVerification, fresh){
   }
 }
 
+// JSONP: loads the response as a <script> tag instead of an XHR/fetch
+// request, which sidesteps the browser's CORS check entirely (script
+// tags aren't subject to CORS). This is necessary because a plain
+// fetch() GET to an Apps Script /exec URL from a different origin
+// (like your GitHub Pages site) gets blocked on the redirect Apps
+// Script issues internally to script.googleusercontent.com, which
+// doesn't carry the CORS header browsers require.
+function jsonp(url){
+  return new Promise((resolve, reject) => {
+    const cbName = 'jsonp_cb_' + Date.now() + '_' + Math.floor(Math.random()*100000);
+    const script = document.createElement('script');
+    let timeoutId;
+    function cleanup(){
+      clearTimeout(timeoutId);
+      delete window[cbName];
+      script.remove();
+    }
+    window[cbName] = (data) => { resolve(data); cleanup(); };
+    script.onerror = () => { reject(new Error('JSONP request failed')); cleanup(); };
+    const sep = url.includes('?') ? '&' : '?';
+    script.src = url + sep + 'callback=' + cbName;
+    timeoutId = setTimeout(() => { reject(new Error('JSONP timeout')); cleanup(); }, 12000);
+    document.body.appendChild(script);
+  });
+}
+
 async function fetchCloudState(){
-  const res = await fetch(CLOUD_URL, { method: 'GET' });
-  const json = await res.json();
+  const json = await jsonp(CLOUD_URL);
   if (!json || !json.config) return null;
   json.lots = json.lots || [];
   json.sales = json.sales || [];
@@ -426,8 +451,7 @@ async function fetchCloudState(){
 }
 
 async function fetchReport(period){
-  const res = await fetch(CLOUD_URL + '?action=report&period=' + period);
-  return res.json();
+  return jsonp(CLOUD_URL + '?action=report&period=' + period);
 }
 
 // ---------- init ----------
