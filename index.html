@@ -429,6 +429,10 @@ function verifyAction(action, payload, idForVerification, fresh){
     case 'addSale':   return fresh.sales.some(s => s.id === idForVerification);
     case 'addExpense':return fresh.expenses.some(x => x.id === idForVerification);
     case 'updateLots':return fresh.lots.length === payload.length;
+    case 'addCapitalLoan':
+      return (fresh.capitalLoans||[]).some(l => l.id === idForVerification);
+    case 'updateCapitalLoan':
+      return (fresh.capitalLoans||[]).some(l => l.id === idForVerification && l.returnDate === payload.returnDate);
     case 'updateConfig': return true;
     case 'updatePartners': return true;
     default: return true;
