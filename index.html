@@ -250,6 +250,26 @@
       <div class="note">Assumes a partner who has contributed less than ₹6,50,000 owes the others interest on the shortfall each month, until it's made up.</div>
       <button class="btn secondary" id="btn-save-interest" onclick="saveInterestRate()">Save rate</button>
     </div>
+
+    <div class="card">
+      <h2>Extra capital & interest (1.5% / month)</h2>
+      <div class="note">When a partner sends more than their ₹6,50,000 share, log it here. Interest is calculated day-by-day at 1.5% per 30 days from the date sent, until you record a return date. Leave return date blank while it's still outstanding — interest keeps accruing to today.</div>
+      <div id="loans-list" style="margin-top:12px;"></div>
+      <div class="empty" id="loans-empty" style="display:none;">No extra capital logged yet</div>
+    </div>
+
+    <div class="card">
+      <h2>Log extra capital sent</h2>
+      <label>Partner</label>
+      <select id="cl-partner"></select>
+      <label>Amount (₹)</label>
+      <input type="number" id="cl-amount" placeholder="e.g. 450000">
+      <label>Date sent</label>
+      <input type="date" id="cl-date">
+      <label>Note (optional)</label>
+      <input type="text" id="cl-note" placeholder="e.g. garlic procurement top-up">
+      <button class="btn" id="btn-add-loan" onclick="addCapitalLoan()">Log this amount</button>
+    </div>
   </div>
 
   <div class="view" id="view-expenses">
@@ -348,7 +368,8 @@ function defaultData(){
     },
     lots: [],
     sales: [],
-    expenses: []
+    expenses: [],
+    capitalLoans: []
   };
 }
 
@@ -447,6 +468,17 @@ async function fetchCloudState(){
   json.sales = json.sales || [];
   json.expenses = json.expenses || [];
   json.partners = json.partners || {};
+  json.capitalLoans = json.capitalLoans || [];
+  // If the Partners sheet has no rows yet, seed the standard three names
+  // with zero contributed so the UI has something to show and edit —
+  // saving from the app will then write real rows into the sheet.
+  if (Object.keys(json.partners).length === 0) {
+    json.partners = {
+      Thendral: { required: 650000, contributed: 0 },
+      Nagaraj:  { required: 650000, contributed: 0 },
+      Senthil:  { required: 650000, contributed: 0 }
+    };
+  }
   return json;
 }
 
@@ -578,6 +610,7 @@ function populateFormsFromData(){
   document.getElementById('s-date').value = t;
   document.getElementById('l-date').value = t;
   document.getElementById('e-date').value = t;
+  document.getElementById('cl-date').value = t;
 
   document.getElementById('c-rent1').value = DATA.config.rent1;
   document.getElementById('c-rent2').value = DATA.config.rent2;
@@ -744,13 +777,123 @@ async function saveConfig(){
   document.getElementById('btn-save-config').disabled = false;
 }
 
-// ---------- rendering ----------
+// ---------- actions: Extra Capital & Interest ----------
+const MONTHLY_RATE = 0.015; // 1.5% per 30 days, prorated by actual days
+
+function daysBetween(d1, d2){
+  const a = new Date(d1), b = new Date(d2);
+  return Math.round((b - a) / 86400000);
+}
+
+// Computes interest for one capital loan entry.
+// - If returnDate is set, that's the closing date: interest is fixed
+//   as of that date (the loan is "Returned").
+// - If returnDate is blank, interest accrues to today ("Outstanding").
+function loanInterest(loan){
+  const today = todayISO();
+  const asOf = loan.returnDate || today;
+  const days = Math.max(0, daysBetween(loan.dateSent, asOf));
+  const interest = loan.amount * MONTHLY_RATE * (days / 30);
+  const isReturned = !!loan.returnDate && loan.returnDate <= today;
+  const isFuturePlan = !!loan.returnDate && loan.returnDate > today;
+  return { days, interest, total: loan.amount + interest, isReturned, isFuturePlan, asOf };
+}
+
+function populateLoanPartnerDropdown(){
+  const sel = document.getElementById('cl-partner');
+  if (!sel) return;
+  sel.innerHTML = '';
+  Object.keys(DATA.partners).forEach(name=>{
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    sel.appendChild(opt);
+  });
+}
+
+async function addCapitalLoan(){
+  const partner = document.getElementById('cl-partner').value;
+  const amount = Number(document.getElementById('cl-amount').value)||0;
+  const dateSent = document.getElementById('cl-date').value || todayISO();
+  const note = document.getElementById('cl-note').value.trim();
+  if (!partner || !amount) { showToast('Fill in partner and amount', true); return; }
+
+  const id = uid();
+  const loan = { id, partner, amount, dateSent, returnDate: '', note };
+  DATA.capitalLoans.push(loan);
+  renderLoans();
+  document.getElementById('cl-amount').value='';
+  document.getElementById('cl-note').value='';
+
+  document.getElementById('btn-add-loan').disabled = true;
+  await sendAction('addCapitalLoan', loan, id);
+  document.getElementById('btn-add-loan').disabled = false;
+}
+
+async function setLoanReturnDate(id, value){
+  const loan = DATA.capitalLoans.find(l=>l.id===id);
+  if (!loan) return;
+  loan.returnDate = value;
+  renderLoans();
+  await sendAction('updateCapitalLoan', loan, id);
+}
+
+async function deleteCapitalLoan(id){
+  DATA.capitalLoans = DATA.capitalLoans.filter(l=>l.id!==id);
+  renderLoans();
+  fetch(CLOUD_URL, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({ action:'deleteCapitalLoan', id })
+  });
+}
+
+function renderLoans(){
+  const wrap = document.getElementById('loans-list');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  const sorted = [...(DATA.capitalLoans||[])].sort((a,b)=> (b.dateSent||'').localeCompare(a.dateSent||''));
+  sorted.forEach(loan=>{
+    const calc = loanInterest(loan);
+    const statusBadge = calc.isReturned
+      ? `<span class="badge">Returned ${loan.returnDate}</span>`
+      : calc.isFuturePlan
+        ? `<span class="badge wholesale">Plan to return ${loan.returnDate}</span>`
+        : `<span class="badge owe">Outstanding</span>`;
+    wrap.insertAdjacentHTML('beforeend', `
+      <div class="lot-card">
+        <div class="lot-head">
+          <span class="lot-title">${loan.partner} — ${fmt(loan.amount)}</span>
+          ${statusBadge}
+        </div>
+        <div class="lot-sub">Sent ${loan.dateSent}${loan.note? ' · '+loan.note : ''}</div>
+        <div class="lot-mini-grid" style="margin-top:8px;">
+          <div>Days counted<b>${calc.days}</b></div>
+          <div>Interest${calc.isFuturePlan?' (projected)':''}<b>${fmt(calc.interest)}</b></div>
+          <div>Total payable<b>${fmt(calc.total)}</b></div>
+        </div>
+        <div class="row2" style="margin-top:10px;">
+          <div>
+            <label>Return date (blank = still outstanding)</label>
+            <input type="date" value="${loan.returnDate||''}" onchange="setLoanReturnDate('${loan.id}', this.value)">
+          </div>
+          <div style="display:flex;align-items:flex-end;">
+            <button class="del" style="border:1px solid var(--line);border-radius:4px;padding:8px;width:100%;" onclick="deleteCapitalLoan('${loan.id}')">Delete entry</button>
+          </div>
+        </div>
+      </div>`);
+  });
+  document.getElementById('loans-empty').style.display = sorted.length? 'none':'block';
+}
+
+
 function renderAll(){
   renderDashboard();
   renderInventory();
   renderSalesTable();
   renderPartners();
   renderExpensesTable();
+  populateLoanPartnerDropdown();
+  renderLoans();
 }
 
 function renderDashboard(){
