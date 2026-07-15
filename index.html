@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Poondu Ledger — Garlic Business Tracker</title>
 <style>
   :root{
@@ -17,73 +17,90 @@
     --card:#FFFDF8;
   }
   *{box-sizing:border-box;}
-  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Georgia','Iowan Old Style',serif;-webkit-font-smoothing:antialiased;}
+  html,body{margin:0;height:100%;}
+  body{background:var(--paper);color:var(--ink);font-family:'Georgia','Iowan Old Style',serif;-webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom);}
   .util{font-family:'Helvetica Neue',Arial,sans-serif;}
-  header{padding:20px 18px 14px;border-bottom:2px solid var(--plum);background:var(--card);display:flex;justify-content:space-between;align-items:flex-start;}
-  header h1{margin:0;font-size:1.4rem;letter-spacing:0.2px;color:var(--plum-deep);}
-  header .sub{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.75rem;color:#7a7264;margin-top:4px;text-transform:uppercase;letter-spacing:1.1px;}
-  .sync-badge{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.68rem;padding:4px 9px;border-radius:10px;white-space:nowrap;margin-top:2px;}
+  header{padding:16px 16px 12px;border-bottom:2px solid var(--plum);background:var(--card);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  header h1{margin:0;font-size:1.25rem;letter-spacing:0.2px;color:var(--plum-deep);}
+  header .sub{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.7rem;color:#7a7264;margin-top:3px;text-transform:uppercase;letter-spacing:1px;}
+  .header-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+  .sync-badge{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.65rem;padding:4px 9px;border-radius:10px;white-space:nowrap;}
   .sync-badge.ok{background:var(--sage);color:#fff;}
   .sync-badge.err{background:var(--rust);color:#fff;}
   .sync-badge.pending{background:#c9bfa0;color:#4a4436;}
+  .actor-pill{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.68rem;padding:4px 10px;border-radius:10px;background:var(--plum);color:#fff;cursor:pointer;white-space:nowrap;border:none;}
   nav{display:flex;overflow-x:auto;background:var(--paper-dim);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;}
-  nav button{font-family:'Helvetica Neue',Arial,sans-serif;flex:1;min-width:80px;padding:11px 6px;background:none;border:none;font-size:0.76rem;font-weight:600;color:#8a8272;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;}
+  nav button{font-family:'Helvetica Neue',Arial,sans-serif;flex:1;min-width:76px;padding:11px 5px;background:none;border:none;font-size:0.72rem;font-weight:600;color:#8a8272;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;}
   nav button.active{color:var(--plum-deep);border-bottom:3px solid var(--rust);}
-  main{padding:16px;padding-bottom:60px;max-width:680px;margin:0 auto;}
+  main{padding:14px;padding-bottom:90px;max-width:680px;margin:0 auto;}
   .view{display:none;}
   .view.active{display:block;}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:16px;margin-bottom:14px;}
-  .card h2{margin:0 0 12px;font-size:1.02rem;color:var(--plum-deep);border-bottom:1px solid var(--line);padding-bottom:8px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px;margin-bottom:12px;}
+  .card h2{margin:0 0 10px;font-size:0.98rem;color:var(--plum-deep);border-bottom:1px solid var(--line);padding-bottom:7px;}
   .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   .stat{background:var(--paper-dim);border-radius:5px;padding:10px 12px;}
-  .stat .label{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.66rem;text-transform:uppercase;letter-spacing:0.6px;color:#8a8272;margin-bottom:3px;}
-  .stat .value{font-size:1.2rem;font-weight:bold;color:var(--plum-deep);}
+  .stat .label{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.64rem;text-transform:uppercase;letter-spacing:0.6px;color:#8a8272;margin-bottom:3px;}
+  .stat .value{font-size:1.15rem;font-weight:bold;color:var(--plum-deep);}
   .stat .value.neg{color:var(--rust);}
   .stat .value.pos{color:var(--sage);}
-  .big-stat{text-align:center;padding:16px;}
-  .big-stat .value{font-size:1.9rem;}
-  label{display:block;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.73rem;color:#7a7264;margin:10px 0 4px;text-transform:uppercase;letter-spacing:0.5px;}
+  .big-stat{text-align:center;padding:14px;}
+  .big-stat .value{font-size:1.8rem;}
+  label{display:block;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.72rem;color:#7a7264;margin:9px 0 4px;text-transform:uppercase;letter-spacing:0.5px;}
   input, select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:4px;font-size:0.93rem;font-family:'Helvetica Neue',Arial,sans-serif;background:#fff;color:var(--ink);}
   input:focus, select:focus{outline:2px solid var(--plum);outline-offset:1px;}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
-  .btn{font-family:'Helvetica Neue',Arial,sans-serif;display:inline-block;width:100%;margin-top:14px;padding:11px;background:var(--plum);color:#fff;border:none;border-radius:5px;font-size:0.88rem;font-weight:600;cursor:pointer;letter-spacing:0.3px;}
+  .btn{font-family:'Helvetica Neue',Arial,sans-serif;display:inline-block;width:100%;margin-top:12px;padding:11px;background:var(--plum);color:#fff;border:none;border-radius:5px;font-size:0.87rem;font-weight:600;cursor:pointer;letter-spacing:0.3px;}
   .btn:active{background:var(--plum-deep);}
   .btn:disabled{opacity:0.55;cursor:not-allowed;}
   .btn.secondary{background:transparent;border:1px solid var(--plum);color:var(--plum);}
   .btn.ghost{background:transparent;border:1px solid var(--line);color:#7a7264;font-weight:400;}
+  .btn.danger{background:var(--rust);}
   .seg2{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-top:4px;}
-  .seg2 button{flex:1;padding:8px;border:none;background:#fff;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.78rem;color:#7a7264;cursor:pointer;}
+  .seg2 button{flex:1;padding:8px 4px;border:none;background:#fff;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.72rem;color:#7a7264;cursor:pointer;}
   .seg2 button.on{background:var(--plum);color:#fff;font-weight:600;}
-  table{width:100%;border-collapse:collapse;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.82rem;}
-  th{text-align:left;font-size:0.64rem;text-transform:uppercase;color:#8a8272;padding:6px 4px;border-bottom:1px solid var(--line);}
+  table{width:100%;border-collapse:collapse;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.8rem;}
+  th{text-align:left;font-size:0.62rem;text-transform:uppercase;color:#8a8272;padding:6px 4px;border-bottom:1px solid var(--line);}
   td{padding:7px 4px;border-bottom:1px solid var(--paper-dim);vertical-align:middle;}
   tr:last-child td{border-bottom:none;}
-  .del{color:var(--rust);font-size:0.72rem;cursor:pointer;background:none;border:none;font-family:'Helvetica Neue',Arial,sans-serif;}
+  .row-actions{display:flex;gap:6px;white-space:nowrap;align-items:center;}
+  .icon-btn{border:none;background:none;cursor:pointer;font-size:0.85rem;padding:2px 5px;border-radius:4px;font-family:'Helvetica Neue',Arial,sans-serif;}
+  .icon-btn.edit{color:var(--plum);}
+  .icon-btn.del{color:var(--rust);}
   .empty{text-align:center;padding:20px 10px;color:#a49c8c;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.85rem;}
   .partner-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--paper-dim);}
   .partner-row:last-child{border-bottom:none;}
   .partner-name{font-weight:bold;color:var(--plum-deep);}
-  .note{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.76rem;color:#8a8272;line-height:1.4;margin-top:8px;}
-  .badge{display:inline-block;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.68rem;padding:2px 8px;border-radius:10px;background:var(--sage);color:#fff;white-space:nowrap;}
+  .note{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.75rem;color:#8a8272;line-height:1.4;margin-top:8px;}
+  .by-line{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.64rem;color:#a49c8c;margin-top:2px;}
+  .badge{display:inline-block;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.66rem;padding:2px 8px;border-radius:10px;background:var(--sage);color:#fff;white-space:nowrap;}
   .badge.owe{background:var(--rust);}
   .badge.wholesale{background:var(--plum);}
   .badge.retail{background:var(--sage);}
   .lot-card{border:1px solid var(--line);border-radius:5px;padding:12px;margin-bottom:10px;background:var(--paper-dim);}
-  .lot-card .lot-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;}
-  .lot-card .lot-title{font-weight:bold;color:var(--plum-deep);font-size:0.95rem;}
-  .lot-card .lot-sub{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.72rem;color:#8a8272;}
+  .lot-card .lot-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px;}
+  .lot-card .lot-title{font-weight:bold;color:var(--plum-deep);font-size:0.93rem;}
+  .lot-card .lot-sub{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.7rem;color:#8a8272;}
   .bar{height:6px;background:#e2d9c3;border-radius:3px;overflow:hidden;margin:6px 0;}
   .bar-fill{height:100%;background:var(--sage);}
-  .lot-mini-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.74rem;color:#5a5346;}
-  .lot-mini-grid b{display:block;color:var(--plum-deep);font-size:0.92rem;}
-  #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--plum-deep);color:#fff;padding:9px 18px;border-radius:20px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.8rem;opacity:0;transition:opacity 0.25s;pointer-events:none;z-index:20;max-width:85vw;text-align:center;}
+  .lot-mini-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.72rem;color:#5a5346;}
+  .lot-mini-grid b{display:block;color:var(--plum-deep);font-size:0.9rem;}
+  #toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:var(--plum-deep);color:#fff;padding:9px 18px;border-radius:20px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.8rem;opacity:0;transition:opacity 0.25s;pointer-events:none;z-index:30;max-width:85vw;text-align:center;}
   #toast.show{opacity:1;}
   #toast.err{background:var(--rust);}
   .loading{text-align:center;padding:40px;color:#8a8272;font-family:'Helvetica Neue',Arial,sans-serif;}
-  .seg{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-top:4px;}
-  .seg button{flex:1;padding:9px;border:none;background:#fff;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.85rem;color:#7a7264;cursor:pointer;}
-  .seg button.on{background:var(--plum);color:#fff;font-weight:600;}
+
+  .fab{position:fixed;right:18px;bottom:18px;width:56px;height:56px;border-radius:50%;background:var(--rust);color:#fff;border:none;font-size:1.6rem;line-height:1;box-shadow:0 4px 14px rgba(0,0,0,0.25);cursor:pointer;z-index:15;display:none;align-items:center;justify-content:center;}
+  .fab.show{display:flex;}
+  .fab:active{background:var(--plum-deep);}
+
+  .modal-backdrop{position:fixed;inset:0;background:rgba(43,38,32,0.5);z-index:40;display:none;align-items:flex-end;justify-content:center;}
+  .modal-backdrop.show{display:flex;}
+  .modal-sheet{background:var(--paper);width:100%;max-width:680px;max-height:88vh;overflow-y:auto;border-radius:16px 16px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .modal-head h3{margin:0;font-size:1.05rem;color:var(--plum-deep);}
+  .modal-close{background:none;border:none;font-size:1.3rem;color:#8a8272;cursor:pointer;line-height:1;padding:4px 8px;}
+  .modal-actor-btn{width:100%;text-align:left;padding:12px;margin-top:8px;border:1px solid var(--line);border-radius:6px;background:#fff;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.95rem;font-weight:600;color:var(--plum-deep);cursor:pointer;}
 </style>
 </head>
 <body>
@@ -93,7 +110,10 @@
     <h1>🧄 Poondu Ledger</h1>
     <div class="sub">Thendral · Nagaraj · Senthil — Garlic Trade</div>
   </div>
-  <div id="sync-badge" class="sync-badge pending util">connecting…</div>
+  <div class="header-right">
+    <div id="sync-badge" class="sync-badge pending util">connecting…</div>
+    <button id="actor-pill" class="actor-pill" onclick="openActorPicker()">who am I?</button>
+  </div>
 </header>
 
 <nav class="util">
@@ -144,7 +164,7 @@
     <div class="card">
       <h2>Recent sales</h2>
       <table>
-        <thead><tr><th>Date</th><th>Lot</th><th>Ch.</th><th>Bags</th><th>Amount</th></tr></thead>
+        <thead><tr><th>Date</th><th>Lot</th><th>Ch.</th><th>Bags</th><th>Kg</th><th>Amount</th></tr></thead>
         <tbody id="d-recent"></tbody>
       </table>
       <div class="empty" id="d-recent-empty" style="display:none;">No sales logged yet</div>
@@ -155,62 +175,23 @@
     <div class="card">
       <h2>Lots — total vs sold vs remaining</h2>
       <div id="inv-lots"></div>
-      <div class="empty" id="inv-lots-empty" style="display:none;">No lots yet — add your first purchase lot below</div>
-    </div>
-
-    <div class="card">
-      <h2>Add a new lot</h2>
-      <label>Lot name</label>
-      <input type="text" id="l-label" placeholder="e.g. Lot 3">
-      <div class="row2">
-        <div><label>Bags</label><input type="number" id="l-bags" step="1" placeholder="e.g. 100"></div>
-        <div><label>Total kg</label><input type="number" id="l-kg" step="0.1" placeholder="e.g. 2800"></div>
-      </div>
-      <label>Purchase cost for this lot (₹) — optional, can add later</label>
-      <input type="number" id="l-cost" placeholder="e.g. 380000">
-      <label>Date procured</label>
-      <input type="date" id="l-date">
-      <button class="btn" id="btn-add-lot" onclick="addLot()">Add lot to inventory</button>
-    </div>
-
-    <div class="card">
-      <h2>Edit existing lots</h2>
-      <div id="inv-edit"></div>
-      <button class="btn secondary" id="btn-save-lots" onclick="saveLotEdits()">Save changes to lots</button>
-      <div class="note">You can correct bag count, kg, or cost here any time — for example once the exact bill for a lot comes in.</div>
+      <div class="empty" id="inv-lots-empty" style="display:none;">No lots yet — tap + to add your first purchase lot</div>
     </div>
   </div>
 
   <div class="view" id="view-sales">
     <div class="card">
-      <h2>Log today's sale</h2>
-      <label>Date</label>
-      <input type="date" id="s-date">
-      <label>Which lot is this sale from</label>
-      <select id="s-lot" onchange="autoFillSaleKg()"></select>
-      <label>Channel</label>
-      <div class="seg">
-        <button type="button" id="s-ch-retail" class="on" onclick="setChannel('retail')">Retail</button>
-        <button type="button" id="s-ch-wholesale" onclick="setChannel('wholesale')">Wholesale</button>
+      <div class="seg2" id="sales-period-filter">
+        <button type="button" class="on" data-p="all" onclick="setSalesFilter('all')">All</button>
+        <button type="button" data-p="today" onclick="setSalesFilter('today')">Today</button>
+        <button type="button" data-p="week" onclick="setSalesFilter('week')">This week</button>
+        <button type="button" data-p="month" onclick="setSalesFilter('month')">This month</button>
       </div>
-      <div class="row2">
-        <div><label>Bags sold</label><input type="number" id="s-bags" step="0.1" placeholder="e.g. 15" oninput="autoFillSaleKg()"></div>
-        <div><label>Kg sold (auto, editable)</label><input type="number" id="s-kg" step="0.1" placeholder="auto"></div>
-      </div>
-      <label>Sale amount received (₹)</label>
-      <input type="number" id="s-amount" placeholder="e.g. 105000">
-      <label>Note (optional)</label>
-      <input type="text" id="s-note" placeholder="e.g. sold to Gandhipuram market">
-      <button class="btn" id="btn-add-sale" onclick="addSale()">Save sale — updates that lot's stock</button>
-    </div>
-
-    <div class="card">
-      <h2>All sales</h2>
-      <table>
-        <thead><tr><th>Date</th><th>Lot</th><th>Ch.</th><th>Bags</th><th>Amount</th><th></th></tr></thead>
+      <table style="margin-top:10px;">
+        <thead><tr><th>Date</th><th>Lot</th><th>Ch.</th><th>Bags</th><th>Kg</th><th>Amount</th><th></th></tr></thead>
         <tbody id="sales-table"></tbody>
       </table>
-      <div class="empty" id="sales-empty" style="display:none;">No sales yet — log your first one above</div>
+      <div class="empty" id="sales-empty" style="display:none;">No sales yet — tap + to log one</div>
     </div>
   </div>
 
@@ -228,7 +209,7 @@
         <tbody id="report-table"></tbody>
       </table>
       <div class="empty" id="report-empty" style="display:none;">Not enough data yet for this view</div>
-      <div class="note">This is computed live from your Sales and Expenses sheets — no code changes needed to add a new period. For deeper cuts (by partner, by lot, by channel) open the Google Sheet directly and drop in a Pivot Table on the Sales tab; the data is a plain append-only ledger so any spreadsheet formula works on it.</div>
+      <div class="note">Computed live from your Sales and Expenses sheets. For deeper cuts (by partner, by lot, by channel), open the Google Sheet directly and drop in a Pivot Table.</div>
     </div>
   </div>
 
@@ -253,44 +234,26 @@
 
     <div class="card">
       <h2>Extra capital & interest (1.5% / month)</h2>
-      <div class="note">When a partner sends more than their ₹6,50,000 share, log it here. Interest is calculated day-by-day at 1.5% per 30 days from the date sent, until you record a return date. Leave return date blank while it's still outstanding — interest keeps accruing to today.</div>
+      <div class="note">When a partner sends more than their ₹6,50,000 share, log it here (tap +). Interest is calculated day-by-day at 1.5% per 30 days from the date sent, until you record a return date.</div>
       <div id="loans-list" style="margin-top:12px;"></div>
       <div class="empty" id="loans-empty" style="display:none;">No extra capital logged yet</div>
-    </div>
-
-    <div class="card">
-      <h2>Log extra capital sent</h2>
-      <label>Partner</label>
-      <select id="cl-partner"></select>
-      <label>Amount (₹)</label>
-      <input type="number" id="cl-amount" placeholder="e.g. 450000">
-      <label>Date sent</label>
-      <input type="date" id="cl-date">
-      <label>Note (optional)</label>
-      <input type="text" id="cl-note" placeholder="e.g. garlic procurement top-up">
-      <button class="btn" id="btn-add-loan" onclick="addCapitalLoan()">Log this amount</button>
     </div>
   </div>
 
   <div class="view" id="view-expenses">
     <div class="card">
-      <h2>Log an expense</h2>
-      <label>Date</label>
-      <input type="date" id="e-date">
-      <label>What for</label>
-      <input type="text" id="e-desc" placeholder="e.g. July rent + labour">
-      <label>Amount (₹)</label>
-      <input type="number" id="e-amount" placeholder="e.g. 150000">
-      <button class="btn" id="btn-add-expense" onclick="addExpense()">Save expense</button>
-      <button class="btn ghost" onclick="quickMonthlyExpense()">Quick-add this month's running cost (₹<span id="e-quick-amt"></span>)</button>
-    </div>
-    <div class="card">
-      <h2>All expenses</h2>
-      <table>
+      <div class="seg2" id="expenses-period-filter">
+        <button type="button" class="on" data-p="all" onclick="setExpensesFilter('all')">All</button>
+        <button type="button" data-p="today" onclick="setExpensesFilter('today')">Today</button>
+        <button type="button" data-p="week" onclick="setExpensesFilter('week')">This week</button>
+        <button type="button" data-p="month" onclick="setExpensesFilter('month')">This month</button>
+      </div>
+      <table style="margin-top:10px;">
         <thead><tr><th>Date</th><th>What for</th><th>Amount</th><th></th></tr></thead>
         <tbody id="expenses-table"></tbody>
       </table>
-      <div class="empty" id="expenses-empty" style="display:none;">No expenses logged yet</div>
+      <div class="empty" id="expenses-empty" style="display:none;">No expenses logged yet — tap + to add one</div>
+      <button class="btn ghost" onclick="quickMonthlyExpense()">Quick-add this month's running cost (₹<span id="e-quick-amt"></span>)</button>
     </div>
   </div>
 
@@ -309,50 +272,44 @@
 
     <div class="card">
       <h2>Connection</h2>
-      <div class="note">Web app URL currently in use is shown below. If saves keep failing, re-check the Apps Script deployment (it must be deployed as "Execute as: Me" / "Who has access: Anyone with the link").</div>
+      <div class="note">Web app URL currently in use is shown below. If saves keep failing, re-check the Apps Script deployment (it must be deployed as "Execute as: Me" / "Who has access: Anyone").</div>
       <div class="note" id="settings-url" style="word-break:break-all;"></div>
       <button class="btn ghost" onclick="manualRefresh()">Force refresh from Google Sheet</button>
+    </div>
+
+    <div class="card">
+      <h2>Who's using this device</h2>
+      <div class="note">Your name is attached to every record you add or edit, so partners can see who logged what.</div>
+      <button class="btn secondary" onclick="openActorPicker()">Change my name</button>
     </div>
   </div>
 </main>
 
+<button id="fab" class="fab util" onclick="fabAction && fabAction()">+</button>
+
+<div id="modal-backdrop" class="modal-backdrop util" onclick="if(event.target===this) closeModal()">
+  <div class="modal-sheet">
+    <div class="modal-head">
+      <h3 id="modal-title">Title</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modal-body"></div>
+    <button class="btn" id="modal-save-btn">Save</button>
+  </div>
+</div>
+
 <div id="toast" class="util"></div>
 
 <script>
-/* ============================================================
-   POONDU LEDGER — front end
-   ------------------------------------------------------------
-   Key changes from the previous version (bug fixes):
-
-   1. Removed the duplicate `id="s-bags"` attribute that could
-      trip up some browsers/linters silently.
-
-   2. Saves now use action-based calls (addSale, addExpense,
-      addLot, updateLots, updatePartners, updateConfig) that
-      each send ONE record, matching the append-only Apps
-      Script backend — instead of resending the entire app
-      state on every keystroke-save.
-
-   3. Because Apps Script web apps don't support reading a
-      response under `mode:'no-cors'`, we do the POST in
-      no-cors (required for it to fire at all from a plain
-      fetch), then immediately re-fetch the full state with a
-      normal GET and diff row counts to confirm the save
-      actually landed — so failures are visible, not silently
-      swallowed like before.
-
-   4. All view-switching / event binding happens in a single
-      DOMContentLoaded block, defensively, so a failure in one
-      area (e.g. cloud fetch) can never prevent tab navigation
-      from working.
-   ============================================================ */
-
 const CLOUD_URL = "https://script.google.com/macros/s/AKfycbx6_6ulM_6CiZuJOp_RnkzUHj28AKM7VOkoatUUC5zrCCihHR9zqPyhK_xls_5pOzbk/exec";
 const KEY = 'garlic-business-data';
+const ACTOR_KEY = 'poondu-actor';
 
 let DATA = null;
-let currentChannel = 'retail';
 let currentReportPeriod = 'daily';
+let salesFilter = 'all';
+let expensesFilter = 'all';
+let fabAction = null;
 
 const fmt = n => '₹' + Math.round(n||0).toLocaleString('en-IN');
 const todayISO = () => new Date().toISOString().slice(0,10);
@@ -366,20 +323,29 @@ function defaultData(){
       Nagaraj:  {required:650000, contributed:289550},
       Senthil:  {required:650000, contributed:625953}
     },
-    lots: [],
-    sales: [],
-    expenses: [],
-    capitalLoans: []
+    lots: [], sales: [], expenses: [], capitalLoans: []
   };
 }
 
-// ---------- toast / status ----------
+function getActor(){ return localStorage.getItem(ACTOR_KEY) || ''; }
+function setActor(name){
+  localStorage.setItem(ACTOR_KEY, name);
+  document.getElementById('actor-pill').textContent = name;
+}
+function openActorPicker(){
+  const names = Object.keys(DATA.partners || {});
+  const html = '<div class="note">Pick your name so changes are attributed correctly.</div>'
+    + names.map(n=>`<button type="button" class="modal-actor-btn" onclick="setActor('${n}'); closeModal();">${n}</button>`).join('');
+  openModal('Who are you?', html, null);
+  document.getElementById('modal-save-btn').style.display = 'none';
+}
+
 function showToast(msg, isErr){
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.toggle('err', !!isErr);
   t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2600);
+  setTimeout(()=>t.classList.remove('show'), 2800);
 }
 function setSyncBadge(state, label){
   const b = document.getElementById('sync-badge');
@@ -387,58 +353,34 @@ function setSyncBadge(state, label){
   b.textContent = label;
 }
 
-// ---------- networking ----------
-// Writes now go out as a JSONP GET (same mechanism as reads), so we get
-// a REAL response back from Apps Script — including the actual error
-// message if something fails — instead of firing a no-cors POST blind
-// and guessing whether it worked from a delayed re-fetch.
-async function sendAction(action, payload, id){
-  setSyncBadge('pending', 'saving…');
-  try {
-    const url = CLOUD_URL + '?action=' + encodeURIComponent(action)
-      + '&payload=' + encodeURIComponent(JSON.stringify(payload || {}))
-      + (id ? '&id=' + encodeURIComponent(id) : '');
-    const res = await jsonp(url);
-
-    if (res && res.status === 'success') {
-      setSyncBadge('ok', 'synced');
-      showToast('Saved to Google Sheet ✓');
-      const fresh = await fetchCloudState();
-      if (fresh) {
-        DATA = fresh;
-        localStorage.setItem(KEY, JSON.stringify(DATA));
-        renderAll();
-      }
-      return true;
-    } else {
-      setSyncBadge('err', 'save failed');
-      showToast('Save failed: ' + (res && res.message ? res.message : 'unknown error'), true);
-      return false;
-    }
-  } catch(e){
-    setSyncBadge('err', 'offline');
-    showToast('Network error — saved locally only: ' + e.message, true);
-    return false;
-  }
+function openModal(title, bodyHtml, onSave, saveLabel){
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = bodyHtml;
+  const btn = document.getElementById('modal-save-btn');
+  btn.style.display = onSave ? 'block' : 'none';
+  btn.textContent = saveLabel || 'Save';
+  btn.onclick = async () => {
+    btn.disabled = true;
+    const result = await onSave();
+    btn.disabled = false;
+    if (result !== false) closeModal();
+  };
+  document.getElementById('modal-backdrop').classList.add('show');
+}
+function closeModal(){
+  document.getElementById('modal-backdrop').classList.remove('show');
 }
 
-// JSONP: loads the response as a <script> tag instead of an XHR/fetch
-// request, which sidesteps the browser's CORS check entirely (script
-// tags aren't subject to CORS). This is necessary because a plain
-// fetch() GET to an Apps Script /exec URL from a different origin
-// (like your GitHub Pages site) gets blocked on the redirect Apps
-// Script issues internally to script.googleusercontent.com, which
-// doesn't carry the CORS header browsers require.
+function confirmThen(message, fn){
+  if (window.confirm(message)) fn();
+}
+
 function jsonp(url){
   return new Promise((resolve, reject) => {
     const cbName = 'jsonp_cb_' + Date.now() + '_' + Math.floor(Math.random()*100000);
     const script = document.createElement('script');
     let timeoutId;
-    function cleanup(){
-      clearTimeout(timeoutId);
-      delete window[cbName];
-      script.remove();
-    }
+    function cleanup(){ clearTimeout(timeoutId); delete window[cbName]; script.remove(); }
     window[cbName] = (data) => { resolve(data); cleanup(); };
     script.onerror = () => { reject(new Error('JSONP request failed')); cleanup(); };
     const sep = url.includes('?') ? '&' : '?';
@@ -456,9 +398,6 @@ async function fetchCloudState(){
   json.expenses = json.expenses || [];
   json.partners = json.partners || {};
   json.capitalLoans = json.capitalLoans || [];
-  // If the Partners sheet has no rows yet, seed the standard three names
-  // with zero contributed so the UI has something to show and edit —
-  // saving from the app will then write real rows into the sheet.
   if (Object.keys(json.partners).length === 0) {
     json.partners = {
       Thendral: { required: 650000, contributed: 0 },
@@ -473,17 +412,39 @@ async function fetchReport(period){
   return jsonp(CLOUD_URL + '?action=report&period=' + period);
 }
 
-// ---------- init ----------
+async function sendAction(action, payload, id){
+  setSyncBadge('pending', 'saving…');
+  try {
+    const url = CLOUD_URL + '?action=' + encodeURIComponent(action)
+      + '&payload=' + encodeURIComponent(JSON.stringify(payload || {}))
+      + (id ? '&id=' + encodeURIComponent(id) : '');
+    const res = await jsonp(url);
+    if (res && res.status === 'success') {
+      setSyncBadge('ok', 'synced');
+      showToast('Saved to Google Sheet ✓');
+      const fresh = await fetchCloudState();
+      if (fresh) { DATA = fresh; localStorage.setItem(KEY, JSON.stringify(DATA)); renderAll(); }
+      return true;
+    } else {
+      setSyncBadge('err', 'save failed');
+      showToast('Save failed: ' + (res && res.message ? res.message : 'unknown error'), true);
+      return false;
+    }
+  } catch(e){
+    setSyncBadge('err', 'offline');
+    showToast('Network error — saved locally only: ' + e.message, true);
+    return false;
+  }
+}
+
 async function init(){
   document.getElementById('settings-url').textContent = CLOUD_URL;
   document.getElementById('loading').style.display='block';
+  const actor = getActor();
+  if (actor) document.getElementById('actor-pill').textContent = actor;
 
   let cloud = null;
-  try {
-    cloud = await fetchCloudState();
-  } catch(e){
-    console.warn('Cloud fetch failed', e);
-  }
+  try { cloud = await fetchCloudState(); } catch(e){ console.warn('Cloud fetch failed', e); }
 
   if (cloud) {
     DATA = cloud;
@@ -494,15 +455,14 @@ async function init(){
     try {
       const raw = localStorage.getItem(KEY);
       DATA = raw ? JSON.parse(raw) : defaultData();
-    } catch(e){
-      DATA = defaultData();
-    }
+    } catch(e){ DATA = defaultData(); }
     showToast('Could not reach Google Sheet — showing last local copy', true);
   }
 
   document.getElementById('loading').style.display='none';
   populateFormsFromData();
   renderAll();
+  if (!getActor()) openActorPicker();
 }
 
 async function manualRefresh(){
@@ -520,24 +480,29 @@ async function manualRefresh(){
   }
 }
 
-// ---------- navigation (bound defensively, independent of cloud state) ----------
+const FAB_CONFIG = {
+  inventory: { action: () => openLotModal() },
+  sales:     { action: () => openSaleModal() },
+  expenses:  { action: () => openExpenseModal() },
+  partners:  { action: () => openLoanModal() }
+};
+
 function bindNav(){
   document.querySelectorAll('nav button').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
       document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
       btn.classList.add('active');
-      document.getElementById('view-'+btn.dataset.view).classList.add('active');
-      if (btn.dataset.view==='sales') refreshLotDropdown();
-      if (btn.dataset.view==='reports') renderReport();
+      const view = btn.dataset.view;
+      document.getElementById('view-'+view).classList.add('active');
+      if (view==='reports') renderReport();
+
+      const fab = document.getElementById('fab');
+      const cfg = FAB_CONFIG[view];
+      if (cfg) { fab.classList.add('show'); fabAction = cfg.action; }
+      else { fab.classList.remove('show'); fabAction = null; }
     });
   });
-}
-
-function setChannel(ch){
-  currentChannel = ch;
-  document.getElementById('s-ch-retail').classList.toggle('on', ch==='retail');
-  document.getElementById('s-ch-wholesale').classList.toggle('on', ch==='wholesale');
 }
 
 function setReportPeriod(p){
@@ -547,186 +512,210 @@ function setReportPeriod(p){
   });
   renderReport();
 }
+function setSalesFilter(p){
+  salesFilter = p;
+  document.querySelectorAll('#sales-period-filter button').forEach(b=>b.classList.toggle('on', b.dataset.p===p));
+  renderSalesTable();
+}
+function setExpensesFilter(p){
+  expensesFilter = p;
+  document.querySelectorAll('#expenses-period-filter button').forEach(b=>b.classList.toggle('on', b.dataset.p===p));
+  renderExpensesTable();
+}
 
-// ---------- derived stats ----------
+function inPeriod(dateStr, filter){
+  if (filter === 'all' || !dateStr) return true;
+  const d = new Date(dateStr), now = new Date();
+  if (filter === 'today') return dateStr === todayISO();
+  if (filter === 'week') {
+    const day = (now.getDay()+6)%7;
+    const monday = new Date(now); monday.setDate(now.getDate()-day); monday.setHours(0,0,0,0);
+    return d >= monday;
+  }
+  if (filter === 'month') return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+  return true;
+}
+
 function lotStats(lot){
   const soldBags = DATA.sales.filter(s=>s.lotId===lot.id).reduce((s,x)=>s+Number(x.bags||0),0);
   const soldKg = DATA.sales.filter(s=>s.lotId===lot.id).reduce((s,x)=>s+Number(x.kg||0),0);
   const costPerKg = lot.cost && lot.kg ? (lot.cost / lot.kg) : 0;
-  return {
-    soldBags, soldKg,
-    remainingBags: lot.bags - soldBags,
-    remainingKg: lot.kg - soldKg,
-    costPerKg,
-    cogs: soldKg * costPerKg
-  };
+  return { soldBags, soldKg, remainingBags: lot.bags - soldBags, remainingKg: lot.kg - soldKg, costPerKg, cogs: soldKg * costPerKg };
 }
 
 function totals(){
   let remainingBags=0, remainingKg=0, cogs=0;
   DATA.lots.forEach(lot=>{
     const st = lotStats(lot);
-    remainingBags += st.remainingBags;
-    remainingKg += st.remainingKg;
-    cogs += st.cogs;
+    remainingBags += st.remainingBags; remainingKg += st.remainingKg; cogs += st.cogs;
   });
   const revenue = DATA.sales.reduce((s,x)=>s+Number(x.amount||0),0);
   const expenseTotal = DATA.expenses.reduce((s,x)=>s+Number(x.amount||0),0);
-
   const retail = DATA.sales.filter(s=>s.channel==='retail');
   const wholesale = DATA.sales.filter(s=>s.channel==='wholesale');
-
   return {
-    remainingBags, remainingKg, cogs, revenue, expenseTotal,
-    profit: revenue - cogs - expenseTotal,
+    remainingBags, remainingKg, cogs, revenue, expenseTotal, profit: revenue - cogs - expenseTotal,
     retailRev: retail.reduce((s,x)=>s+Number(x.amount||0),0),
     wholesaleRev: wholesale.reduce((s,x)=>s+Number(x.amount||0),0),
     retailBags: retail.reduce((s,x)=>s+Number(x.bags||0),0),
     wholesaleBags: wholesale.reduce((s,x)=>s+Number(x.bags||0),0)
   };
 }
+function lotLabel(lotId){ const l = DATA.lots.find(x=>x.id===lotId); return l ? l.label : '—'; }
 
-function lotLabel(lotId){
-  const l = DATA.lots.find(x=>x.id===lotId);
-  return l ? l.label : '—';
-}
-
-// ---------- forms ----------
 function populateFormsFromData(){
-  const t = todayISO();
-  document.getElementById('s-date').value = t;
-  document.getElementById('l-date').value = t;
-  document.getElementById('e-date').value = t;
-  document.getElementById('cl-date').value = t;
-
   document.getElementById('c-rent1').value = DATA.config.rent1;
   document.getElementById('c-rent2').value = DATA.config.rent2;
   document.getElementById('c-labour').value = DATA.config.labour;
   document.getElementById('p-interest').value = DATA.config.interestRatePct;
-
   const quickAmt = Number(DATA.config.rent1||0) + Number(DATA.config.rent2||0) + Number(DATA.config.labour||0);
   document.getElementById('e-quick-amt').textContent = quickAmt.toLocaleString('en-IN');
-
-  refreshLotDropdown();
 }
 
-function refreshLotDropdown(){
-  const sel = document.getElementById('s-lot');
-  sel.innerHTML = '';
-  DATA.lots.forEach(lot=>{
-    const st = lotStats(lot);
-    const opt = document.createElement('option');
-    opt.value = lot.id;
-    opt.textContent = lot.label + ' (' + st.remainingBags + ' bags left)';
-    sel.appendChild(opt);
+function openLotModal(existing){
+  const l = existing || { label:'', bags:'', kg:'', cost:'', dateAdded: todayISO() };
+  const html = `
+    <label>Lot name</label><input type="text" id="m-label" value="${l.label}" placeholder="e.g. Lot 3">
+    <div class="row2">
+      <div><label>Bags</label><input type="number" id="m-bags" value="${l.bags}"></div>
+      <div><label>Total kg</label><input type="number" id="m-kg" value="${l.kg}"></div>
+    </div>
+    <label>Purchase cost (₹) — optional</label><input type="number" id="m-cost" value="${l.cost}">
+    <label>Date procured</label><input type="date" id="m-date" value="${l.dateAdded}">`;
+  openModal(existing ? 'Edit lot' : 'Add a new lot', html, async () => {
+    const label = document.getElementById('m-label').value.trim();
+    const bags = Number(document.getElementById('m-bags').value);
+    const kg = Number(document.getElementById('m-kg').value);
+    const cost = Number(document.getElementById('m-cost').value)||0;
+    const dateAdded = document.getElementById('m-date').value || todayISO();
+    if (!label || !bags || !kg) { showToast('Fill in lot name, bags and kg', true); return false; }
+    if (existing) {
+      Object.assign(existing, { label, bags, kg, cost, dateAdded });
+      renderAll();
+      await sendAction('updateLots', DATA.lots);
+    } else {
+      const id = uid();
+      const lot = { id, label, bags, kg, cost, dateAdded, addedBy: getActor() };
+      DATA.lots.push(lot);
+      renderAll();
+      await sendAction('addLot', lot, id);
+    }
+  }, existing ? 'Save changes' : 'Add lot');
+}
+
+async function deleteLot(id){
+  confirmThen('Delete this lot? Its sales history will remain but will show as an unknown lot.', async () => {
+    DATA.lots = DATA.lots.filter(l=>l.id!==id);
+    renderAll();
+    await sendAction('updateLots', DATA.lots);
   });
-  autoFillSaleKg();
 }
 
-function autoFillSaleKg(){
-  const lotId = document.getElementById('s-lot').value;
+function openSaleModal(existing){
+  const s = existing || { date: todayISO(), lotId:'', channel:'retail', bags:'', kg:'', amount:'', note:'' };
+  const lotOptions = DATA.lots.map(l=>{
+    const st = lotStats(l);
+    const left = existing && existing.lotId===l.id ? st.remainingBags + Number(existing.bags||0) : st.remainingBags;
+    return `<option value="${l.id}" ${s.lotId===l.id?'selected':''}>${l.label} (${left} bags left)</option>`;
+  }).join('');
+  const html = `
+    <label>Date</label><input type="date" id="m-date" value="${s.date}">
+    <label>Lot</label><select id="m-lot" onchange="autoFillModalKg()">${lotOptions}</select>
+    <label>Channel</label>
+    <div class="seg2">
+      <button type="button" id="m-ch-retail" class="${s.channel==='retail'?'on':''}" onclick="setModalChannel('retail')">Retail</button>
+      <button type="button" id="m-ch-wholesale" class="${s.channel==='wholesale'?'on':''}" onclick="setModalChannel('wholesale')">Wholesale</button>
+    </div>
+    <div class="row2">
+      <div><label>Bags sold</label><input type="number" id="m-bags" value="${s.bags}" oninput="autoFillModalKg()"></div>
+      <div><label>Kg sold (auto, editable)</label><input type="number" id="m-kg" value="${s.kg}"></div>
+    </div>
+    <label>Amount received (₹)</label><input type="number" id="m-amount" value="${s.amount}">
+    <label>Note (optional)</label><input type="text" id="m-note" value="${s.note||''}">`;
+  openModal(existing ? 'Edit sale' : "Log today's sale", html, async () => {
+    const date = document.getElementById('m-date').value || todayISO();
+    const lotId = document.getElementById('m-lot').value;
+    const bags = Number(document.getElementById('m-bags').value)||0;
+    const kg = Number(document.getElementById('m-kg').value)||0;
+    const amount = Number(document.getElementById('m-amount').value)||0;
+    const note = document.getElementById('m-note').value.trim();
+    const channel = window.__modalChannel || s.channel;
+    if (!lotId || !bags || !amount) { showToast('Fill in lot, bags and amount', true); return false; }
+    if (existing) {
+      Object.assign(existing, { date, lotId, channel, bags, kg, amount, note });
+      renderAll();
+      await sendAction('updateSale', existing, existing.id);
+    } else {
+      const id = uid();
+      const sale = { id, date, lotId, channel, bags, kg, amount, note, addedBy: getActor() };
+      DATA.sales.push(sale);
+      renderAll();
+      await sendAction('addSale', sale, id);
+    }
+  }, existing ? 'Save changes' : 'Save sale');
+  window.__modalChannel = s.channel;
+}
+function setModalChannel(ch){
+  window.__modalChannel = ch;
+  document.getElementById('m-ch-retail').classList.toggle('on', ch==='retail');
+  document.getElementById('m-ch-wholesale').classList.toggle('on', ch==='wholesale');
+}
+function autoFillModalKg(){
+  const lotId = document.getElementById('m-lot').value;
   const lot = DATA.lots.find(l=>l.id===lotId);
-  const bags = Number(document.getElementById('s-bags').value)||0;
+  const bags = Number(document.getElementById('m-bags').value)||0;
   if (lot && lot.bags>0) {
-    const kgPerBag = lot.kg / lot.bags;
-    document.getElementById('s-kg').value = (bags*kgPerBag).toFixed(1);
+    document.getElementById('m-kg').value = (bags * (lot.kg/lot.bags)).toFixed(1);
   }
 }
-
-// ---------- actions: Lots ----------
-async function addLot(){
-  const label = document.getElementById('l-label').value.trim();
-  const bags = Number(document.getElementById('l-bags').value);
-  const kg = Number(document.getElementById('l-kg').value);
-  const cost = Number(document.getElementById('l-cost').value)||0;
-  const dateAdded = document.getElementById('l-date').value || todayISO();
-  if (!label || !bags || !kg) { showToast('Fill in lot name, bags and kg', true); return; }
-
-  const id = uid();
-  const lot = { id, label, bags, kg, cost, dateAdded };
-  DATA.lots.push(lot);
-  renderAll();
-  document.getElementById('l-label').value='';
-  document.getElementById('l-bags').value='';
-  document.getElementById('l-kg').value='';
-  document.getElementById('l-cost').value='';
-
-  document.getElementById('btn-add-lot').disabled = true;
-  await sendAction('addLot', lot, id);
-  document.getElementById('btn-add-lot').disabled = false;
-}
-
-async function saveLotEdits(){
-  document.getElementById('btn-save-lots').disabled = true;
-  await sendAction('updateLots', DATA.lots);
-  document.getElementById('btn-save-lots').disabled = false;
-}
-
-// ---------- actions: Sales ----------
-async function addSale(){
-  const lotId = document.getElementById('s-lot').value;
-  const date = document.getElementById('s-date').value || todayISO();
-  const bags = Number(document.getElementById('s-bags').value)||0;
-  const kg = Number(document.getElementById('s-kg').value)||0;
-  const amount = Number(document.getElementById('s-amount').value)||0;
-  const note = document.getElementById('s-note').value.trim();
-  if (!lotId || !bags || !amount) { showToast('Fill in lot, bags and amount', true); return; }
-
-  const id = uid();
-  const sale = { id, date, lotId, channel: currentChannel, bags, kg, amount, note };
-  DATA.sales.push(sale);
-  renderAll();
-  document.getElementById('s-bags').value='';
-  document.getElementById('s-kg').value='';
-  document.getElementById('s-amount').value='';
-  document.getElementById('s-note').value='';
-
-  document.getElementById('btn-add-sale').disabled = true;
-  await sendAction('addSale', sale, id);
-  document.getElementById('btn-add-sale').disabled = false;
-}
-
 async function deleteSale(id){
-  DATA.sales = DATA.sales.filter(s=>s.id!==id);
-  renderAll();
-  await sendAction('deleteSale', null, id);
+  confirmThen('Delete this sale record?', async () => {
+    DATA.sales = DATA.sales.filter(s=>s.id!==id);
+    renderAll();
+    await sendAction('deleteSale', null, id);
+  });
 }
 
-// ---------- actions: Expenses ----------
-async function addExpense(){
-  const date = document.getElementById('e-date').value || todayISO();
-  const desc = document.getElementById('e-desc').value.trim();
-  const amount = Number(document.getElementById('e-amount').value)||0;
-  if (!desc || !amount) { showToast('Fill in description and amount', true); return; }
-
-  const id = uid();
-  const exp = { id, date, desc, amount };
-  DATA.expenses.push(exp);
-  renderAll();
-  document.getElementById('e-desc').value='';
-  document.getElementById('e-amount').value='';
-
-  document.getElementById('btn-add-expense').disabled = true;
-  await sendAction('addExpense', exp, id);
-  document.getElementById('btn-add-expense').disabled = false;
+function openExpenseModal(existing){
+  const x = existing || { date: todayISO(), desc:'', amount:'' };
+  const html = `
+    <label>Date</label><input type="date" id="m-date" value="${x.date}">
+    <label>What for</label><input type="text" id="m-desc" value="${x.desc||''}">
+    <label>Amount (₹)</label><input type="number" id="m-amount" value="${x.amount}">`;
+  openModal(existing ? 'Edit expense' : 'Log an expense', html, async () => {
+    const date = document.getElementById('m-date').value || todayISO();
+    const desc = document.getElementById('m-desc').value.trim();
+    const amount = Number(document.getElementById('m-amount').value)||0;
+    if (!desc || !amount) { showToast('Fill in description and amount', true); return false; }
+    if (existing) {
+      Object.assign(existing, { date, desc, amount });
+      renderAll();
+      await sendAction('updateExpense', existing, existing.id);
+    } else {
+      const id = uid();
+      const exp = { id, date, desc, amount, addedBy: getActor() };
+      DATA.expenses.push(exp);
+      renderAll();
+      await sendAction('addExpense', exp, id);
+    }
+  }, existing ? 'Save changes' : 'Save expense');
 }
-
 async function quickMonthlyExpense(){
   const amount = Number(DATA.config.rent1||0) + Number(DATA.config.rent2||0) + Number(DATA.config.labour||0);
   const id = uid();
-  const exp = { id, date: todayISO(), desc: 'Monthly running cost (rent + labour)', amount };
+  const exp = { id, date: todayISO(), desc: 'Monthly running cost (rent + labour)', amount, addedBy: getActor() };
   DATA.expenses.push(exp);
   renderAll();
   await sendAction('addExpense', exp, id);
 }
-
 async function deleteExpense(id){
-  DATA.expenses = DATA.expenses.filter(x=>x.id!==id);
-  renderAll();
-  await sendAction('deleteExpense', null, id);
+  confirmThen('Delete this expense record?', async () => {
+    DATA.expenses = DATA.expenses.filter(x=>x.id!==id);
+    renderAll();
+    await sendAction('deleteExpense', null, id);
+  });
 }
 
-// ---------- actions: Partners / Config ----------
 async function savePartners(){
   Object.keys(DATA.partners).forEach(name=>{
     const el = document.getElementById('pe-'+name);
@@ -737,14 +726,12 @@ async function savePartners(){
   await sendAction('updatePartners', DATA.partners);
   document.getElementById('btn-save-partners').disabled = false;
 }
-
 async function saveInterestRate(){
   DATA.config.interestRatePct = Number(document.getElementById('p-interest').value)||0;
   document.getElementById('btn-save-interest').disabled = true;
   await sendAction('updateConfig', DATA.config);
   document.getElementById('btn-save-interest').disabled = false;
 }
-
 async function saveConfig(){
   DATA.config.rent1 = Number(document.getElementById('c-rent1').value)||0;
   DATA.config.rent2 = Number(document.getElementById('c-rent2').value)||0;
@@ -755,18 +742,8 @@ async function saveConfig(){
   document.getElementById('btn-save-config').disabled = false;
 }
 
-// ---------- actions: Extra Capital & Interest ----------
-const MONTHLY_RATE = 0.015; // 1.5% per 30 days, prorated by actual days
-
-function daysBetween(d1, d2){
-  const a = new Date(d1), b = new Date(d2);
-  return Math.round((b - a) / 86400000);
-}
-
-// Computes interest for one capital loan entry.
-// - If returnDate is set, that's the closing date: interest is fixed
-//   as of that date (the loan is "Returned").
-// - If returnDate is blank, interest accrues to today ("Outstanding").
+const MONTHLY_RATE = 0.015;
+function daysBetween(d1, d2){ return Math.round((new Date(d2) - new Date(d1)) / 86400000); }
 function loanInterest(loan){
   const today = todayISO();
   const asOf = loan.returnDate || today;
@@ -777,36 +754,33 @@ function loanInterest(loan){
   return { days, interest, total: loan.amount + interest, isReturned, isFuturePlan, asOf };
 }
 
-function populateLoanPartnerDropdown(){
-  const sel = document.getElementById('cl-partner');
-  if (!sel) return;
-  sel.innerHTML = '';
-  Object.keys(DATA.partners).forEach(name=>{
-    const opt = document.createElement('option');
-    opt.value = name; opt.textContent = name;
-    sel.appendChild(opt);
-  });
+function openLoanModal(existing){
+  const l = existing || { partner: Object.keys(DATA.partners)[0], amount:'', dateSent: todayISO(), note:'' };
+  const partnerOptions = Object.keys(DATA.partners).map(n=>`<option value="${n}" ${l.partner===n?'selected':''}>${n}</option>`).join('');
+  const html = `
+    <label>Partner</label><select id="m-partner">${partnerOptions}</select>
+    <label>Amount (₹)</label><input type="number" id="m-amount" value="${l.amount}">
+    <label>Date sent</label><input type="date" id="m-date" value="${l.dateSent}">
+    <label>Note (optional)</label><input type="text" id="m-note" value="${l.note||''}">`;
+  openModal(existing ? 'Edit extra capital entry' : 'Log extra capital sent', html, async () => {
+    const partner = document.getElementById('m-partner').value;
+    const amount = Number(document.getElementById('m-amount').value)||0;
+    const dateSent = document.getElementById('m-date').value || todayISO();
+    const note = document.getElementById('m-note').value.trim();
+    if (!partner || !amount) { showToast('Fill in partner and amount', true); return false; }
+    if (existing) {
+      Object.assign(existing, { partner, amount, dateSent, note });
+      renderLoans();
+      await sendAction('updateCapitalLoan', existing, existing.id);
+    } else {
+      const id = uid();
+      const loan = { id, partner, amount, dateSent, returnDate:'', note, addedBy: getActor() };
+      DATA.capitalLoans.push(loan);
+      renderLoans();
+      await sendAction('addCapitalLoan', loan, id);
+    }
+  }, existing ? 'Save changes' : 'Log this amount');
 }
-
-async function addCapitalLoan(){
-  const partner = document.getElementById('cl-partner').value;
-  const amount = Number(document.getElementById('cl-amount').value)||0;
-  const dateSent = document.getElementById('cl-date').value || todayISO();
-  const note = document.getElementById('cl-note').value.trim();
-  if (!partner || !amount) { showToast('Fill in partner and amount', true); return; }
-
-  const id = uid();
-  const loan = { id, partner, amount, dateSent, returnDate: '', note };
-  DATA.capitalLoans.push(loan);
-  renderLoans();
-  document.getElementById('cl-amount').value='';
-  document.getElementById('cl-note').value='';
-
-  document.getElementById('btn-add-loan').disabled = true;
-  await sendAction('addCapitalLoan', loan, id);
-  document.getElementById('btn-add-loan').disabled = false;
-}
-
 async function setLoanReturnDate(id, value){
   const loan = DATA.capitalLoans.find(l=>l.id===id);
   if (!loan) return;
@@ -814,51 +788,13 @@ async function setLoanReturnDate(id, value){
   renderLoans();
   await sendAction('updateCapitalLoan', loan, id);
 }
-
 async function deleteCapitalLoan(id){
-  DATA.capitalLoans = DATA.capitalLoans.filter(l=>l.id!==id);
-  renderLoans();
-  await sendAction('deleteCapitalLoan', null, id);
-}
-
-function renderLoans(){
-  const wrap = document.getElementById('loans-list');
-  if (!wrap) return;
-  wrap.innerHTML = '';
-  const sorted = [...(DATA.capitalLoans||[])].sort((a,b)=> (b.dateSent||'').localeCompare(a.dateSent||''));
-  sorted.forEach(loan=>{
-    const calc = loanInterest(loan);
-    const statusBadge = calc.isReturned
-      ? `<span class="badge">Returned ${loan.returnDate}</span>`
-      : calc.isFuturePlan
-        ? `<span class="badge wholesale">Plan to return ${loan.returnDate}</span>`
-        : `<span class="badge owe">Outstanding</span>`;
-    wrap.insertAdjacentHTML('beforeend', `
-      <div class="lot-card">
-        <div class="lot-head">
-          <span class="lot-title">${loan.partner} — ${fmt(loan.amount)}</span>
-          ${statusBadge}
-        </div>
-        <div class="lot-sub">Sent ${loan.dateSent}${loan.note? ' · '+loan.note : ''}</div>
-        <div class="lot-mini-grid" style="margin-top:8px;">
-          <div>Days counted<b>${calc.days}</b></div>
-          <div>Interest${calc.isFuturePlan?' (projected)':''}<b>${fmt(calc.interest)}</b></div>
-          <div>Total payable<b>${fmt(calc.total)}</b></div>
-        </div>
-        <div class="row2" style="margin-top:10px;">
-          <div>
-            <label>Return date (blank = still outstanding)</label>
-            <input type="date" value="${loan.returnDate||''}" onchange="setLoanReturnDate('${loan.id}', this.value)">
-          </div>
-          <div style="display:flex;align-items:flex-end;">
-            <button class="del" style="border:1px solid var(--line);border-radius:4px;padding:8px;width:100%;" onclick="deleteCapitalLoan('${loan.id}')">Delete entry</button>
-          </div>
-        </div>
-      </div>`);
+  confirmThen('Delete this extra capital entry?', async () => {
+    DATA.capitalLoans = DATA.capitalLoans.filter(l=>l.id!==id);
+    renderLoans();
+    await sendAction('deleteCapitalLoan', null, id);
   });
-  document.getElementById('loans-empty').style.display = sorted.length? 'none':'block';
 }
-
 
 function renderAll(){
   renderDashboard();
@@ -866,7 +802,6 @@ function renderAll(){
   renderSalesTable();
   renderPartners();
   renderExpensesTable();
-  populateLoanPartnerDropdown();
   renderLoans();
 }
 
@@ -907,7 +842,7 @@ function renderDashboard(){
   recentBody.innerHTML = recent.map(s=>`
     <tr><td>${s.date}</td><td>${lotLabel(s.lotId)}</td>
     <td><span class="badge ${s.channel}">${s.channel==='retail'?'Retail':'Whsl'}</span></td>
-    <td>${s.bags}</td><td>${fmt(s.amount)}</td></tr>`).join('');
+    <td>${s.bags}</td><td>${Number(s.kg||0).toFixed(0)}</td><td>${fmt(s.amount)}</td></tr>`).join('');
   document.getElementById('d-recent-empty').style.display = recent.length? 'none':'block';
 }
 
@@ -919,63 +854,51 @@ function renderInventory(){
     const pct = lot.bags ? Math.min(100, (st.soldBags/lot.bags*100)) : 0;
     wrap.insertAdjacentHTML('beforeend', `
       <div class="lot-card">
-        <div class="lot-head"><span class="lot-title">${lot.label}</span><span class="lot-sub">₹${st.costPerKg.toFixed(1)}/kg cost</span></div>
+        <div class="lot-head">
+          <span class="lot-title">${lot.label}</span>
+          <span class="row-actions">
+            <button class="icon-btn edit" onclick='openLotModal(DATA.lots.find(x=>x.id==="${lot.id}"))'>✎ Edit</button>
+            <button class="icon-btn del" onclick="deleteLot('${lot.id}')">✕</button>
+          </span>
+        </div>
+        <div class="lot-sub">₹${st.costPerKg.toFixed(1)}/kg cost</div>
         <div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div>
         <div class="lot-mini-grid">
           <div>Total<b>${lot.bags} bags / ${lot.kg} kg</b></div>
           <div>Sold<b>${st.soldBags} bags / ${st.soldKg.toFixed(0)} kg</b></div>
           <div>Left<b>${st.remainingBags} bags / ${st.remainingKg.toFixed(0)} kg</b></div>
         </div>
+        ${lot.addedBy ? `<div class="by-line">added by ${lot.addedBy}</div>` : ''}
       </div>`);
   });
   document.getElementById('inv-lots-empty').style.display = DATA.lots.length? 'none':'block';
-
-  const editWrap = document.getElementById('inv-edit');
-  editWrap.innerHTML = DATA.lots.map(lot=>`
-    <div style="margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--paper-dim);">
-      <label>${lot.label}</label>
-      <div class="row3">
-        <div><input type="number" id="le-bags-${lot.id}" value="${lot.bags}" placeholder="Bags"></div>
-        <div><input type="number" id="le-kg-${lot.id}" value="${lot.kg}" placeholder="Kg"></div>
-        <div><input type="number" id="le-cost-${lot.id}" value="${lot.cost}" placeholder="Cost"></div>
-      </div>
-    </div>`).join('');
 }
-
-function collectLotEditsIntoData(){
-  DATA.lots.forEach(lot=>{
-    const b = document.getElementById('le-bags-'+lot.id);
-    const k = document.getElementById('le-kg-'+lot.id);
-    const c = document.getElementById('le-cost-'+lot.id);
-    if (b) lot.bags = Number(b.value)||lot.bags;
-    if (k) lot.kg = Number(k.value)||lot.kg;
-    if (c) lot.cost = Number(c.value)||0;
-  });
-}
-// wrap saveLotEdits to pull edited values first
-const _origSaveLotEdits = saveLotEdits;
-saveLotEdits = async function(){
-  collectLotEditsIntoData();
-  await _origSaveLotEdits();
-};
 
 function renderSalesTable(){
   const body = document.getElementById('sales-table');
-  const sorted = [...DATA.sales].sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const filtered = DATA.sales.filter(s=>inPeriod(s.date, salesFilter));
+  const sorted = [...filtered].sort((a,b)=> (b.date||'').localeCompare(a.date||''));
   body.innerHTML = sorted.map(s=>`
-    <tr><td>${s.date}</td><td>${lotLabel(s.lotId)}</td>
+    <tr><td>${s.date}${s.addedBy?`<div class="by-line">${s.addedBy}</div>`:''}</td><td>${lotLabel(s.lotId)}</td>
     <td><span class="badge ${s.channel}">${s.channel==='retail'?'Retail':'Whsl'}</span></td>
-    <td>${s.bags}</td><td>${fmt(s.amount)}</td>
-    <td><button class="del" onclick="deleteSale('${s.id}')">✕</button></td></tr>`).join('');
+    <td>${s.bags}</td><td>${Number(s.kg||0).toFixed(0)}</td><td>${fmt(s.amount)}</td>
+    <td class="row-actions">
+      <button class="icon-btn edit" onclick='openSaleModal(DATA.sales.find(x=>x.id==="${s.id}"))'>✎</button>
+      <button class="icon-btn del" onclick="deleteSale('${s.id}')">✕</button>
+    </td></tr>`).join('');
   document.getElementById('sales-empty').style.display = sorted.length? 'none':'block';
 }
 
 function renderExpensesTable(){
   const body = document.getElementById('expenses-table');
-  const sorted = [...DATA.expenses].sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const filtered = DATA.expenses.filter(x=>inPeriod(x.date, expensesFilter));
+  const sorted = [...filtered].sort((a,b)=> (b.date||'').localeCompare(a.date||''));
   body.innerHTML = sorted.map(x=>`
-    <tr><td>${x.date}</td><td>${x.desc}</td><td>${fmt(x.amount)}</td>
-    <td><button class="del" onclick="deleteExpense('${x.id}')">✕</button></td></tr>`).join('');
+    <tr><td>${x.date}${x.addedBy?`<div class="by-line">${x.addedBy}</div>`:''}</td><td>${x.desc}</td><td>${fmt(x.amount)}</td>
+    <td class="row-actions">
+      <button class="icon-btn edit" onclick='openExpenseModal(DATA.expenses.find(y=>y.id==="${x.id}"))'>✎</button>
+      <button class="icon-btn del" onclick="deleteExpense('${x.id}')">✕</button>
+    </td></tr>`).join('');
   document.getElementById('expenses-empty').style.display = sorted.length? 'none':'block';
 }
 
@@ -997,16 +920,44 @@ function renderPartners(){
   });
 }
 
-// ---------- reports ----------
+function renderLoans(){
+  const wrap = document.getElementById('loans-list');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  const sorted = [...(DATA.capitalLoans||[])].sort((a,b)=> (b.dateSent||'').localeCompare(a.dateSent||''));
+  sorted.forEach(loan=>{
+    const calc = loanInterest(loan);
+    const statusBadge = calc.isReturned ? `<span class="badge">Returned ${loan.returnDate}</span>`
+      : calc.isFuturePlan ? `<span class="badge wholesale">Plan to return ${loan.returnDate}</span>`
+      : `<span class="badge owe">Outstanding</span>`;
+    wrap.insertAdjacentHTML('beforeend', `
+      <div class="lot-card">
+        <div class="lot-head">
+          <span class="lot-title">${loan.partner} — ${fmt(loan.amount)}</span>
+          <span class="row-actions">
+            ${statusBadge}
+            <button class="icon-btn edit" onclick='openLoanModal(DATA.capitalLoans.find(x=>x.id==="${loan.id}"))'>✎</button>
+            <button class="icon-btn del" onclick="deleteCapitalLoan('${loan.id}')">✕</button>
+          </span>
+        </div>
+        <div class="lot-sub">Sent ${loan.dateSent}${loan.note? ' · '+loan.note : ''}${loan.addedBy?' · by '+loan.addedBy:''}</div>
+        <div class="lot-mini-grid" style="margin-top:8px;">
+          <div>Days counted<b>${calc.days}</b></div>
+          <div>Interest${calc.isFuturePlan?' (projected)':''}<b>${fmt(calc.interest)}</b></div>
+          <div>Total payable<b>${fmt(calc.total)}</b></div>
+        </div>
+        <label style="margin-top:10px;">Return date (blank = still outstanding)</label>
+        <input type="date" value="${loan.returnDate||''}" onchange="setLoanReturnDate('${loan.id}', this.value)">
+      </div>`);
+  });
+  document.getElementById('loans-empty').style.display = sorted.length? 'none':'block';
+}
+
 async function renderReport(){
   const tbody = document.getElementById('report-table');
   tbody.innerHTML = '<tr><td colspan="4" class="empty">Loading…</td></tr>';
   let report;
-  try {
-    report = await fetchReport(currentReportPeriod);
-  } catch(e){
-    report = null;
-  }
+  try { report = await fetchReport(currentReportPeriod); } catch(e){ report = null; }
   if (!report || !report.buckets || !report.buckets.length){
     tbody.innerHTML = '';
     document.getElementById('report-empty').style.display = 'block';
@@ -1018,7 +969,6 @@ async function renderReport(){
     <tr><td>${b.period}</td><td>${fmt(b.revenue)}</td><td>${fmt(b.expenses)}</td><td>${b.bags}</td></tr>`).join('');
 }
 
-// ---------- boot ----------
 document.addEventListener('DOMContentLoaded', ()=>{
   bindNav();
   init();
