@@ -21,7 +21,6 @@
   body { background: var(--paper); color: var(--ink); font-family: 'Georgia', 'Iowan Old Style', serif; -webkit-font-smoothing: antialiased; padding-bottom: env(safe-area-inset-bottom); }
   .util { font-family: 'Helvetica Neue', Arial, sans-serif; }
   
-  /* Header & Navigation */
   header { padding: 16px 16px 12px; border-bottom: 2px solid var(--plum); background: var(--card); display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
   header h1 { margin: 0; font-size: 1.25rem; letter-spacing: 0.2px; color: var(--plum-deep); }
   header .sub { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.7rem; color: #7a7264; margin-top: 3px; text-transform: uppercase; letter-spacing: 1px; }
@@ -37,7 +36,6 @@
   nav button { font-family: 'Helvetica Neue', Arial, sans-serif; flex: 1; min-width: 85px; padding: 11px 8px; background: none; border: none; font-size: 0.72rem; font-weight: 600; color: #8a8272; border-bottom: 3px solid transparent; cursor: pointer; white-space: nowrap; transition: 0.2s; }
   nav button.active { color: var(--plum-deep); border-bottom: 3px solid var(--rust); }
   
-  /* Main Container & Cards */
   main { padding: 14px; padding-bottom: 90px; max-width: 680px; margin: 0 auto; }
   .view { display: none; animation: fadeIn 0.3s ease; }
   .view.active { display: block; }
@@ -46,7 +44,6 @@
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
   .card h2 { margin: 0 0 10px; font-size: 0.98rem; color: var(--plum-deep); border-bottom: 1px solid var(--line); padding-bottom: 7px; display: flex; justify-content: space-between; align-items: center; }
   
-  /* Stats Grid */
   .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat { background: var(--paper-dim); border-radius: 5px; padding: 10px 12px; }
   .stat .label { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.6px; color: #8a8272; margin-bottom: 3px; }
@@ -56,14 +53,12 @@
   .big-stat { text-align: center; padding: 14px; }
   .big-stat .value { font-size: 1.8rem; }
   
-  /* Forms & Inputs */
   label { display: block; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.72rem; color: #7a7264; margin: 9px 0 4px; text-transform: uppercase; letter-spacing: 0.5px; }
   input, select, textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 4px; font-size: 0.93rem; font-family: 'Helvetica Neue', Arial, sans-serif; background: #fff; color: var(--ink); }
   input:focus, select:focus, textarea:focus { outline: 2px solid var(--plum); outline-offset: 1px; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .highlight-box { background: var(--paper-dim); border: 1px solid var(--line); border-radius: 6px; padding: 10px; margin-top: 8px; }
   
-  /* Buttons */
   .btn { font-family: 'Helvetica Neue', Arial, sans-serif; display: inline-block; width: 100%; margin-top: 12px; padding: 11px; background: var(--plum); color: #fff; border: none; border-radius: 5px; font-size: 0.87rem; font-weight: 600; cursor: pointer; letter-spacing: 0.3px; text-align: center; transition: 0.2s; }
   .btn:active { background: var(--plum-deep); transform: scale(0.98); }
   .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
@@ -71,12 +66,10 @@
   .btn.ghost { background: transparent; border: 1px solid var(--line); color: #7a7264; font-weight: 400; }
   .btn.danger { background: var(--rust); }
   
-  /* Segments & Toggles */
   .seg2 { display: flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; margin-top: 4px; }
   .seg2 button { flex: 1; padding: 8px 4px; border: none; background: #fff; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.72rem; color: #7a7264; cursor: pointer; transition: 0.1s; }
   .seg2 button.on { background: var(--plum); color: #fff; font-weight: 600; }
   
-  /* Tables */
   table { width: 100%; border-collapse: collapse; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.8rem; }
   th { text-align: left; font-size: 0.62rem; text-transform: uppercase; color: #8a8272; padding: 6px 4px; border-bottom: 1px solid var(--line); }
   td { padding: 7px 4px; border-bottom: 1px solid var(--paper-dim); vertical-align: middle; }
@@ -88,21 +81,18 @@
   .icon-btn.del { color: var(--rust); }
   .empty { text-align: center; padding: 20px 10px; color: #a49c8c; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.85rem; }
   
-  /* Partner/List Rows */
   .partner-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--paper-dim); }
   .partner-row:last-child { border-bottom: none; }
   .partner-name { font-weight: bold; color: var(--plum-deep); }
   .note { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.75rem; color: #8a8272; line-height: 1.4; margin-top: 8px; }
   .by-line { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.64rem; color: #a49c8c; margin-top: 2px; }
   
-  /* Badges */
   .badge { display: inline-block; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.66rem; padding: 2px 8px; border-radius: 10px; background: var(--sage); color: #fff; white-space: nowrap; }
   .badge.owe { background: var(--rust); }
   .badge.type-tag { background: #8e7d6b; color: #fff; }
   .badge.wholesale { background: var(--plum); }
   .badge.retail { background: var(--sage); }
   
-  /* Lot Cards */
   .lot-card { border: 1px solid var(--line); border-radius: 5px; padding: 12px; margin-bottom: 10px; background: var(--paper-dim); }
   .lot-card .lot-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
   .lot-card .lot-title { font-weight: bold; color: var(--plum-deep); font-size: 0.93rem; }
@@ -113,19 +103,16 @@
   .lot-mini-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.72rem; color: #5a5346; }
   .lot-mini-grid b { display: block; color: var(--plum-deep); font-size: 0.9rem; }
   
-  /* Toast & Loading */
   #toast { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%); background: var(--plum-deep); color: #fff; padding: 9px 18px; border-radius: 20px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.8rem; opacity: 0; transition: opacity 0.25s; pointer-events: none; z-index: 50; max-width: 85vw; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
   #toast.show { opacity: 1; }
   #toast.err { background: var(--rust); }
   .loading { text-align: center; padding: 40px; color: #8a8272; font-family: 'Helvetica Neue', Arial, sans-serif; }
 
-  /* Floating Action Button */
   .fab { position: fixed; right: 18px; bottom: 18px; width: 56px; height: 56px; border-radius: 50%; background: var(--rust); color: #fff; border: none; font-size: 1.8rem; line-height: 1; box-shadow: 0 4px 14px rgba(0,0,0,0.25); cursor: pointer; z-index: 15; display: none; align-items: center; justify-content: center; transition: 0.2s; }
   .fab.show { display: flex; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
   .fab:active { transform: scale(0.9); }
   @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
 
-  /* Custom Modals */
   .modal-backdrop { position: fixed; inset: 0; background: rgba(43,38,32,0.6); z-index: 40; display: none; align-items: flex-end; justify-content: center; backdrop-filter: blur(2px); }
   .modal-backdrop.show { display: flex; animation: fadeIn 0.2s; }
   .modal-sheet { background: var(--paper); width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; border-radius: 16px 16px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -4px 20px rgba(0,0,0,0.1); animation: slideUp 0.3s cubic-bezier(0.1, 0.9, 0.2, 1); }
@@ -135,7 +122,6 @@
   .modal-close { background: none; border: none; font-size: 1.5rem; color: #8a8272; cursor: pointer; line-height: 1; padding: 4px 8px; }
   .modal-actor-btn { width: 100%; text-align: left; padding: 12px; margin-top: 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.95rem; font-weight: 600; color: var(--plum-deep); cursor: pointer; }
   
-  /* Details Expander */
   .details-expander { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
   .details-expander.open { display: block; animation: fadeIn 0.2s; }
   .toggle-details-btn { background: none; border: none; color: var(--plum); font-size: 0.75rem; font-weight: bold; cursor: pointer; padding: 4px 0; font-family: 'Helvetica Neue', Arial, sans-serif; }
@@ -371,7 +357,8 @@
 <div id="toast" class="util"></div>
 
 <script>
-const CLOUD_URL = "https://script.google.com/macros/s/AKfycbxGJlumh09uq3mSDgJk91hEGTMrwg9SzzH6YrEgH6wajy7bkUFizp0PToUIWimrUNiY/exec";
+// 🔥 PASTE YOUR NEW APPS SCRIPT URL HERE
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbx7RF36-0aYA7VT_Y4YXPlxwQwJ_5xu3Bko-AODg_vXwGGZ83M7BPt0zEkii-4024fm/exec";
 const KEY = 'garlic-business-data';
 const ACTOR_KEY = 'poondu-actor';
 
@@ -382,7 +369,12 @@ let expensesFilter = 'all';
 let dashFilter = 'all'; 
 let fabAction = null;
 
-// Safe Date Formatting to Prevent App Crash
+const todayISO = () => {
+  const d = new Date();
+  const offset = 5.5 * 60 * 60 * 1000;
+  return new Date(d.getTime() + offset).toISOString().slice(0, 10);
+};
+
 const safeDate = (d) => {
   if (!d) return '';
   const str = String(d).trim();
@@ -390,17 +382,10 @@ const safeDate = (d) => {
   if (str.includes('T')) return str.split('T')[0];
   const dateObj = new Date(str);
   if (!isNaN(dateObj.getTime())) {
-    const offset = dateObj.getTimezoneOffset() * 60000;
-    return new Date(dateObj.getTime() - offset).toISOString().slice(0, 10);
+    const offset = 5.5 * 60 * 60 * 1000;
+    return new Date(dateObj.getTime() + offset).toISOString().slice(0, 10);
   }
   return str.slice(0, 10);
-};
-
-// Safe Today ISO to prevent Timezone Shift
-const todayISO = () => {
-  const d = new Date();
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().slice(0,10);
 };
 
 const fmt = n => '₹' + Math.round(Number(n)||0).toLocaleString('en-IN');
@@ -418,28 +403,13 @@ function defaultData(){
   };
 }
 
-// Data Sanitizer: Sweeps arrays to ensure all string dates are safely mapped to YYYY-MM-DD
-function cleanseDataDates(db) {
-  if (!db) return;
-  ['lots', 'sales', 'expenses', 'capitalLoans'].forEach(table => {
-    if (db[table]) {
-      db[table].forEach(row => {
-        if (row.date) row.date = safeDate(row.date);
-        if (row.dateAdded) row.dateAdded = safeDate(row.dateAdded);
-        if (row.dateSent) row.dateSent = safeDate(row.dateSent);
-        if (row.returnDate) row.returnDate = safeDate(row.returnDate);
-      });
-    }
-  });
-}
-
 function getActor(){ return localStorage.getItem(ACTOR_KEY) || ''; }
 function setActor(name){
   localStorage.setItem(ACTOR_KEY, name);
   document.getElementById('actor-pill').textContent = name;
 }
 function openActorPicker(){
-  const names = Object.keys(DATA.partners || {});
+  const names = Object.keys(DATA?.partners || defaultData().partners);
   const html = '<div class="note">Select who is logging these entries:</div>'
     + names.map(n=>`<button type="button" class="modal-actor-btn" onclick="setActor('${n}'); closeModal();">${n}</button>`).join('');
   openModal('Who are you?', html, null);
@@ -512,7 +482,6 @@ async function fetchCloudState(){
   if (!json.partners || Object.keys(json.partners).length === 0) {
     json.partners = defaultData().partners;
   }
-  cleanseDataDates(json);
   return json;
 }
 
@@ -532,8 +501,13 @@ async function sendAction(action, payload, id){
       });
       return true;
     }
+    
+    // ERROR REVERT
     setSyncBadge('err', 'failed');
     showToast('Failed to save: ' + (res?.message || 'Unknown error'), true);
+    fetchCloudState().then(fresh => {
+        if (fresh) { DATA = fresh; localStorage.setItem(KEY, JSON.stringify(DATA)); renderAll(); }
+    });
     return false;
   } catch(e){
     setSyncBadge('err', 'offline');
@@ -560,7 +534,6 @@ async function init(){
     try { const raw = localStorage.getItem(KEY); DATA = raw ? JSON.parse(raw) : defaultData(); } catch(e){ DATA = defaultData(); }
   }
 
-  cleanseDataDates(DATA); // Ensure dates are sanitized for UI processing
   document.getElementById('loading').style.display='none';
   populateFormsFromData();
   renderAll();
@@ -635,36 +608,35 @@ function inPeriod(dateStr, filter){
 }
 
 function lotStats(lot){
-  // Calculate solid sales
-  const activeSales = DATA.sales.filter(s => s.lotId === lot.id);
+  const activeSales = DATA.sales.filter(s => s.lotId === lot.id && !s.isDeleted);
   const soldBags = activeSales.reduce((s,x)=>s+(Number(x.bags)||0),0);
   const soldKg = activeSales.reduce((s,x)=>s+(Number(x.kg)||0),0);
   
-  // Isolate dynamically tagged lot expenses
-  const linkedExpenses = DATA.expenses.filter(x => x.referenceId === lot.id);
+  const linkedExpenses = DATA.expenses.filter(x => x.referenceId === lot.id && !x.isDeleted);
   
-  // Incorporate Add-On Procurement bags/kgs if logged
   const procurementExp = linkedExpenses.filter(x => x.type === 'Procurement');
-  const addedBags = procurementExp.reduce((s, x) => s + (Number(x.bags) || 0), 0);
+  
+  // FIX: Properly sum up all procurement bags including split fields
+  const addedBagsG0 = procurementExp.reduce((s, x) => s + (Number(x.bagsG0) || 0), 0);
+  const addedBagsG1 = procurementExp.reduce((s, x) => s + (Number(x.bagsG1) || 0), 0);
+  const legacyAddedBags = procurementExp.reduce((s, x) => s + (Number(x.bags) || 0), 0); // older entries
+  const totalAddedBags = addedBagsG0 + addedBagsG1 + (legacyAddedBags > 0 && addedBagsG0===0 && addedBagsG1===0 ? legacyAddedBags : 0);
+  
   const addedKg = procurementExp.reduce((s, x) => s + (Number(x.kg) || 0), 0);
   
-  // Floor location specific tracking
   let initialG0 = Number(lot.bagsG0) || 0;
   let initialG1 = Number(lot.bagsG1) || 0;
   
-  // Fallback for older lots that didn't have split inputs
+  // fallback for older lots
   if (initialG0 === 0 && initialG1 === 0 && (Number(lot.bags)||0) > 0) {
       if (lot.location === 'G+1') initialG1 = Number(lot.bags);
       else initialG0 = Number(lot.bags);
   }
 
-  const addedBagsG0 = procurementExp.reduce((s, x) => s + (Number(x.bagsG0) || 0), 0);
-  const addedBagsG1 = procurementExp.reduce((s, x) => s + (Number(x.bagsG1) || 0), 0);
-
   const totalG0 = initialG0 + addedBagsG0;
   const totalG1 = initialG1 + addedBagsG1;
 
-  const totalBags = (Number(lot.bags) || 0) + addedBags;
+  const totalBags = totalG0 + totalG1;
   const totalInitialKg = (Number(lot.kg) || 0) + addedKg;
   
   const realWastage = (Number(lot.weightLossKg) || 0);
@@ -673,7 +645,6 @@ function lotStats(lot){
   const actualRemainingKg = Math.max(0, theoreticalRemainingKg - realWastage);
   const shrinkagePct = totalInitialKg ? (realWastage / totalInitialKg * 100) : 0;
 
-  // New Initial Explicit Costs included in the Lot
   const baseCost = (Number(lot.cost) || 0);
   const loadingCost = (Number(lot.loadingCost) || 0);
   const gradingCost = (Number(lot.gradingCost) || 0);
@@ -697,15 +668,15 @@ function totals(period = 'all'){
   let remainingBags=0, remainingKg=0;
   let revenue=0, cogs=0, shopExpenseTotal=0;
   
-  const activeLots = DATA.lots; // Array already cleaned of soft deletes by backend
+  const activeLots = DATA.lots.filter(l => !l.isDeleted);
   activeLots.forEach(lot=>{
     const st = lotStats(lot);
     remainingBags += st.remainingBags;
     remainingKg += st.remainingKg;
   });
 
-  const filteredSales = DATA.sales.filter(s => inPeriod(s.date, period));
-  const filteredExpenses = DATA.expenses.filter(x => inPeriod(x.date, period));
+  const filteredSales = DATA.sales.filter(s => !s.isDeleted && inPeriod(s.date, period));
+  const filteredExpenses = DATA.expenses.filter(x => !x.isDeleted && inPeriod(x.date, period));
 
   revenue = filteredSales.reduce((s,x)=>s+(Number(x.amount)||0), 0);
   
@@ -717,29 +688,22 @@ function totals(period = 'all'){
     }
   });
 
-  // Shop Expenses Exclude Lot-Tagged Costs (to avoid double counting) and Payouts
   const shopExpensesOnly = filteredExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw');
   shopExpenseTotal = shopExpensesOnly.reduce((s,x)=>s+(Number(x.amount)||0), 0);
   
-  // Calculate Liquid Cash on hand accurately from all time expenses (ignoring dashboard period filters)
-  const allTimeSales = DATA.sales;
-  const allTimeExpenses = DATA.expenses;
+  const allTimeSales = DATA.sales.filter(s => !s.isDeleted);
+  const allTimeExpenses = DATA.expenses.filter(x => !x.isDeleted);
   
   const totalRevenue = allTimeSales.reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const totalGeneralExpenses = allTimeExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw').reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const totalPayouts = allTimeExpenses.filter(x => x.type === 'Payout / Partner Draw').reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const totalTaggedExpenses = allTimeExpenses.filter(x => !!x.referenceId).reduce((s,x)=>s+(Number(x.amount)||0), 0);
   
-  const revenueFundedLotsCost = DATA.lots.filter(l => l.sourceOfFunds === 'Sales Revenue').reduce((s, l) => s + (Number(l.cost)||0) + (Number(l.loadingCost)||0) + (Number(l.gradingCost)||0), 0);
+  const revenueFundedLotsCost = activeLots.filter(l => l.sourceOfFunds === 'Sales Revenue').reduce((s, l) => s + (Number(l.cost)||0) + (Number(l.loadingCost)||0) + (Number(l.gradingCost)||0), 0);
   
   const liquidCash = totalRevenue - totalGeneralExpenses - totalPayouts - revenueFundedLotsCost - totalTaggedExpenses;
 
-  return {
-    remainingBags, remainingKg, 
-    revenue, cogs, shopExpenseTotal, 
-    profit: revenue - cogs - shopExpenseTotal,
-    liquidCash
-  };
+  return { remainingBags, remainingKg, revenue, cogs, shopExpenseTotal, profit: revenue - cogs - shopExpenseTotal, liquidCash };
 }
 
 function lotLabel(lotId){ return DATA.lots.find(x=>x.id===lotId)?.label || 'Unknown Lot'; }
@@ -763,10 +727,9 @@ function populateFormsFromData(){
 }
 
 function openLotModal(existing){
-  const l = existing || { label:'', bagsG0:'', bagsG1:'', bags:'', kg:'', cost:'', loadingCost:'', gradingCost:'', sourceOfFunds:'Partner Capital', weightLossKg:0, dateAdded: todayISO(), location: 'Ground' };
+  const l = existing || { label:'', bagsG0:'', bagsG1:'', bags:'', kg:'', cost:'', loadingCost:'', gradingCost:'', sourceOfFunds:'Partner Capital', weightLossKg:0, dateAdded: todayISO() };
   window.__modalSource = l.sourceOfFunds; 
   
-  // Legacy fallback mapper
   let initG0 = l.bagsG0 || '';
   let initG1 = l.bagsG1 || '';
   if (existing && !l.bagsG0 && !l.bagsG1 && l.bags) {
@@ -786,7 +749,6 @@ function openLotModal(existing){
         <div style="margin-top: 8px;"><label>Total Initial KG</label><input type="number" id="m-kg" value="${l.kg}"></div>
     </div>
 
-    <!-- Unified Initial Cost Inputs -->
     <div class="row2" style="margin-top: 10px;">
       <div><label>Base Buying Price (₹)</label><input type="number" id="m-cost" value="${l.cost||''}" placeholder="Raw cost"></div>
       <div><label>Lorry / Unloading Cost (₹)</label><input type="number" id="m-loading" value="${l.loadingCost||''}" placeholder="Transport"></div>
@@ -846,14 +808,14 @@ function updateTotalBagsModal(type) {
 }
 
 function setModalSource(src){ window.__modalSource = src; document.getElementById('m-src-cap').classList.toggle('on', src==='Partner Capital'); document.getElementById('m-src-rev').classList.toggle('on', src==='Sales Revenue'); }
-async function deleteLot(id){ confirmThen('Delete this lot?', async () => { const idx = DATA.lots.findIndex(l=>l.id===id); if(idx !== -1) { DATA.lots.splice(idx, 1); renderAll(); sendAction('deleteLot', {id}); } }); }
+async function deleteLot(id){ confirmThen('Delete this lot?', async () => { const idx = DATA.lots.findIndex(l=>l.id===id); if(idx !== -1) { DATA.lots[idx].isDeleted = true; renderAll(); sendAction('deleteLot', {id}, id); } }); }
 
 function openSaleModal(existing){
   const s = existing || { date: todayISO(), lotId:'', channel:'Retail', contactId:'', bags:'', kg:'', amount:'', note:'' };
   window.__modalChannel = s.channel; 
   
-  const lotOptions = DATA.lots.map(l=>`<option value="${l.id}" ${s.lotId===l.id?'selected':''}>${l.label}</option>`).join('');
-  const contactOptions = '<option value="">-- Optional (Select Buyer if registered) --</option>' + DATA.contacts.map(c=>`<option value="${c.id}" ${s.contactId===c.id?'selected':''}>${c.name}</option>`).join('');
+  const lotOptions = DATA.lots.filter(l=>!l.isDeleted).map(l=>`<option value="${l.id}" ${s.lotId===l.id?'selected':''}>${l.label}</option>`).join('');
+  const contactOptions = '<option value="">-- Optional (Select Buyer if registered) --</option>' + DATA.contacts.filter(c=>!c.isDeleted).map(c=>`<option value="${c.id}" ${s.contactId===c.id?'selected':''}>${c.name}</option>`).join('');
   
   const html = `
     <label>Date</label><input type="date" id="m-date" value="${safeDate(s.date)}">
@@ -911,15 +873,17 @@ function autoFillModalKg(){
     }
   }
 }
-async function deleteSale(id){ confirmThen('Delete this sale?', async () => { const idx = DATA.sales.findIndex(s=>s.id===id); if(idx !== -1) { DATA.sales.splice(idx, 1); renderAll(); sendAction('deleteSale', {id}); } }); }
+async function deleteSale(id){ confirmThen('Delete this sale?', async () => { const idx = DATA.sales.findIndex(s=>s.id===id); if(idx !== -1) { DATA.sales[idx].isDeleted = true; renderAll(); sendAction('deleteSale', {id}, id); } }); }
 
 function openExpenseModal(existing){
-  // Defauls to Loading/Unloading if lot expense, Running cost if shop expense
-  const x = existing || { date: todayISO(), type:'Loading/Unloading', desc:'', amount:'', referenceId:'', bags:'', bagsG0:'', bagsG1:'', kg:'' };
+  // Fix: Default to Loading/Unloading if lot is selected
+  let defaultLotType = existing?.type || 'Loading/Unloading';
+  if (defaultLotType === 'Running Cost' || defaultLotType === 'Miscellaneous') defaultLotType = 'Loading/Unloading';
+
+  const x = existing || { date: todayISO(), type: defaultLotType, desc:'', amount:'', referenceId:'', bags:'', bagsG0:'', bagsG1:'', kg:'' };
   window.__modalExpenseType = x.referenceId ? 'lot' : 'shop'; 
-  if (!x.referenceId) x.type = 'Running Cost';
   
-  const lotOptions = '<option value="">-- Select Lot to tag cost --</option>' + DATA.lots.map(l=>`<option value="${l.id}" ${x.referenceId===l.id?'selected':''}>${l.label}</option>`).join('');
+  const lotOptions = '<option value="">-- Select Lot to tag cost --</option>' + DATA.lots.filter(l=>!l.isDeleted).map(l=>`<option value="${l.id}" ${x.referenceId===l.id?'selected':''}>${l.label}</option>`).join('');
 
   const html = `
     <label>Date</label><input type="date" id="m-date" value="${safeDate(x.date)}">
@@ -943,15 +907,15 @@ function openExpenseModal(existing){
       <select id="m-reference">${lotOptions}</select>
       <label>Category</label>
       <select id="m-category-lot" onchange="toggleProcurementFields()">
-        <option value="Loading/Unloading" ${x.type==='Loading/Unloading'?'selected':''}>Loading / Unloading</option>
-        <option value="Procurement" ${x.type==='Procurement'?'selected':''}>Procurement (Add Bags/KG)</option>
-        <option value="Grading/Sorting" ${x.type==='Grading/Sorting'?'selected':''}>Grading / Sorting</option>
-        <option value="Damage/Weight Loss" ${x.type==='Damage/Weight Loss'?'selected':''}>Damage / Weight Loss Labor</option>
-        <option value="Repacking" ${x.type==='Repacking'?'selected':''}>Repacking Cost</option>
-        <option value="Other Lot Expense" ${x.type==='Other Lot Expense'?'selected':''}>Other Lot Expense</option>
+        <option value="Loading/Unloading" ${defaultLotType==='Loading/Unloading'?'selected':''}>Loading / Unloading</option>
+        <option value="Procurement" ${defaultLotType==='Procurement'?'selected':''}>Procurement (Add Bags/KG)</option>
+        <option value="Grading/Sorting" ${defaultLotType==='Grading/Sorting'?'selected':''}>Grading / Sorting</option>
+        <option value="Damage/Weight Loss" ${defaultLotType==='Damage/Weight Loss'?'selected':''}>Damage / Weight Loss Labor</option>
+        <option value="Repacking" ${defaultLotType==='Repacking'?'selected':''}>Repacking Cost</option>
+        <option value="Other Lot Expense" ${defaultLotType==='Other Lot Expense'?'selected':''}>Other Lot Expense</option>
       </select>
       
-      <div id="procurement-fields" class="highlight-box" style="display: ${x.type==='Procurement' ? 'block' : 'none'};">
+      <div id="procurement-fields" class="highlight-box" style="display: ${defaultLotType==='Procurement' ? 'block' : 'none'};">
         <label style="margin-top:0;">Stock Added (Procurement)</label>
         <div class="row2" style="margin-bottom: 8px;">
           <div><label>Added to G0</label><input type="number" id="m-exp-bags-g0" value="${x.bagsG0||''}" placeholder="0" oninput="updateTotalBagsModal('expense')"></div>
@@ -1023,7 +987,7 @@ async function quickMonthlyExpense(){
   const exp = { id, date: todayISO(), type:'Running Cost', desc: 'Auto-added Shop Overhead (Rent + Wages)', amount, referenceId:'', addedBy: getActor(), isDeleted: false };
   DATA.expenses.push(exp); renderAll(); sendAction('addExpense', exp, id);
 }
-async function deleteExpense(id){ confirmThen('Delete this expense?', async () => { const idx = DATA.expenses.findIndex(x=>x.id===id); if(idx !== -1) { DATA.expenses.splice(idx, 1); renderAll(); sendAction('deleteExpense', {id}); } }); }
+async function deleteExpense(id){ confirmThen('Delete this expense?', async () => { const idx = DATA.expenses.findIndex(x=>x.id===id); if(idx !== -1) { DATA.expenses[idx].isDeleted = true; renderAll(); sendAction('deleteExpense', {id}, id); } }); }
 
 function openContactModal(existing){
   const c = existing || { name:'', type:'Buyer', phone:'', location:'', note:'' };
@@ -1060,7 +1024,7 @@ function openContactModal(existing){
     }
   });
 }
-async function deleteContact(id){ confirmThen('Delete contact?', async () => { const idx = DATA.contacts.findIndex(c=>c.id===id); if(idx !== -1) { DATA.contacts.splice(idx, 1); renderAll(); sendAction('deleteContact', {id}); } }); }
+async function deleteContact(id){ confirmThen('Delete contact?', async () => { const idx = DATA.contacts.findIndex(c=>c.id===id); if(idx !== -1) { DATA.contacts[idx].isDeleted = true; renderAll(); sendAction('deleteContact', {id}, id); } }); }
 
 function calculatePayoutState(){
   const t = totals('all'); 
@@ -1138,7 +1102,7 @@ function openLoanModal(existing){
   });
 }
 async function setLoanReturnDate(id, val){ const loan = DATA.capitalLoans.find(l=>l.id===id); if(!loan)return; loan.returnDate = val; renderLoans(); sendAction('updateCapitalLoan', loan, id); }
-async function deleteCapitalLoan(id){ confirmThen('Delete this advance?', async () => { const idx = DATA.capitalLoans.findIndex(l=>l.id===id); if(idx !== -1) { DATA.capitalLoans.splice(idx, 1); renderLoans(); sendAction('deleteCapitalLoan', {id}); } }); }
+async function deleteCapitalLoan(id){ confirmThen('Delete this advance?', async () => { const idx = DATA.capitalLoans.findIndex(l=>l.id===id); if(idx !== -1) { DATA.capitalLoans[idx].isDeleted = true; renderLoans(); sendAction('deleteCapitalLoan', {id}, id); } }); }
 
 function toggleDetails(id) {
   const el = document.getElementById(id);
@@ -1178,8 +1142,8 @@ function renderDashboard(){
   if(lotsDiv) {
     lotsDiv.innerHTML = '';
     
-    // Hide empty lots from the dashboard grid unless they have actual remaining stock
     const activeLots = DATA.lots
+      .filter(l => !l.isDeleted)
       .map(l => ({lot: l, st: lotStats(l)}))
       .filter(x => x.st.remainingKg > 0 || x.st.remainingBags > 0)
       .reverse()
@@ -1211,7 +1175,7 @@ function renderDashboard(){
 
   const recentEl = document.getElementById('d-recent');
   if(recentEl) {
-    const recent = [...DATA.sales].sort((a,b)=> (b.date||'').localeCompare(a.date||'')).slice(0,5);
+    const recent = [...DATA.sales].filter(s => !s.isDeleted).sort((a,b)=> (b.date||'').localeCompare(a.date||'')).slice(0,5);
     recentEl.innerHTML = recent.map(s=>`
       <tr><td>${s.date}</td><td>${lotLabel(s.lotId)}</td><td><span class="badge ${s.channel==='Retail'?'retail':'wholesale'}">${s.channel}</span></td><td>${s.bags}</td><td>${Number(s.kg||0).toFixed(0)}</td><td>${fmt(s.amount)}</td></tr>`).join('');
     const emptyEl = document.getElementById('d-recent-empty');
@@ -1224,7 +1188,8 @@ function renderInventory(){
   if(!wrap) return;
   wrap.innerHTML='';
   
-  DATA.lots.forEach(lot=>{
+  const activeLots = DATA.lots.filter(l => !l.isDeleted);
+  activeLots.forEach(lot=>{
     const st = lotStats(lot);
     const expId = `exp-details-${lot.id}`;
     
@@ -1290,12 +1255,12 @@ function renderInventory(){
       </div>`);
   });
   const emptyWrap = document.getElementById('inv-lots-empty');
-  if(emptyWrap) emptyWrap.style.display = DATA.lots.length? 'none':'block';
+  if(emptyWrap) emptyWrap.style.display = activeLots.length? 'none':'block';
 }
 
 function renderSalesTable(){
   const body = document.getElementById('sales-table'); if(!body) return;
-  const sorted = DATA.sales.filter(s=> inPeriod(s.date, salesFilter)).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const sorted = DATA.sales.filter(s=> !s.isDeleted && inPeriod(s.date, salesFilter)).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
   body.innerHTML = sorted.map(s=>`
     <tr>
       <td>${s.date}<div class="by-line">${s.addedBy||'System'}</div></td>
@@ -1312,12 +1277,12 @@ function renderSalesTable(){
 
 function renderExpensesTable(){
   const body = document.getElementById('expenses-table'); if(!body) return;
-  const sorted = DATA.expenses.filter(x=> inPeriod(x.date, expensesFilter)).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const sorted = DATA.expenses.filter(x=> !x.isDeleted && inPeriod(x.date, expensesFilter)).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
   body.innerHTML = sorted.map(x=>`
     <tr>
       <td>${x.date}</td>
       <td><span class="badge type-tag">${x.referenceId ? 'Lot Expense' : 'Shop Overhead'}</span></td>
-      <td>${x.desc} ${x.type === 'Procurement' ? `<br><span style="font-size:0.7rem;color:#8a8272;font-weight:600;">(+${x.bags||0} Bags, ${x.kg||0} KG)</span>` : ''}</td>
+      <td>${x.desc} ${x.type === 'Procurement' ? `<br><span style="font-size:0.7rem;color:#8a8272;font-weight:600;">(+${(Number(x.bagsG0)||0)+(Number(x.bagsG1)||0)+(Number(x.bags)||0)} Bags, ${x.kg||0} KG)</span>` : ''}</td>
       <td>${fmt(x.amount)}</td>
       <td><span style="font-weight:bold; color:var(--plum-deep);">${x.referenceId ? lotLabel(x.referenceId) : 'Shop'}</span></td>
       <td class="row-actions">
@@ -1344,7 +1309,7 @@ function renderPartners(){
 
 function renderLoans(){
   const wrap = document.getElementById('loans-list'); if(!wrap)return; wrap.innerHTML = '';
-  const activeLoans = [...DATA.capitalLoans].sort((a,b)=> (b.dateSent||'').localeCompare(a.dateSent||''));
+  const activeLoans = [...DATA.capitalLoans].filter(l=>!l.isDeleted).sort((a,b)=> (b.dateSent||'').localeCompare(a.dateSent||''));
   activeLoans.forEach(loan=>{
     const days = Math.max(0, Math.round((new Date(loan.returnDate || todayISO()) - new Date(loan.dateSent)) / 86400000));
     const rate = DATA.config.interestRatePct || 1.5;
@@ -1378,7 +1343,7 @@ function renderLoans(){
 
 function renderContactsTable(){
   const body = document.getElementById('contacts-table'); if(!body)return;
-  const activeContacts = DATA.contacts;
+  const activeContacts = DATA.contacts.filter(c=>!c.isDeleted);
   body.innerHTML = activeContacts.map(c=>`
     <tr>
       <td><b>${c.name}</b><div class="by-line">${c.note||''}</div></td>
@@ -1407,7 +1372,6 @@ function buildReportLocal(period) {
     let d = new Date(dateStr);
     if (isNaN(d.getTime())) return 'Unknown';
     
-    // Explicitly parse local values to avoid timezone shifts
     const parts = dateStr.split('-');
     if (parts.length === 3) d = new Date(parts[0], parts[1] - 1, parts[2]);
 
@@ -1426,7 +1390,7 @@ function buildReportLocal(period) {
     return `${y}-${m}`;
   };
 
-  DATA.sales.forEach(s => {
+  DATA.sales.filter(s=>!s.isDeleted).forEach(s => {
     const k = getBucketKey(s.date);
     if (k === 'Unknown') return;
     buckets[k] = buckets[k] || { period: k, revenue: 0, bags: 0, expenses: 0 };
@@ -1434,7 +1398,7 @@ function buildReportLocal(period) {
     buckets[k].bags += (Number(s.bags)||0);
   });
 
-  DATA.expenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw').forEach(x => {
+  DATA.expenses.filter(x => !x.isDeleted && !x.referenceId && x.type !== 'Payout / Partner Draw').forEach(x => {
     const k = getBucketKey(x.date);
     if (k === 'Unknown') return;
     buckets[k] = buckets[k] || { period: k, revenue: 0, bags: 0, expenses: 0 };
