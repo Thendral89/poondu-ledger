@@ -347,7 +347,7 @@
 
 <script>
 // PLEASE UPDATE YOUR SCRIPT URL HERE AFTER DEPLOYMENT
-const CLOUD_URL = "https://script.google.com/macros/s/AKfycbxPaZj9Ez81RgsyRGcqknI2jKtD23cgK-wpdRv62WjMEIaTuZ0SQ0_iiKcO-ekdUQLP/exec";
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbxO6gjZJ-wvEnEcrRHzMGAuuBPtczoRBCAyY6e1o2IZTF8rT-SrIAbUpUdUDgq_hSRc/exec";
 const KEY = 'garlic-business-data';
 const ACTOR_KEY = 'poondu-actor';
 
@@ -357,6 +357,13 @@ let salesFilter = 'all';
 let expensesFilter = 'all';
 let dashFilter = 'all'; 
 let fabAction = null;
+
+// Safe date formatter for HTML date inputs to prevent ISO string crashes
+const safeDate = (d) => {
+  if (!d) return '';
+  if (typeof d === 'string' && d.includes('T')) return d.split('T')[0];
+  return String(d).slice(0, 10);
+};
 
 // Mathematically safe formatter to prevent NaN from breaking UI
 const fmt = n => '₹' + Math.round(Number(n)||0).toLocaleString('en-IN');
@@ -713,7 +720,7 @@ function openLotModal(existing){
       <button type="button" id="m-src-rev" class="${l.sourceOfFunds==='Sales Revenue'?'on':''}" onclick="setModalSource('Sales Revenue')">Sales Revenue</button>
     </div>
     <div class="row2" style="margin-top: 10px;">
-      <div><label>Date Added</label><input type="date" id="m-date" value="${l.dateAdded}"></div>
+      <div><label>Date Added</label><input type="date" id="m-date" value="${safeDate(l.dateAdded)}"></div>
       <div></div>
     </div>`;
   
@@ -752,7 +759,7 @@ function openSaleModal(existing){
   const contactOptions = '<option value="">-- Optional (Select Buyer if registered) --</option>' + DATA.contacts.filter(c => !c.isDeleted).map(c=>`<option value="${c.id}" ${s.contactId===c.id?'selected':''}>${c.name}</option>`).join('');
   
   const html = `
-    <label>Date</label><input type="date" id="m-date" value="${s.date}">
+    <label>Date</label><input type="date" id="m-date" value="${safeDate(s.date)}">
     <div class="row2">
       <div><label>Garlic Batch (Lot)</label><select id="m-lot" onchange="autoFillModalKg()">${lotOptions || '<option value="">-- No Active Lots --</option>'}</select></div>
       <div><label>Buyer Name</label><select id="m-contact">${contactOptions}</select></div>
@@ -817,7 +824,7 @@ function openExpenseModal(existing){
   const lotOptions = '<option value="">-- Select Lot to tag cost --</option>' + activeLots.map(l=>`<option value="${l.id}" ${x.referenceId===l.id?'selected':''}>${l.label}</option>`).join('');
 
   const html = `
-    <label>Date</label><input type="date" id="m-date" value="${x.date}">
+    <label>Date</label><input type="date" id="m-date" value="${safeDate(x.date)}">
     
     <label>Expense Target</label>
     <div class="seg2" style="margin-bottom: 12px;">
@@ -1000,7 +1007,7 @@ function openLoanModal(existing){
   const html = `
     <label>Partner</label><select id="m-partner">${partnerOptions}</select>
     <label>Amount (₹)</label><input type="number" id="m-amount" value="${l.amount}">
-    <label>Date Sent</label><input type="date" id="m-date" value="${l.dateSent}">
+    <label>Date Sent</label><input type="date" id="m-date" value="${safeDate(l.dateSent)}">
     <label>Note / Comments</label><input type="text" id="m-note" value="${l.note||''}">`;
 
   openModal(existing ? 'Edit Advance' : 'Add Advance Money', html, async () => {
@@ -1244,7 +1251,7 @@ function renderLoans(){
           <div>Total<b>${fmt(total)}</b></div>
         </div>
         <label style="margin-top:10px;">Return Date</label>
-        <input type="date" value="${loan.returnDate||''}" onchange="setLoanReturnDate('${loan.id}', this.value)">
+        <input type="date" value="${safeDate(loan.returnDate)}" onchange="setLoanReturnDate('${loan.id}', this.value)">
       </div>`);
   });
   const empty = document.getElementById('loans-empty');
