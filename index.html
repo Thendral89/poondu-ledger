@@ -5,102 +5,139 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Poondu Ledger — Garlic Business Tracker</title>
 <style>
-  :root{
-    --paper:#F6F1E7;
-    --paper-dim:#EDE6D6;
-    --ink:#2B2620;
-    --plum:#5B3A52;
-    --plum-deep:#3E2838;
-    --sage:#6E7F5C;
-    --rust:#A4472C;
-    --line:#D9CFB8;
-    --card:#FFFDF8;
+  :root {
+    --paper: #F6F1E7;
+    --paper-dim: #EDE6D6;
+    --ink: #2B2620;
+    --plum: #5B3A52;
+    --plum-deep: #3E2838;
+    --sage: #6E7F5C;
+    --rust: #A4472C;
+    --line: #D9CFB8;
+    --card: #FFFDF8;
   }
-  *{box-sizing:border-box;}
-  html,body{margin:0;height:100%;}
-  body{background:var(--paper);color:var(--ink);font-family:'Georgia','Iowan Old Style',serif;-webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom);}
-  .util{font-family:'Helvetica Neue',Arial,sans-serif;}
-  header{padding:16px 16px 12px;border-bottom:2px solid var(--plum);background:var(--card);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
-  header h1{margin:0;font-size:1.25rem;letter-spacing:0.2px;color:var(--plum-deep);}
-  header .sub{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.7rem;color:#7a7264;margin-top:3px;text-transform:uppercase;letter-spacing:1px;}
-  .header-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
-  .sync-badge{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.65rem;padding:4px 9px;border-radius:10px;white-space:nowrap;}
-  .sync-badge.ok{background:var(--sage);color:#fff;}
-  .sync-badge.err{background:var(--rust);color:#fff;}
-  .sync-badge.pending{background:#c9bfa0;color:#4a4436;}
-  .actor-pill{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.68rem;padding:4px 10px;border-radius:10px;background:var(--plum);color:#fff;cursor:pointer;white-space:nowrap;border:none;}
-  nav{display:flex;overflow-x:auto;background:var(--paper-dim);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;}
-  nav button{font-family:'Helvetica Neue',Arial,sans-serif;flex:1;min-width:76px;padding:11px 5px;background:none;border:none;font-size:0.72rem;font-weight:600;color:#8a8272;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;}
-  nav button.active{color:var(--plum-deep);border-bottom:3px solid var(--rust);}
-  main{padding:14px;padding-bottom:90px;max-width:680px;margin:0 auto;}
-  .view{display:none;}
-  .view.active{display:block;}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px;margin-bottom:12px;}
-  .card h2{margin:0 0 10px;font-size:0.98rem;color:var(--plum-deep);border-bottom:1px solid var(--line);padding-bottom:7px;}
-  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .stat{background:var(--paper-dim);border-radius:5px;padding:10px 12px;}
-  .stat .label{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.64rem;text-transform:uppercase;letter-spacing:0.6px;color:#8a8272;margin-bottom:3px;}
-  .stat .value{font-size:1.15rem;font-weight:bold;color:var(--plum-deep);}
-  .stat .value.neg{color:var(--rust);}
-  .stat .value.pos{color:var(--sage);}
-  .big-stat{text-align:center;padding:14px;}
-  .big-stat .value{font-size:1.8rem;}
-  label{display:block;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.72rem;color:#7a7264;margin:9px 0 4px;text-transform:uppercase;letter-spacing:0.5px;}
-  input, select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:4px;font-size:0.93rem;font-family:'Helvetica Neue',Arial,sans-serif;background:#fff;color:var(--ink);}
-  input:focus, select:focus{outline:2px solid var(--plum);outline-offset:1px;}
-  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
-  .btn{font-family:'Helvetica Neue',Arial,sans-serif;display:inline-block;width:100%;margin-top:12px;padding:11px;background:var(--plum);color:#fff;border:none;border-radius:5px;font-size:0.87rem;font-weight:600;cursor:pointer;letter-spacing:0.3px;}
-  .btn:active{background:var(--plum-deep);}
-  .btn:disabled{opacity:0.55;cursor:not-allowed;}
-  .btn.secondary{background:transparent;border:1px solid var(--plum);color:var(--plum);}
-  .btn.ghost{background:transparent;border:1px solid var(--line);color:#7a7264;font-weight:400;}
-  .btn.danger{background:var(--rust);}
-  .seg2{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-top:4px;}
-  .seg2 button{flex:1;padding:8px 4px;border:none;background:#fff;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.72rem;color:#7a7264;cursor:pointer;}
-  .seg2 button.on{background:var(--plum);color:#fff;font-weight:600;}
-  table{width:100%;border-collapse:collapse;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.8rem;}
-  th{text-align:left;font-size:0.62rem;text-transform:uppercase;color:#8a8272;padding:6px 4px;border-bottom:1px solid var(--line);}
-  td{padding:7px 4px;border-bottom:1px solid var(--paper-dim);vertical-align:middle;}
-  tr:last-child td{border-bottom:none;}
-  .row-actions{display:flex;gap:6px;white-space:nowrap;align-items:center;}
-  .icon-btn{border:none;background:none;cursor:pointer;font-size:0.85rem;padding:2px 5px;border-radius:4px;font-family:'Helvetica Neue',Arial,sans-serif;}
-  .icon-btn.edit{color:var(--plum);}
-  .icon-btn.del{color:var(--rust);}
-  .empty{text-align:center;padding:20px 10px;color:#a49c8c;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.85rem;}
-  .partner-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--paper-dim);}
-  .partner-row:last-child{border-bottom:none;}
-  .partner-name{font-weight:bold;color:var(--plum-deep);}
-  .note{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.75rem;color:#8a8272;line-height:1.4;margin-top:8px;}
-  .by-line{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.64rem;color:#a49c8c;margin-top:2px;}
-  .badge{display:inline-block;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.66rem;padding:2px 8px;border-radius:10px;background:var(--sage);color:#fff;white-space:nowrap;}
-  .badge.owe{background:var(--rust);}
-  .badge.wholesale{background:var(--plum);}
-  .badge.retail{background:var(--sage);}
-  .lot-card{border:1px solid var(--line);border-radius:5px;padding:12px;margin-bottom:10px;background:var(--paper-dim);}
-  .lot-card .lot-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px;}
-  .lot-card .lot-title{font-weight:bold;color:var(--plum-deep);font-size:0.93rem;}
-  .lot-card .lot-sub{font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.7rem;color:#8a8272;}
-  .bar{height:6px;background:#e2d9c3;border-radius:3px;overflow:hidden;margin:6px 0;}
-  .bar-fill{height:100%;background:var(--sage);}
-  .lot-mini-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.72rem;color:#5a5346;}
-  .lot-mini-grid b{display:block;color:var(--plum-deep);font-size:0.9rem;}
-  #toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:var(--plum-deep);color:#fff;padding:9px 18px;border-radius:20px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.8rem;opacity:0;transition:opacity 0.25s;pointer-events:none;z-index:30;max-width:85vw;text-align:center;}
-  #toast.show{opacity:1;}
-  #toast.err{background:var(--rust);}
-  .loading{text-align:center;padding:40px;color:#8a8272;font-family:'Helvetica Neue',Arial,sans-serif;}
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--paper); color: var(--ink); font-family: 'Georgia', 'Iowan Old Style', serif; -webkit-font-smoothing: antialiased; padding-bottom: env(safe-area-inset-bottom); }
+  .util { font-family: 'Helvetica Neue', Arial, sans-serif; }
+  
+  /* Header & Navigation */
+  header { padding: 16px 16px 12px; border-bottom: 2px solid var(--plum); background: var(--card); display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  header h1 { margin: 0; font-size: 1.25rem; letter-spacing: 0.2px; color: var(--plum-deep); }
+  header .sub { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.7rem; color: #7a7264; margin-top: 3px; text-transform: uppercase; letter-spacing: 1px; }
+  .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .sync-badge { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.65rem; padding: 4px 9px; border-radius: 10px; white-space: nowrap; }
+  .sync-badge.ok { background: var(--sage); color: #fff; }
+  .sync-badge.err { background: var(--rust); color: #fff; }
+  .sync-badge.pending { background: #c9bfa0; color: #4a4436; }
+  .actor-pill { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.68rem; padding: 4px 10px; border-radius: 10px; background: var(--plum); color: #fff; cursor: pointer; white-space: nowrap; border: none; }
+  
+  nav { display: flex; overflow-x: auto; background: var(--paper-dim); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; scrollbar-width: none; }
+  nav::-webkit-scrollbar { display: none; }
+  nav button { font-family: 'Helvetica Neue', Arial, sans-serif; flex: 1; min-width: 85px; padding: 11px 8px; background: none; border: none; font-size: 0.72rem; font-weight: 600; color: #8a8272; border-bottom: 3px solid transparent; cursor: pointer; white-space: nowrap; transition: 0.2s; }
+  nav button.active { color: var(--plum-deep); border-bottom: 3px solid var(--rust); }
+  
+  /* Main Container & Cards */
+  main { padding: 14px; padding-bottom: 90px; max-width: 680px; margin: 0 auto; }
+  .view { display: none; animation: fadeIn 0.3s ease; }
+  .view.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+  
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+  .card h2 { margin: 0 0 10px; font-size: 0.98rem; color: var(--plum-deep); border-bottom: 1px solid var(--line); padding-bottom: 7px; display: flex; justify-content: space-between; align-items: center; }
+  
+  /* Stats Grid */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat { background: var(--paper-dim); border-radius: 5px; padding: 10px 12px; }
+  .stat .label { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.6px; color: #8a8272; margin-bottom: 3px; }
+  .stat .value { font-size: 1.15rem; font-weight: bold; color: var(--plum-deep); }
+  .stat .value.neg { color: var(--rust); }
+  .stat .value.pos { color: var(--sage); }
+  .big-stat { text-align: center; padding: 14px; }
+  .big-stat .value { font-size: 1.8rem; }
+  
+  /* Forms & Inputs */
+  label { display: block; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.72rem; color: #7a7264; margin: 9px 0 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  input, select, textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 4px; font-size: 0.93rem; font-family: 'Helvetica Neue', Arial, sans-serif; background: #fff; color: var(--ink); }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--plum); outline-offset: 1px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  
+  /* Buttons */
+  .btn { font-family: 'Helvetica Neue', Arial, sans-serif; display: inline-block; width: 100%; margin-top: 12px; padding: 11px; background: var(--plum); color: #fff; border: none; border-radius: 5px; font-size: 0.87rem; font-weight: 600; cursor: pointer; letter-spacing: 0.3px; text-align: center; transition: 0.2s; }
+  .btn:active { background: var(--plum-deep); transform: scale(0.98); }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+  .btn.secondary { background: transparent; border: 1px solid var(--plum); color: var(--plum); }
+  .btn.ghost { background: transparent; border: 1px solid var(--line); color: #7a7264; font-weight: 400; }
+  .btn.danger { background: var(--rust); }
+  
+  /* Segments & Toggles */
+  .seg2 { display: flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; margin-top: 4px; }
+  .seg2 button { flex: 1; padding: 8px 4px; border: none; background: #fff; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.72rem; color: #7a7264; cursor: pointer; transition: 0.1s; }
+  .seg2 button.on { background: var(--plum); color: #fff; font-weight: 600; }
+  
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.8rem; }
+  th { text-align: left; font-size: 0.62rem; text-transform: uppercase; color: #8a8272; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+  td { padding: 7px 4px; border-bottom: 1px solid var(--paper-dim); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  .row-actions { display: flex; gap: 6px; white-space: nowrap; align-items: center; justify-content: flex-end; }
+  .icon-btn { border: none; background: none; cursor: pointer; font-size: 0.85rem; padding: 2px 5px; border-radius: 4px; font-family: 'Helvetica Neue', Arial, sans-serif; transition: 0.2s; }
+  .icon-btn:active { transform: scale(0.9); }
+  .icon-btn.edit { color: var(--plum); }
+  .icon-btn.del { color: var(--rust); }
+  .empty { text-align: center; padding: 20px 10px; color: #a49c8c; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.85rem; }
+  
+  /* Partner/List Rows */
+  .partner-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--paper-dim); }
+  .partner-row:last-child { border-bottom: none; }
+  .partner-name { font-weight: bold; color: var(--plum-deep); }
+  .note { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.75rem; color: #8a8272; line-height: 1.4; margin-top: 8px; }
+  .by-line { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.64rem; color: #a49c8c; margin-top: 2px; }
+  
+  /* Badges */
+  .badge { display: inline-block; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.66rem; padding: 2px 8px; border-radius: 10px; background: var(--sage); color: #fff; white-space: nowrap; }
+  .badge.owe { background: var(--rust); }
+  .badge.type-tag { background: #8e7d6b; }
+  .badge.wholesale { background: var(--plum); }
+  .badge.retail { background: var(--sage); }
+  
+  /* Lot Cards */
+  .lot-card { border: 1px solid var(--line); border-radius: 5px; padding: 12px; margin-bottom: 10px; background: var(--paper-dim); }
+  .lot-card .lot-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+  .lot-card .lot-title { font-weight: bold; color: var(--plum-deep); font-size: 0.93rem; }
+  .lot-card .lot-sub { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.7rem; color: #8a8272; }
+  .bar { height: 6px; background: #e2d9c3; border-radius: 3px; overflow: hidden; margin: 6px 0; }
+  .bar-fill { height: 100%; background: var(--sage); transition: width 0.3s ease; }
+  .bar-fill.warning { background: var(--rust); }
+  .lot-mini-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.72rem; color: #5a5346; }
+  .lot-mini-grid b { display: block; color: var(--plum-deep); font-size: 0.9rem; }
+  
+  /* Toast & Loading */
+  #toast { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%); background: var(--plum-deep); color: #fff; padding: 9px 18px; border-radius: 20px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.8rem; opacity: 0; transition: opacity 0.25s; pointer-events: none; z-index: 50; max-width: 85vw; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+  #toast.show { opacity: 1; }
+  #toast.err { background: var(--rust); }
+  .loading { text-align: center; padding: 40px; color: #8a8272; font-family: 'Helvetica Neue', Arial, sans-serif; }
 
-  .fab{position:fixed;right:18px;bottom:18px;width:56px;height:56px;border-radius:50%;background:var(--rust);color:#fff;border:none;font-size:1.6rem;line-height:1;box-shadow:0 4px 14px rgba(0,0,0,0.25);cursor:pointer;z-index:15;display:none;align-items:center;justify-content:center;}
-  .fab.show{display:flex;}
-  .fab:active{background:var(--plum-deep);}
+  /* Floating Action Button */
+  .fab { position: fixed; right: 18px; bottom: 18px; width: 56px; height: 56px; border-radius: 50%; background: var(--rust); color: #fff; border: none; font-size: 1.8rem; line-height: 1; box-shadow: 0 4px 14px rgba(0,0,0,0.25); cursor: pointer; z-index: 15; display: none; align-items: center; justify-content: center; transition: 0.2s; }
+  .fab.show { display: flex; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+  .fab:active { transform: scale(0.9); }
+  @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
 
-  .modal-backdrop{position:fixed;inset:0;background:rgba(43,38,32,0.5);z-index:40;display:none;align-items:flex-end;justify-content:center;}
-  .modal-backdrop.show{display:flex;}
-  .modal-sheet{background:var(--paper);width:100%;max-width:680px;max-height:88vh;overflow-y:auto;border-radius:16px 16px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));}
-  .modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-  .modal-head h3{margin:0;font-size:1.05rem;color:var(--plum-deep);}
-  .modal-close{background:none;border:none;font-size:1.3rem;color:#8a8272;cursor:pointer;line-height:1;padding:4px 8px;}
-  .modal-actor-btn{width:100%;text-align:left;padding:12px;margin-top:8px;border:1px solid var(--line);border-radius:6px;background:#fff;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.95rem;font-weight:600;color:var(--plum-deep);cursor:pointer;}
+  /* Custom Modals */
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(43,38,32,0.6); z-index: 40; display: none; align-items: flex-end; justify-content: center; backdrop-filter: blur(2px); }
+  .modal-backdrop.show { display: flex; animation: fadeIn 0.2s; }
+  .modal-sheet { background: var(--paper); width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; border-radius: 16px 16px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -4px 20px rgba(0,0,0,0.1); animation: slideUp 0.3s cubic-bezier(0.1, 0.9, 0.2, 1); }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .modal-head h3 { margin: 0; font-size: 1.1rem; color: var(--plum-deep); }
+  .modal-close { background: none; border: none; font-size: 1.5rem; color: #8a8272; cursor: pointer; line-height: 1; padding: 4px 8px; }
+  .modal-actor-btn { width: 100%; text-align: left; padding: 12px; margin-top: 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.95rem; font-weight: 600; color: var(--plum-deep); cursor: pointer; }
+  
+  /* Details Expander */
+  .details-expander { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+  .details-expander.open { display: block; animation: fadeIn 0.2s; }
+  .toggle-details-btn { background: none; border: none; color: var(--plum); font-size: 0.75rem; font-weight: bold; cursor: pointer; padding: 4px 0; font-family: 'Helvetica Neue', Arial, sans-serif; }
 </style>
 </head>
 <body>
@@ -108,7 +145,7 @@
 <header>
   <div>
     <h1>🧄 Poondu Ledger</h1>
-    <div class="sub">Thendral · Nagaraj · Senthil — Garlic Trade</div>
+    <div class="sub">Thendral · Nagaraj · Senthil</div>
   </div>
   <div class="header-right">
     <div id="sync-badge" class="sync-badge pending util">connecting…</div>
@@ -118,86 +155,119 @@
 
 <nav class="util">
   <button data-view="dashboard" class="active">Dashboard</button>
-  <button data-view="inventory">Inventory</button>
   <button data-view="sales">Daily Sale</button>
-  <button data-view="reports">Reports</button>
-  <button data-view="partners">Partners</button>
+  <button data-view="inventory">Inventory</button>
   <button data-view="expenses">Expenses</button>
+  <button data-view="contacts">Contacts</button>
+  <button data-view="reports">Reports</button>
+  <button data-view="partners">Partners & Payouts</button>
   <button data-view="settings">Settings</button>
 </nav>
 
 <main>
-  <div id="loading" class="loading">Loading your ledger…</div>
+  <div id="loading" class="loading">Loading ledger environment…</div>
 
+  <!-- VIEW: DASHBOARD -->
   <div class="view active" id="view-dashboard">
     <div class="card big-stat">
-      <div class="label util" style="text-align:center;">Garlic left in stock (all lots)</div>
+      <div class="label util">Garlic Available in Stock</div>
       <div class="value" id="d-bags-left">—</div>
-      <div class="note" id="d-kg-left" style="text-align:center;"></div>
+      <div class="note" id="d-kg-left"></div>
     </div>
 
     <div class="card">
-      <h2>Money so far</h2>
+      <h2>
+        Financial Status
+        <div class="seg2" style="width: 140px; margin-top:0;">
+          <button type="button" id="dash-btn-all" class="on" onclick="setDashFilter('all')">All Time</button>
+          <button type="button" id="dash-btn-month" onclick="setDashFilter('month')">Month</button>
+        </div>
+      </h2>
       <div class="stat-grid">
-        <div class="stat"><div class="label">Total sales</div><div class="value" id="d-revenue">₹0</div></div>
-        <div class="stat"><div class="label">Cost of garlic sold</div><div class="value" id="d-cogs">₹0</div></div>
-        <div class="stat"><div class="label">Other expenses logged</div><div class="value" id="d-expenses">₹0</div></div>
-        <div class="stat"><div class="label">Net profit / loss</div><div class="value" id="d-profit">₹0</div></div>
+        <div class="stat"><div class="label">Gross Sales</div><div class="value" id="d-revenue">₹0</div></div>
+        <div class="stat"><div class="label">Cost of Goods (Sold)</div><div class="value" id="d-cogs">₹0</div></div>
+        <div class="stat"><div class="label">Shop Running Expenses</div><div class="value" id="d-expenses">₹0</div></div>
+        <div class="stat"><div class="label">Net Book Profit</div><div class="value" id="d-profit">₹0</div></div>
       </div>
     </div>
 
     <div class="card">
-      <h2>Retail vs Wholesale</h2>
-      <div class="stat-grid">
-        <div class="stat"><div class="label">Retail revenue</div><div class="value" id="d-retail-rev">₹0</div></div>
-        <div class="stat"><div class="label">Wholesale revenue</div><div class="value" id="d-wholesale-rev">₹0</div></div>
-        <div class="stat"><div class="label">Retail bags sold</div><div class="value" id="d-retail-bags">0</div></div>
-        <div class="stat"><div class="label">Wholesale bags sold</div><div class="value" id="d-wholesale-bags">0</div></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Lots at a glance</h2>
+      <h2>Active Lots Overview</h2>
       <div id="d-lots"></div>
+      <div class="empty" id="d-lots-empty" style="display:none;">No active inventory available.</div>
     </div>
 
     <div class="card">
-      <h2>Recent sales</h2>
+      <h2>Recent Sales</h2>
       <table>
-        <thead><tr><th>Date</th><th>Lot</th><th>Ch.</th><th>Bags</th><th>Kg</th><th>Amount</th></tr></thead>
+        <thead><tr><th>Date</th><th>Lot</th><th>Ch.</th><th>Bags</th><th>KG</th><th>Amount</th></tr></thead>
         <tbody id="d-recent"></tbody>
       </table>
-      <div class="empty" id="d-recent-empty" style="display:none;">No sales logged yet</div>
+      <div class="empty" id="d-recent-empty" style="display:none;">No historical sales located.</div>
     </div>
   </div>
 
-  <div class="view" id="view-inventory">
-    <div class="card">
-      <h2>Lots — total vs sold vs remaining</h2>
-      <div id="inv-lots"></div>
-      <div class="empty" id="inv-lots-empty" style="display:none;">No lots yet — tap + to add your first purchase lot</div>
-    </div>
-  </div>
-
+  <!-- VIEW: SALES -->
   <div class="view" id="view-sales">
     <div class="card">
       <div class="seg2" id="sales-period-filter">
         <button type="button" class="on" data-p="all" onclick="setSalesFilter('all')">All</button>
         <button type="button" data-p="today" onclick="setSalesFilter('today')">Today</button>
-        <button type="button" data-p="week" onclick="setSalesFilter('week')">This week</button>
-        <button type="button" data-p="month" onclick="setSalesFilter('month')">This month</button>
+        <button type="button" data-p="week" onclick="setSalesFilter('week')">This Week</button>
+        <button type="button" data-p="month" onclick="setSalesFilter('month')">This Month</button>
       </div>
       <table style="margin-top:10px;">
-        <thead><tr><th>Date</th><th>Lot</th><th>Ch.</th><th>Bags</th><th>Kg</th><th>Amount</th><th></th></tr></thead>
+        <thead><tr><th>Date</th><th>Lot</th><th>Type</th><th>Bags</th><th>KG</th><th>Amount</th><th></th></tr></thead>
         <tbody id="sales-table"></tbody>
       </table>
-      <div class="empty" id="sales-empty" style="display:none;">No sales yet — tap + to log one</div>
+      <div class="empty" id="sales-empty" style="display:none;">No transactions found.</div>
     </div>
   </div>
 
+  <!-- VIEW: INVENTORY -->
+  <div class="view" id="view-inventory">
+    <div class="card">
+      <h2>Procured Batches & Lots</h2>
+      <div id="inv-lots"></div>
+      <div class="empty" id="inv-lots-empty" style="display:none;">No active lots. Press + to record procurement.</div>
+    </div>
+  </div>
+
+  <!-- VIEW: EXPENSES -->
+  <div class="view" id="view-expenses">
+    <div class="card">
+      <div class="seg2" id="expenses-period-filter">
+        <button type="button" class="on" data-p="all" onclick="setExpensesFilter('all')">All</button>
+        <button type="button" data-p="today" onclick="setExpensesFilter('today')">Today</button>
+        <button type="button" data-p="week" onclick="setExpensesFilter('week')">This Week</button>
+        <button type="button" data-p="month" onclick="setExpensesFilter('month')">This Month</button>
+      </div>
+      <table style="margin-top:10px;">
+        <thead><tr><th>Date</th><th>Type</th><th>Details</th><th>Amount</th><th>Lot</th><th></th></tr></thead>
+        <tbody id="expenses-table"></tbody>
+      </table>
+      <div class="empty" id="expenses-empty" style="display:none;">No operational expenses documented.</div>
+      <button class="btn ghost" onclick="quickMonthlyExpense()">Quick Add Fixed Running Costs (₹<span id="e-quick-amt"></span>)</button>
+    </div>
+  </div>
+
+  <!-- VIEW: CONTACTS -->
+  <div class="view" id="view-contacts">
+    <div class="card">
+      <h2>Business Contacts</h2>
+      <div class="note">Keep track of regular buyers, farmers, and transport drivers.</div>
+      <table style="margin-top:10px;">
+        <thead><tr><th>Name</th><th>Type</th><th>Phone</th><th>Location</th><th></th></tr></thead>
+        <tbody id="contacts-table"></tbody>
+      </table>
+      <div class="empty" id="contacts-empty" style="display:none;">No contacts logged. Press + to register.</div>
+    </div>
+  </div>
+
+  <!-- VIEW: REPORTS -->
   <div class="view" id="view-reports">
     <div class="card">
-      <h2>Sales & expense report</h2>
+      <h2>Aggregated Period Reporting</h2>
       <div class="seg2">
         <button type="button" class="on" data-period="daily" onclick="setReportPeriod('daily')">Daily</button>
         <button type="button" data-period="weekly" onclick="setReportPeriod('weekly')">Weekly</button>
@@ -205,92 +275,79 @@
         <button type="button" data-period="quarterly" onclick="setReportPeriod('quarterly')">Quarterly</button>
       </div>
       <table style="margin-top:12px;">
-        <thead><tr><th>Period</th><th>Revenue</th><th>Expenses</th><th>Bags</th></tr></thead>
+        <thead><tr><th>Period</th><th>Revenue</th><th>Shop Expenses</th><th>Bags Sold</th></tr></thead>
         <tbody id="report-table"></tbody>
       </table>
-      <div class="empty" id="report-empty" style="display:none;">Not enough data yet for this view</div>
-      <div class="note">Computed live from your Sales and Expenses sheets. For deeper cuts (by partner, by lot, by channel), open the Google Sheet directly and drop in a Pivot Table.</div>
     </div>
   </div>
 
+  <!-- VIEW: PARTNERS & PAYOUTS -->
   <div class="view" id="view-partners">
-    <div class="card">
-      <h2>Capital contribution (required: ₹6,50,000 each)</h2>
-      <div id="partners-list"></div>
-      <div class="note">Breakdown per partner: ₹50,000 shop setup + ₹1,50,000 shop advance + ₹4,50,000 garlic procurement share = ₹6,50,000.</div>
-    </div>
-    <div class="card">
-      <h2>Edit contributions</h2>
-      <div id="partners-edit"></div>
-      <button class="btn" id="btn-save-partners" onclick="savePartners()">Save contributions</button>
-    </div>
-    <div class="card">
-      <h2>Interest setting</h2>
-      <label>Monthly interest rate on shortfall (%)</label>
-      <input type="number" id="p-interest" step="0.1">
-      <div class="note">Assumes a partner who has contributed less than ₹6,50,000 owes the others interest on the shortfall each month, until it's made up.</div>
-      <button class="btn secondary" id="btn-save-interest" onclick="saveInterestRate()">Save rate</button>
-    </div>
-
-    <div class="card">
-      <h2>Extra capital & interest (1.5% / month)</h2>
-      <div class="note">When a partner sends more than their ₹6,50,000 share, log it here (tap +). Interest is calculated day-by-day at 1.5% per 30 days from the date sent, until you record a return date.</div>
-      <div id="loans-list" style="margin-top:12px;"></div>
-      <div class="empty" id="loans-empty" style="display:none;">No extra capital logged yet</div>
-    </div>
-  </div>
-
-  <div class="view" id="view-expenses">
-    <div class="card">
-      <div class="seg2" id="expenses-period-filter">
-        <button type="button" class="on" data-p="all" onclick="setExpensesFilter('all')">All</button>
-        <button type="button" data-p="today" onclick="setExpensesFilter('today')">Today</button>
-        <button type="button" data-p="week" onclick="setExpensesFilter('week')">This week</button>
-        <button type="button" data-p="month" onclick="setExpensesFilter('month')">This month</button>
+    <div class="card" style="border: 2px solid var(--plum);">
+      <h2>3-Way Payout Engine</h2>
+      <div class="note">Distributes actual liquid cash safely (excludes capital tied up in inventory).</div>
+      <div style="margin: 12px 0;">
+        <label>Retained Shop Cash Reserve / Working Capital (₹)</label>
+        <input type="number" id="payout-reserve-input" value="50000" oninput="calculatePayoutState()">
       </div>
-      <table style="margin-top:10px;">
-        <thead><tr><th>Date</th><th>What for</th><th>Amount</th><th></th></tr></thead>
-        <tbody id="expenses-table"></tbody>
-      </table>
-      <div class="empty" id="expenses-empty" style="display:none;">No expenses logged yet — tap + to add one</div>
-      <button class="btn ghost" onclick="quickMonthlyExpense()">Quick-add this month's running cost (₹<span id="e-quick-amt"></span>)</button>
+      <div class="stat-grid" style="margin: 12px 0;">
+        <div class="stat"><div class="label">Total Liquid Cash Available</div><div class="value" id="rep-liquid-cash">₹0</div></div>
+        <div class="stat"><div class="label">Cash to Distribute</div><div class="value" id="rep-distributable">₹0</div></div>
+        <div class="stat"><div class="label">Per Partner (1/3)</div><div class="value" id="rep-per-head">₹0</div></div>
+      </div>
+      <button class="btn" onclick="executeBalancedThreeWayPayout()">Save Payout to Ledger</button>
+    </div>
+
+    <div class="card">
+      <h2>Base Capital (Target: ₹6,50,000 each)</h2>
+      <div id="partners-list"></div>
+    </div>
+    
+    <div class="card">
+      <h2>Modify Base Capital Contributions</h2>
+      <div id="partners-edit"></div>
+      <button class="btn" id="btn-save-partners" onclick="savePartners()">Save Capital Levels</button>
+    </div>
+
+    <div class="card">
+      <h2>Extra Advance Money Lent (1.5% fixed)</h2>
+      <label>Monthly deficit interest percentage (%)</label>
+      <input type="number" id="p-interest" step="0.1" style="margin-bottom: 10px;">
+      <button class="btn secondary" id="btn-save-interest" onclick="saveInterestRate()">Save Interest Rate</button>
+      
+      <div id="loans-list" style="margin-top:16px;"></div>
+      <div class="empty" id="loans-empty" style="display:none;">No extra capital extensions found.</div>
     </div>
   </div>
 
+  <!-- VIEW: SETTINGS -->
   <div class="view" id="view-settings">
     <div class="card">
-      <h2>Monthly running cost</h2>
-      <label>Shop 1 rent (₹/month)</label>
+      <h2>Fixed Monthly Shop Expenses</h2>
+      <div class="note">These auto-fill when you click "Quick Add Fixed Running Costs" on the Expenses tab.</div>
+      <label>Primary Shop Rental (₹/month)</label>
       <input type="number" id="c-rent1">
-      <label>Shop 2 rent (₹/month)</label>
+      <label>Secondary Shop Rental (₹/month)</label>
       <input type="number" id="c-rent2">
-      <label>Labour + other running cost (₹/month)</label>
+      <label>Wages & Aux Costs (₹/month)</label>
       <input type="number" id="c-labour">
-      <button class="btn" id="btn-save-config" onclick="saveConfig()">Save</button>
-      <div class="note">Total estimated running cost auto-sums for the quick-add button in Expenses.</div>
+      <button class="btn" id="btn-save-config" onclick="saveConfig()">Save Configuration</button>
     </div>
-
     <div class="card">
-      <h2>Connection</h2>
-      <div class="note">Web app URL currently in use is shown below. If saves keep failing, re-check the Apps Script deployment (it must be deployed as "Execute as: Me" / "Who has access: Anyone").</div>
+      <h2>Cloud Connection</h2>
       <div class="note" id="settings-url" style="word-break:break-all;"></div>
-      <button class="btn ghost" onclick="manualRefresh()">Force refresh from Google Sheet</button>
-    </div>
-
-    <div class="card">
-      <h2>Who's using this device</h2>
-      <div class="note">Your name is attached to every record you add or edit, so partners can see who logged what.</div>
-      <button class="btn secondary" onclick="openActorPicker()">Change my name</button>
+      <button class="btn ghost" onclick="manualRefresh()">Force Refresh from Google Sheets</button>
     </div>
   </div>
 </main>
 
 <button id="fab" class="fab util" onclick="fabAction && fabAction()">+</button>
 
+<!-- Custom Modal -->
 <div id="modal-backdrop" class="modal-backdrop util" onclick="if(event.target===this) closeModal()">
   <div class="modal-sheet">
     <div class="modal-head">
-      <h3 id="modal-title">Title</h3>
+      <h3 id="modal-title">Action</h3>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div id="modal-body"></div>
@@ -298,17 +355,30 @@
   </div>
 </div>
 
+<!-- Custom Confirm/Alert -->
+<div id="confirm-backdrop" class="modal-backdrop util" style="z-index: 60;">
+  <div class="modal-sheet" style="border-radius: 12px; margin: 20px; max-height: none;">
+    <h3 style="margin-top:0; color: var(--plum-deep); font-size:1.1rem;">Confirm Action</h3>
+    <p id="confirm-msg" style="color:#5a5346; font-size:0.9rem; line-height:1.4;"></p>
+    <div class="row2" style="margin-top: 16px;">
+      <button class="btn ghost" onclick="closeConfirm()" style="margin-top:0;">Cancel</button>
+      <button class="btn danger" id="confirm-yes-btn" style="margin-top:0;">Yes</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="util"></div>
 
 <script>
-const CLOUD_URL = "https://script.google.com/macros/s/AKfycbx6_6ulM_6CiZuJOp_RnkzUHj28AKM7VOkoatUUC5zrCCihHR9zqPyhK_xls_5pOzbk/exec";
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbxTAnTAynhYYclFvqoUVcEtiVugvTNcL-ifoROiGjPx-Te0sm5kcxY9CyVdBiBV0T7G/exec";
 const KEY = 'garlic-business-data';
 const ACTOR_KEY = 'poondu-actor';
 
 let DATA = null;
-let currentReportPeriod = 'daily';
+let currentReportPeriod = 'monthly';
 let salesFilter = 'all';
 let expensesFilter = 'all';
+let dashFilter = 'all'; 
 let fabAction = null;
 
 const fmt = n => '₹' + Math.round(n||0).toLocaleString('en-IN');
@@ -323,7 +393,7 @@ function defaultData(){
       Nagaraj:  {required:650000, contributed:289550},
       Senthil:  {required:650000, contributed:625953}
     },
-    lots: [], sales: [], expenses: [], capitalLoans: []
+    lots: [], sales: [], expenses: [], capitalLoans: [], contacts: []
   };
 }
 
@@ -334,7 +404,7 @@ function setActor(name){
 }
 function openActorPicker(){
   const names = Object.keys(DATA.partners || {});
-  const html = '<div class="note">Pick your name so changes are attributed correctly.</div>'
+  const html = '<div class="note">Select who is logging these entries:</div>'
     + names.map(n=>`<button type="button" class="modal-actor-btn" onclick="setActor('${n}'); closeModal();">${n}</button>`).join('');
   openModal('Who are you?', html, null);
   document.getElementById('modal-save-btn').style.display = 'none';
@@ -353,12 +423,12 @@ function setSyncBadge(state, label){
   b.textContent = label;
 }
 
-function openModal(title, bodyHtml, onSave, saveLabel){
+function openModal(title, bodyHtml, onSave, saveLabel = 'Save'){
   document.getElementById('modal-title').textContent = title;
   document.getElementById('modal-body').innerHTML = bodyHtml;
   const btn = document.getElementById('modal-save-btn');
   btn.style.display = onSave ? 'block' : 'none';
-  btn.textContent = saveLabel || 'Save';
+  btn.textContent = saveLabel;
   btn.onclick = async () => {
     btn.disabled = true;
     const result = await onSave();
@@ -367,13 +437,23 @@ function openModal(title, bodyHtml, onSave, saveLabel){
   };
   document.getElementById('modal-backdrop').classList.add('show');
 }
-function closeModal(){
-  document.getElementById('modal-backdrop').classList.remove('show');
-}
+function closeModal(){ document.getElementById('modal-backdrop').classList.remove('show'); }
 
-function confirmThen(message, fn){
-  if (window.confirm(message)) fn();
+let confirmCallback = null;
+function openConfirm(msg, callback) {
+  document.getElementById('confirm-msg').textContent = msg;
+  confirmCallback = callback;
+  document.getElementById('confirm-backdrop').classList.add('show');
 }
+function closeConfirm() {
+  document.getElementById('confirm-backdrop').classList.remove('show');
+  confirmCallback = null;
+}
+document.getElementById('confirm-yes-btn').onclick = () => {
+  if(confirmCallback) confirmCallback();
+  closeConfirm();
+};
+function confirmThen(message, fn){ openConfirm(message, fn); }
 
 function jsonp(url){
   return new Promise((resolve, reject) => {
@@ -382,10 +462,9 @@ function jsonp(url){
     let timeoutId;
     function cleanup(){ clearTimeout(timeoutId); delete window[cbName]; script.remove(); }
     window[cbName] = (data) => { resolve(data); cleanup(); };
-    script.onerror = () => { reject(new Error('JSONP request failed')); cleanup(); };
-    const sep = url.includes('?') ? '&' : '?';
-    script.src = url + sep + 'callback=' + cbName;
-    timeoutId = setTimeout(() => { reject(new Error('JSONP timeout')); cleanup(); }, 12000);
+    script.onerror = () => { reject(new Error('Network request failed')); cleanup(); };
+    script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
+    timeoutId = setTimeout(() => { reject(new Error('Timeout')); cleanup(); }, 15000);
     document.body.appendChild(script);
   });
 }
@@ -393,27 +472,15 @@ function jsonp(url){
 async function fetchCloudState(){
   const json = await jsonp(CLOUD_URL);
   if (!json || !json.config) return null;
-  json.lots = json.lots || [];
-  json.sales = json.sales || [];
-  json.expenses = json.expenses || [];
-  json.partners = json.partners || {};
-  json.capitalLoans = json.capitalLoans || [];
-  if (Object.keys(json.partners).length === 0) {
-    json.partners = {
-      Thendral: { required: 650000, contributed: 0 },
-      Nagaraj:  { required: 650000, contributed: 0 },
-      Senthil:  { required: 650000, contributed: 0 }
-    };
+  ['lots', 'sales', 'expenses', 'capitalLoans', 'contacts'].forEach(k => json[k] = json[k] || []);
+  if (!json.partners || Object.keys(json.partners).length === 0) {
+    json.partners = defaultData().partners;
   }
   return json;
 }
 
-async function fetchReport(period){
-  return jsonp(CLOUD_URL + '?action=report&period=' + period);
-}
-
 async function sendAction(action, payload, id){
-  setSyncBadge('pending', 'saving…');
+  setSyncBadge('pending', 'syncing…');
   try {
     const url = CLOUD_URL + '?action=' + encodeURIComponent(action)
       + '&payload=' + encodeURIComponent(JSON.stringify(payload || {}))
@@ -421,18 +488,19 @@ async function sendAction(action, payload, id){
     const res = await jsonp(url);
     if (res && res.status === 'success') {
       setSyncBadge('ok', 'synced');
-      showToast('Saved to Google Sheet ✓');
-      const fresh = await fetchCloudState();
-      if (fresh) { DATA = fresh; localStorage.setItem(KEY, JSON.stringify(DATA)); renderAll(); }
+      showToast('Saved to cloud ✓');
+      // Background sync to ensure we are up to date
+      fetchCloudState().then(fresh => {
+        if (fresh) { DATA = fresh; localStorage.setItem(KEY, JSON.stringify(DATA)); renderAll(); }
+      });
       return true;
-    } else {
-      setSyncBadge('err', 'save failed');
-      showToast('Save failed: ' + (res && res.message ? res.message : 'unknown error'), true);
-      return false;
     }
+    setSyncBadge('err', 'failed');
+    showToast('Failed to save: ' + (res?.message || 'Unknown error'), true);
+    return false;
   } catch(e){
     setSyncBadge('err', 'offline');
-    showToast('Network error — saved locally only: ' + e.message, true);
+    showToast('Offline Mode: Saved locally.', true);
     return false;
   }
 }
@@ -444,7 +512,7 @@ async function init(){
   if (actor) document.getElementById('actor-pill').textContent = actor;
 
   let cloud = null;
-  try { cloud = await fetchCloudState(); } catch(e){ console.warn('Cloud fetch failed', e); }
+  try { cloud = await fetchCloudState(); } catch(e){ console.warn(e); }
 
   if (cloud) {
     DATA = cloud;
@@ -452,11 +520,7 @@ async function init(){
     setSyncBadge('ok', 'synced');
   } else {
     setSyncBadge('err', 'offline');
-    try {
-      const raw = localStorage.getItem(KEY);
-      DATA = raw ? JSON.parse(raw) : defaultData();
-    } catch(e){ DATA = defaultData(); }
-    showToast('Could not reach Google Sheet — showing last local copy', true);
+    try { const raw = localStorage.getItem(KEY); DATA = raw ? JSON.parse(raw) : defaultData(); } catch(e){ DATA = defaultData(); }
   }
 
   document.getElementById('loading').style.display='none';
@@ -466,24 +530,25 @@ async function init(){
 }
 
 async function manualRefresh(){
-  showToast('Refreshing…');
+  showToast('Refreshing data…');
   const cloud = await fetchCloudState();
   if (cloud) {
     DATA = cloud;
     localStorage.setItem(KEY, JSON.stringify(DATA));
     setSyncBadge('ok', 'synced');
     renderAll();
-    showToast('Refreshed from Google Sheet ✓');
+    showToast('Data is up to date ✓');
   } else {
     setSyncBadge('err', 'offline');
-    showToast('Could not reach Google Sheet', true);
+    showToast('Network error.', true);
   }
 }
 
 const FAB_CONFIG = {
-  inventory: { action: () => openLotModal() },
   sales:     { action: () => openSaleModal() },
+  inventory: { action: () => openLotModal() },
   expenses:  { action: () => openExpenseModal() },
+  contacts:  { action: () => openContactModal() },
   partners:  { action: () => openLoanModal() }
 };
 
@@ -495,7 +560,9 @@ function bindNav(){
       btn.classList.add('active');
       const view = btn.dataset.view;
       document.getElementById('view-'+view).classList.add('active');
-      if (view==='reports') renderReport();
+      
+      if (view==='reports') renderReportTable();
+      if (view==='partners') calculatePayoutState();
 
       const fab = document.getElementById('fab');
       const cfg = FAB_CONFIG[view];
@@ -505,23 +572,16 @@ function bindNav(){
   });
 }
 
-function setReportPeriod(p){
-  currentReportPeriod = p;
-  document.querySelectorAll('#view-reports .seg2 button').forEach(b=>{
-    b.classList.toggle('on', b.dataset.period === p);
-  });
-  renderReport();
+function setDashFilter(p) {
+  dashFilter = p;
+  document.getElementById('dash-btn-all').classList.toggle('on', p==='all');
+  document.getElementById('dash-btn-month').classList.toggle('on', p==='month');
+  renderDashboard();
 }
-function setSalesFilter(p){
-  salesFilter = p;
-  document.querySelectorAll('#sales-period-filter button').forEach(b=>b.classList.toggle('on', b.dataset.p===p));
-  renderSalesTable();
-}
-function setExpensesFilter(p){
-  expensesFilter = p;
-  document.querySelectorAll('#expenses-period-filter button').forEach(b=>b.classList.toggle('on', b.dataset.p===p));
-  renderExpensesTable();
-}
+
+function setReportPeriod(p){ currentReportPeriod = p; document.querySelectorAll('#view-reports .seg2 button').forEach(b=>b.classList.toggle('on', b.dataset.period === p)); renderReportTable(); }
+function setSalesFilter(p) { salesFilter = p; document.querySelectorAll('#sales-period-filter button').forEach(b=>b.classList.toggle('on', b.dataset.p===p)); renderSalesTable(); }
+function setExpensesFilter(p) { expensesFilter = p; document.querySelectorAll('#expenses-period-filter button').forEach(b=>b.classList.toggle('on', b.dataset.p===p)); renderExpensesTable(); }
 
 function inPeriod(dateStr, filter){
   if (filter === 'all' || !dateStr) return true;
@@ -537,222 +597,416 @@ function inPeriod(dateStr, filter){
 }
 
 function lotStats(lot){
-  const soldBags = DATA.sales.filter(s=>s.lotId===lot.id).reduce((s,x)=>s+Number(x.bags||0),0);
-  const soldKg = DATA.sales.filter(s=>s.lotId===lot.id).reduce((s,x)=>s+Number(x.kg||0),0);
-  const costPerKg = lot.cost && lot.kg ? (lot.cost / lot.kg) : 0;
-  return { soldBags, soldKg, remainingBags: lot.bags - soldBags, remainingKg: lot.kg - soldKg, costPerKg, cogs: soldKg * costPerKg };
-}
+  const activeSales = DATA.sales.filter(s => s.lotId === lot.id && !s.isDeleted);
+  const soldBags = activeSales.reduce((s,x)=>s+Number(x.bags||0),0);
+  const soldKg = activeSales.reduce((s,x)=>s+Number(x.kg||0),0);
+  
+  // Isolate dynamically tagged lot expenses
+  const linkedExpenses = DATA.expenses.filter(x => !x.isDeleted && x.referenceId === lot.id);
+  
+  // Incorporate Add-On Procurement bags/kgs if logged
+  const procurementExp = linkedExpenses.filter(x => x.type === 'Procurement');
+  const addedBags = procurementExp.reduce((s, x) => s + Number(x.bags || 0), 0);
+  const addedKg = procurementExp.reduce((s, x) => s + Number(x.kg || 0), 0);
 
-function totals(){
-  let remainingBags=0, remainingKg=0, cogs=0;
-  DATA.lots.forEach(lot=>{
-    const st = lotStats(lot);
-    remainingBags += st.remainingBags; remainingKg += st.remainingKg; cogs += st.cogs;
-  });
-  const revenue = DATA.sales.reduce((s,x)=>s+Number(x.amount||0),0);
-  const expenseTotal = DATA.expenses.reduce((s,x)=>s+Number(x.amount||0),0);
-  const retail = DATA.sales.filter(s=>s.channel==='retail');
-  const wholesale = DATA.sales.filter(s=>s.channel==='wholesale');
-  return {
-    remainingBags, remainingKg, cogs, revenue, expenseTotal, profit: revenue - cogs - expenseTotal,
-    retailRev: retail.reduce((s,x)=>s+Number(x.amount||0),0),
-    wholesaleRev: wholesale.reduce((s,x)=>s+Number(x.amount||0),0),
-    retailBags: retail.reduce((s,x)=>s+Number(x.bags||0),0),
-    wholesaleBags: wholesale.reduce((s,x)=>s+Number(x.bags||0),0)
+  const totalBags = Number(lot.bags || 0) + addedBags;
+  const totalInitialKg = Number(lot.kg || 0) + addedKg;
+  
+  const realWastage = Number(lot.weightLossKg || 0);
+  const effectiveUsableKg = Math.max(0.1, totalInitialKg - realWastage);
+  const theoreticalRemainingKg = totalInitialKg - soldKg;
+  const actualRemainingKg = Math.max(0, theoreticalRemainingKg - realWastage);
+  const shrinkagePct = totalInitialKg ? (realWastage / totalInitialKg * 100) : 0;
+
+  // New Initial Explicit Costs included in the Lot
+  const baseCost = Number(lot.cost || 0);
+  const loadingCost = Number(lot.loadingCost || 0);
+  const gradingCost = Number(lot.gradingCost || 0);
+  const dynamicTaggedCost = linkedExpenses.reduce((s, x) => s + Number(x.amount || 0), 0);
+  
+  const totalEffectiveCost = baseCost + loadingCost + gradingCost + dynamicTaggedCost;
+  const costPerKg = effectiveUsableKg ? (totalEffectiveCost / effectiveUsableKg) : 0;
+
+  return { 
+    totalBags, totalInitialKg,
+    soldBags, soldKg, 
+    remainingBags: Math.max(0, totalBags - soldBags), 
+    remainingKg: actualRemainingKg, 
+    shrinkagePct, costPerKg, 
+    cogsForSold: soldKg * costPerKg,
+    baseCost, loadingCost, gradingCost, dynamicTaggedCost, totalEffectiveCost, linkedExpenses
   };
 }
-function lotLabel(lotId){ const l = DATA.lots.find(x=>x.id===lotId); return l ? l.label : '—'; }
+
+function totals(period = 'all'){
+  let remainingBags=0, remainingKg=0;
+  let revenue=0, cogs=0, shopExpenseTotal=0;
+  
+  const activeLots = DATA.lots.filter(l => !l.isDeleted);
+  activeLots.forEach(lot=>{
+    const st = lotStats(lot);
+    remainingBags += st.remainingBags;
+    remainingKg += st.remainingKg;
+  });
+
+  const filteredSales = DATA.sales.filter(s => !s.isDeleted && inPeriod(s.date, period));
+  const filteredExpenses = DATA.expenses.filter(x => !x.isDeleted && inPeriod(x.date, period));
+
+  revenue = filteredSales.reduce((s,x)=>s+Number(x.amount||0), 0);
+  
+  filteredSales.forEach(sale => {
+    const lot = DATA.lots.find(l => l.id === sale.lotId);
+    if(lot) {
+      const st = lotStats(lot);
+      cogs += (Number(sale.kg||0) * st.costPerKg);
+    }
+  });
+
+  // Shop Expenses Exclude Lot-Tagged Costs (to avoid double counting) and Payouts
+  const shopExpensesOnly = filteredExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw');
+  shopExpenseTotal = shopExpensesOnly.reduce((s,x)=>s+Number(x.amount||0), 0);
+  
+  // Calculate Liquid Cash on hand accurately from all time expenses (ignoring dashboard period filters)
+  const allTimeSales = DATA.sales.filter(s => !s.isDeleted);
+  const allTimeExpenses = DATA.expenses.filter(x => !x.isDeleted);
+  
+  const totalRevenue = allTimeSales.reduce((s,x)=>s+Number(x.amount||0), 0);
+  const totalGeneralExpenses = allTimeExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw').reduce((s,x)=>s+x.amount, 0);
+  const totalPayouts = allTimeExpenses.filter(x => x.type === 'Payout / Partner Draw').reduce((s,x)=>s+x.amount, 0);
+  const totalTaggedExpenses = allTimeExpenses.filter(x => !!x.referenceId).reduce((s,x)=>s+x.amount, 0);
+  
+  const revenueFundedLotsCost = DATA.lots.filter(l => !l.isDeleted && l.sourceOfFunds === 'Sales Revenue').reduce((s, l) => s + Number(l.cost || 0) + Number(l.loadingCost || 0) + Number(l.gradingCost || 0), 0);
+  
+  const liquidCash = totalRevenue - totalGeneralExpenses - totalPayouts - revenueFundedLotsCost - totalTaggedExpenses;
+
+  return {
+    remainingBags, remainingKg, 
+    revenue, cogs, shopExpenseTotal, 
+    profit: revenue - cogs - shopExpenseTotal,
+    liquidCash
+  };
+}
+
+function lotLabel(lotId){ return DATA.lots.find(x=>x.id===lotId)?.label || 'Unknown Lot'; }
+function contactLabel(cId){ return DATA.contacts.find(x=>x.id===cId)?.name || ''; }
 
 function populateFormsFromData(){
-  document.getElementById('c-rent1').value = DATA.config.rent1;
-  document.getElementById('c-rent2').value = DATA.config.rent2;
-  document.getElementById('c-labour').value = DATA.config.labour;
-  document.getElementById('p-interest').value = DATA.config.interestRatePct;
+  if(!DATA.config) return;
+  document.getElementById('c-rent1').value = DATA.config.rent1 || 0;
+  document.getElementById('c-rent2').value = DATA.config.rent2 || 0;
+  document.getElementById('c-labour').value = DATA.config.labour || 0;
+  document.getElementById('p-interest').value = DATA.config.interestRatePct || 1.5;
   const quickAmt = Number(DATA.config.rent1||0) + Number(DATA.config.rent2||0) + Number(DATA.config.labour||0);
   document.getElementById('e-quick-amt').textContent = quickAmt.toLocaleString('en-IN');
 }
 
 function openLotModal(existing){
-  const l = existing || { label:'', bags:'', kg:'', cost:'', dateAdded: todayISO() };
+  const l = existing || { label:'', bags:'', kg:'', cost:'', loadingCost:'', gradingCost:'', sourceOfFunds:'Partner Capital', weightLossKg:0, dateAdded: todayISO() };
+  window.__modalSource = l.sourceOfFunds; 
+  
   const html = `
-    <label>Lot name</label><input type="text" id="m-label" value="${l.label}" placeholder="e.g. Lot 3">
+    <label>Lot Name</label><input type="text" id="m-label" value="${l.label}" placeholder="e.g. Ooty Grade-A">
     <div class="row2">
-      <div><label>Bags</label><input type="number" id="m-bags" value="${l.bags}"></div>
-      <div><label>Total kg</label><input type="number" id="m-kg" value="${l.kg}"></div>
+      <div><label>Initial Bags</label><input type="number" id="m-bags" value="${l.bags}"></div>
+      <div><label>Initial KG</label><input type="number" id="m-kg" value="${l.kg}"></div>
     </div>
-    <label>Purchase cost (₹) — optional</label><input type="number" id="m-cost" value="${l.cost}">
-    <label>Date procured</label><input type="date" id="m-date" value="${l.dateAdded}">`;
-  openModal(existing ? 'Edit lot' : 'Add a new lot', html, async () => {
+    
+    <!-- Unified Initial Cost Inputs -->
+    <div class="row2" style="margin-top: 10px;">
+      <div><label>Base Buying Price (₹)</label><input type="number" id="m-cost" value="${l.cost||''}" placeholder="Raw cost"></div>
+      <div><label>Lorry / Unloading Cost (₹)</label><input type="number" id="m-loading" value="${l.loadingCost||''}" placeholder="Transport"></div>
+    </div>
+    <div class="row2">
+      <div><label>Initial Grading Cost (₹)</label><input type="number" id="m-grading" value="${l.gradingCost||''}" placeholder="Sorting"></div>
+      <div><label>Drying Loss (Kaaichal) KG</label><input type="number" id="m-loss" value="${l.weightLossKg||0}"></div>
+    </div>
+
+    <label style="margin-top: 10px;">Funding Source</label>
+    <div class="seg2">
+      <button type="button" id="m-src-cap" class="${l.sourceOfFunds==='Partner Capital'?'on':''}" onclick="setModalSource('Partner Capital')">Partner Capital</button>
+      <button type="button" id="m-src-rev" class="${l.sourceOfFunds==='Sales Revenue'?'on':''}" onclick="setModalSource('Sales Revenue')">Sales Revenue</button>
+    </div>
+    <div class="row2" style="margin-top: 10px;">
+      <div><label>Date Added</label><input type="date" id="m-date" value="${l.dateAdded}"></div>
+      <div></div>
+    </div>`;
+  
+  openModal(existing ? 'Edit Lot' : 'Add New Lot', html, async () => {
     const label = document.getElementById('m-label').value.trim();
-    const bags = Number(document.getElementById('m-bags').value);
-    const kg = Number(document.getElementById('m-kg').value);
+    const bags = Number(document.getElementById('m-bags').value)||0;
+    const kg = Number(document.getElementById('m-kg').value)||0;
     const cost = Number(document.getElementById('m-cost').value)||0;
+    const loadingCost = Number(document.getElementById('m-loading').value)||0;
+    const gradingCost = Number(document.getElementById('m-grading').value)||0;
+    const sourceOfFunds = window.__modalSource || l.sourceOfFunds;
+    const weightLossKg = Number(document.getElementById('m-loss').value)||0;
     const dateAdded = document.getElementById('m-date').value || todayISO();
-    if (!label || !bags || !kg) { showToast('Fill in lot name, bags and kg', true); return false; }
+
+    if (!label) { showToast('Please enter a lot name.', true); return false; }
+    
     if (existing) {
-      Object.assign(existing, { label, bags, kg, cost, dateAdded });
-      renderAll();
-      await sendAction('updateLots', DATA.lots);
+      Object.assign(existing, { label, bags, kg, cost, loadingCost, gradingCost, sourceOfFunds, weightLossKg, dateAdded });
+      renderAll(); sendAction('updateLots', DATA.lots);
     } else {
       const id = uid();
-      const lot = { id, label, bags, kg, cost, dateAdded, addedBy: getActor() };
+      const lot = { id, label, bags, kg, cost, loadingCost, gradingCost, sourceOfFunds, weightLossKg, dateAdded, addedBy: getActor(), isDeleted: false };
       DATA.lots.push(lot);
-      renderAll();
-      await sendAction('addLot', lot, id);
+      renderAll(); sendAction('addLot', lot, id);
     }
-  }, existing ? 'Save changes' : 'Add lot');
-}
-
-async function deleteLot(id){
-  confirmThen('Delete this lot? Its sales history will remain but will show as an unknown lot.', async () => {
-    DATA.lots = DATA.lots.filter(l=>l.id!==id);
-    renderAll();
-    await sendAction('updateLots', DATA.lots);
   });
 }
+function setModalSource(src){ window.__modalSource = src; document.getElementById('m-src-cap').classList.toggle('on', src==='Partner Capital'); document.getElementById('m-src-rev').classList.toggle('on', src==='Sales Revenue'); }
+async function deleteLot(id){ confirmThen('Delete this lot?', async () => { const lot = DATA.lots.find(l=>l.id===id); if(lot) { lot.isDeleted = true; renderAll(); sendAction('updateLots', DATA.lots); } }); }
 
 function openSaleModal(existing){
-  const s = existing || { date: todayISO(), lotId:'', channel:'retail', bags:'', kg:'', amount:'', note:'' };
-  const lotOptions = DATA.lots.map(l=>{
-    const st = lotStats(l);
-    const left = existing && existing.lotId===l.id ? st.remainingBags + Number(existing.bags||0) : st.remainingBags;
-    return `<option value="${l.id}" ${s.lotId===l.id?'selected':''}>${l.label} (${left} bags left)</option>`;
-  }).join('');
+  const s = existing || { date: todayISO(), lotId:'', channel:'Retail', contactId:'', bags:'', kg:'', amount:'', note:'' };
+  window.__modalChannel = s.channel; 
+  
+  const lotOptions = DATA.lots.filter(l => !l.isDeleted).map(l=>`<option value="${l.id}" ${s.lotId===l.id?'selected':''}>${l.label}</option>`).join('');
+  const contactOptions = '<option value="">-- Optional (Select Buyer if registered) --</option>' + DATA.contacts.filter(c => !c.isDeleted).map(c=>`<option value="${c.id}" ${s.contactId===c.id?'selected':''}>${c.name}</option>`).join('');
+  
   const html = `
     <label>Date</label><input type="date" id="m-date" value="${s.date}">
-    <label>Lot</label><select id="m-lot" onchange="autoFillModalKg()">${lotOptions}</select>
-    <label>Channel</label>
-    <div class="seg2">
-      <button type="button" id="m-ch-retail" class="${s.channel==='retail'?'on':''}" onclick="setModalChannel('retail')">Retail</button>
-      <button type="button" id="m-ch-wholesale" class="${s.channel==='wholesale'?'on':''}" onclick="setModalChannel('wholesale')">Wholesale</button>
-    </div>
     <div class="row2">
-      <div><label>Bags sold</label><input type="number" id="m-bags" value="${s.bags}" oninput="autoFillModalKg()"></div>
-      <div><label>Kg sold (auto, editable)</label><input type="number" id="m-kg" value="${s.kg}"></div>
+      <div><label>Garlic Batch (Lot)</label><select id="m-lot" onchange="autoFillModalKg()">${lotOptions || '<option value="">-- No Active Lots --</option>'}</select></div>
+      <div><label>Buyer Name</label><select id="m-contact">${contactOptions}</select></div>
     </div>
-    <label>Amount received (₹)</label><input type="number" id="m-amount" value="${s.amount}">
-    <label>Note (optional)</label><input type="text" id="m-note" value="${s.note||''}">`;
-  openModal(existing ? 'Edit sale' : "Log today's sale", html, async () => {
+    <label>Sales Type</label>
+    <div class="seg2">
+      <button type="button" id="m-ch-retail" class="${s.channel==='Retail'?'on':''}" onclick="setModalChannel('Retail')">Retail</button>
+      <button type="button" id="m-ch-wholesale" class="${s.channel==='Wholesale'?'on':''}" onclick="setModalChannel('Wholesale')">Wholesale</button>
+    </div>
+    <div class="row2" style="margin-top: 10px;">
+      <div><label>Bags Sold</label><input type="number" id="m-bags" value="${s.bags}" oninput="autoFillModalKg()"></div>
+      <div><label>KG Sold</label><input type="number" id="m-kg" value="${s.kg}"></div>
+    </div>
+    <label>Amount (₹)</label><input type="number" id="m-amount" value="${s.amount}">
+    <label>Note / Comments</label><input type="text" id="m-note" value="${s.note||''}">`;
+
+  openModal(existing ? 'Edit Sale' : 'Add Sale', html, async () => {
     const date = document.getElementById('m-date').value || todayISO();
     const lotId = document.getElementById('m-lot').value;
+    const contactId = document.getElementById('m-contact').value;
     const bags = Number(document.getElementById('m-bags').value)||0;
     const kg = Number(document.getElementById('m-kg').value)||0;
     const amount = Number(document.getElementById('m-amount').value)||0;
     const note = document.getElementById('m-note').value.trim();
     const channel = window.__modalChannel || s.channel;
-    if (!lotId || !bags || !amount) { showToast('Fill in lot, bags and amount', true); return false; }
+
+    if (!lotId) { showToast('Please select a lot.', true); return false; }
+    if (!amount) { showToast('Please enter an amount.', true); return false; }
+
     if (existing) {
-      Object.assign(existing, { date, lotId, channel, bags, kg, amount, note });
-      renderAll();
-      await sendAction('updateSale', existing, existing.id);
+      Object.assign(existing, { date, lotId, channel, contactId, bags, kg, amount, note });
+      renderAll(); sendAction('updateSale', existing, existing.id);
     } else {
       const id = uid();
-      const sale = { id, date, lotId, channel, bags, kg, amount, note, addedBy: getActor() };
+      const sale = { id, date, lotId, channel, contactId, bags, kg, amount, note, addedBy: getActor(), isDeleted: false };
       DATA.sales.push(sale);
-      renderAll();
-      await sendAction('addSale', sale, id);
+      renderAll(); sendAction('addSale', sale, id);
     }
-  }, existing ? 'Save changes' : 'Save sale');
-  window.__modalChannel = s.channel;
-}
-function setModalChannel(ch){
-  window.__modalChannel = ch;
-  document.getElementById('m-ch-retail').classList.toggle('on', ch==='retail');
-  document.getElementById('m-ch-wholesale').classList.toggle('on', ch==='wholesale');
-}
-function autoFillModalKg(){
-  const lotId = document.getElementById('m-lot').value;
-  const lot = DATA.lots.find(l=>l.id===lotId);
-  const bags = Number(document.getElementById('m-bags').value)||0;
-  if (lot && lot.bags>0) {
-    document.getElementById('m-kg').value = (bags * (lot.kg/lot.bags)).toFixed(1);
-  }
-}
-async function deleteSale(id){
-  confirmThen('Delete this sale record?', async () => {
-    DATA.sales = DATA.sales.filter(s=>s.id!==id);
-    renderAll();
-    await sendAction('deleteSale', null, id);
   });
 }
 
+function setModalChannel(ch){ window.__modalChannel = ch; document.getElementById('m-ch-retail').classList.toggle('on', ch==='Retail'); document.getElementById('m-ch-wholesale').classList.toggle('on', ch==='Wholesale'); }
+function autoFillModalKg(){
+  const lotId = document.getElementById('m-lot')?.value;
+  if(!lotId) return;
+  const lot = DATA.lots.find(l=>l.id===lotId);
+  const bags = Number(document.getElementById('m-bags')?.value)||0;
+  if(lot) {
+    const st = lotStats(lot);
+    if (st.totalBags > 0) {
+      document.getElementById('m-kg').value = Math.round(bags * (st.totalInitialKg / st.totalBags));
+    }
+  }
+}
+async function deleteSale(id){ confirmThen('Delete this sale?', async () => { const sale = DATA.sales.find(s=>s.id===id); if(sale) { sale.isDeleted = true; renderAll(); sendAction('updateSale', sale, id); } }); }
+
 function openExpenseModal(existing){
-  const x = existing || { date: todayISO(), desc:'', amount:'' };
+  const x = existing || { date: todayISO(), type:'Running Cost', desc:'', amount:'', referenceId:'', bags:'', kg:'' };
+  window.__modalExpenseType = x.referenceId ? 'lot' : 'shop'; 
+  
+  const activeLots = DATA.lots.filter(l=>!l.isDeleted);
+  const lotOptions = '<option value="">-- Select Lot to tag cost --</option>' + activeLots.map(l=>`<option value="${l.id}" ${x.referenceId===l.id?'selected':''}>${l.label}</option>`).join('');
+
   const html = `
     <label>Date</label><input type="date" id="m-date" value="${x.date}">
-    <label>What for</label><input type="text" id="m-desc" value="${x.desc||''}">
-    <label>Amount (₹)</label><input type="number" id="m-amount" value="${x.amount}">`;
-  openModal(existing ? 'Edit expense' : 'Log an expense', html, async () => {
+    
+    <label>Expense Target</label>
+    <div class="seg2" style="margin-bottom: 12px;">
+      <button type="button" id="m-exp-shop" class="${!x.referenceId ? 'on':''}" onclick="setModalExpenseType('shop')">Shop Overhead</button>
+      <button type="button" id="m-exp-lot" class="${x.referenceId ? 'on':''}" onclick="setModalExpenseType('lot')">Tag to Lot</button>
+    </div>
+
+    <div id="shop-options" style="display: ${!x.referenceId ? 'block' : 'none'}">
+      <label>Category</label>
+      <select id="m-category-shop">
+        <option value="Running Cost" ${x.type==='Running Cost'?'selected':''}>Running Cost (Rent, Wages)</option>
+        <option value="Miscellaneous" ${x.type==='Miscellaneous'?'selected':''}>Miscellaneous / Other</option>
+      </select>
+    </div>
+
+    <div id="lot-options" style="display: ${x.referenceId ? 'block' : 'none'}">
+      <label>Which Lot?</label>
+      <select id="m-reference">${lotOptions}</select>
+      <label>Category</label>
+      <select id="m-category-lot" onchange="toggleProcurementFields()">
+        <option value="Procurement" ${x.type==='Procurement'?'selected':''}>Procurement (Add Bags/KG)</option>
+        <option value="Loading/Unloading" ${x.type==='Loading/Unloading'?'selected':''}>Loading / Unloading</option>
+        <option value="Grading/Sorting" ${x.type==='Grading/Sorting'?'selected':''}>Grading / Sorting</option>
+        <option value="Damage/Weight Loss" ${x.type==='Damage/Weight Loss'?'selected':''}>Damage / Weight Loss Labor</option>
+        <option value="Repacking" ${x.type==='Repacking'?'selected':''}>Repacking Cost</option>
+        <option value="Other Lot Expense" ${x.type==='Other Lot Expense'?'selected':''}>Other Lot Expense</option>
+      </select>
+      <div id="procurement-fields" style="display: ${x.type==='Procurement' ? 'grid' : 'none'}; gap: 10px; grid-template-columns: 1fr 1fr; margin-top: 8px;">
+        <div><label>Bags Purchased</label><input type="number" id="m-exp-bags" value="${x.bags||''}"></div>
+        <div><label>KG Purchased</label><input type="number" id="m-exp-kg" value="${x.kg||''}"></div>
+      </div>
+    </div>
+
+    <label style="margin-top:10px;">Details / Custom Name</label>
+    <input type="text" id="m-desc" value="${x.desc||''}" placeholder="e.g. Lorry Coolie">
+
+    <label>Amount (₹)</label>
+    <input type="number" id="m-amount" value="${x.amount}">`;
+
+  openModal(existing ? 'Edit Expense' : 'Log Expense', html, async () => {
     const date = document.getElementById('m-date').value || todayISO();
+    const isLot = window.__modalExpenseType === 'lot';
+    
+    const type = isLot ? document.getElementById('m-category-lot').value : document.getElementById('m-category-shop').value;
+    const referenceId = isLot ? document.getElementById('m-reference').value : '';
     const desc = document.getElementById('m-desc').value.trim();
     const amount = Number(document.getElementById('m-amount').value)||0;
-    if (!desc || !amount) { showToast('Fill in description and amount', true); return false; }
+
+    let bags = 0; let kg = 0;
+    if (isLot && type === 'Procurement') {
+      bags = Number(document.getElementById('m-exp-bags').value)||0;
+      kg = Number(document.getElementById('m-exp-kg').value)||0;
+      if (!bags && !kg) { showToast('Enter Bags or KG for Procurement', true); return false; }
+    }
+
+    if (!desc || !amount) { showToast('Please enter description and amount', true); return false; }
+    if (isLot && !referenceId) { showToast('Please select a Lot to tag this expense to', true); return false; }
+
     if (existing) {
-      Object.assign(existing, { date, desc, amount });
-      renderAll();
-      await sendAction('updateExpense', existing, existing.id);
+      Object.assign(existing, { date, type, desc, amount, referenceId, bags, kg });
+      renderAll(); sendAction('updateExpense', existing, existing.id);
     } else {
       const id = uid();
-      const exp = { id, date, desc, amount, addedBy: getActor() };
+      const exp = { id, date, type, desc, amount, referenceId, bags, kg, addedBy: getActor(), isDeleted: false };
       DATA.expenses.push(exp);
-      renderAll();
-      await sendAction('addExpense', exp, id);
+      renderAll(); sendAction('addExpense', exp, id);
     }
-  }, existing ? 'Save changes' : 'Save expense');
+  }, 'Save');
 }
+
+function toggleProcurementFields(){
+  const cat = document.getElementById('m-category-lot')?.value;
+  const fields = document.getElementById('procurement-fields');
+  if (fields) fields.style.display = (cat === 'Procurement') ? 'grid' : 'none';
+}
+
+function setModalExpenseType(tp){
+  window.__modalExpenseType = tp;
+  document.getElementById('m-exp-shop').classList.toggle('on', tp==='shop');
+  document.getElementById('m-exp-lot').classList.toggle('on', tp==='lot');
+  document.getElementById('shop-options').style.display = tp==='shop' ? 'block' : 'none';
+  document.getElementById('lot-options').style.display = tp==='lot' ? 'block' : 'none';
+}
+
 async function quickMonthlyExpense(){
   const amount = Number(DATA.config.rent1||0) + Number(DATA.config.rent2||0) + Number(DATA.config.labour||0);
   const id = uid();
-  const exp = { id, date: todayISO(), desc: 'Monthly running cost (rent + labour)', amount, addedBy: getActor() };
-  DATA.expenses.push(exp);
-  renderAll();
-  await sendAction('addExpense', exp, id);
+  const exp = { id, date: todayISO(), type:'Running Cost', desc: 'Auto-added Shop Overhead (Rent + Wages)', amount, referenceId:'', addedBy: getActor(), isDeleted: false };
+  DATA.expenses.push(exp); renderAll(); sendAction('addExpense', exp, id);
 }
-async function deleteExpense(id){
-  confirmThen('Delete this expense record?', async () => {
-    DATA.expenses = DATA.expenses.filter(x=>x.id!==id);
+async function deleteExpense(id){ confirmThen('Delete this expense?', async () => { const exp = DATA.expenses.find(x=>x.id===id); if(exp) { exp.isDeleted = true; renderAll(); sendAction('updateExpense', exp, id); } }); }
+
+function openContactModal(existing){
+  const c = existing || { name:'', type:'Buyer', phone:'', location:'', note:'' };
+  const html = `
+    <label>Name or Company</label><input type="text" id="mc-name" value="${c.name}">
+    <label>Type</label>
+    <select id="mc-type">
+      <option value="Buyer" ${c.type==='Buyer'?'selected':''}>Buyer</option>
+      <option value="Wholesale Buyer" ${c.type==='Wholesale Buyer'?'selected':''}>Wholesale Buyer</option>
+      <option value="Supplier" ${c.type==='Supplier'?'selected':''}>Supplier / Farmer</option>
+      <option value="Other" ${c.type==='Other'?'selected':''}>Other</option>
+    </select>
+    <label>Phone</label><input type="text" id="mc-phone" value="${c.phone}">
+    <label>Location / City</label><input type="text" id="mc-loc" value="${c.location}">
+    <label>Note / Comments</label><textarea id="mc-note">${c.note||''}</textarea>`;
+
+  openModal(existing ? 'Edit Contact' : 'Add Contact', html, async () => {
+    const name = document.getElementById('mc-name').value.trim();
+    const type = document.getElementById('mc-type').value;
+    const phone = document.getElementById('mc-phone').value.trim();
+    const location = document.getElementById('mc-loc').value.trim();
+    const note = document.getElementById('mc-note').value.trim();
+
+    if (!name) { showToast('Please enter a name.', true); return false; }
+
+    if (existing) {
+      Object.assign(existing, { name, type, phone, location, note });
+      renderAll(); sendAction('updateContact', existing, existing.id);
+    } else {
+      const id = uid();
+      const contact = { id, name, type, phone, location, note, isDeleted: false };
+      DATA.contacts.push(contact);
+      renderAll(); sendAction('addContact', contact, id);
+    }
+  });
+}
+async function deleteContact(id){ confirmThen('Delete contact?', async () => { const contact = DATA.contacts.find(c=>c.id===id); if(contact) { contact.isDeleted = true; renderAll(); sendAction('updateContact', contact, id); } }); }
+
+function calculatePayoutState(){
+  const t = totals('all'); 
+  const reserveTarget = Number(document.getElementById('payout-reserve-input')?.value)||0;
+  const distributionsCalculatedPool = Math.max(0, t.liquidCash - reserveTarget);
+  
+  const elLiq = document.getElementById('rep-liquid-cash');
+  const elDist = document.getElementById('rep-distributable');
+  const elHead = document.getElementById('rep-per-head');
+  
+  if(elLiq) elLiq.textContent = fmt(t.liquidCash);
+  if(elDist) elDist.textContent = fmt(distributionsCalculatedPool);
+  if(elHead) elHead.textContent = fmt(distributionsCalculatedPool > 0 ? distributionsCalculatedPool / 3 : 0);
+}
+
+async function executeBalancedThreeWayPayout(){
+  const reserveTarget = Number(document.getElementById('payout-reserve-input').value)||0;
+  const t = totals('all');
+  const pool = Math.max(0, t.liquidCash - reserveTarget);
+
+  if (pool <= 500) { showToast('Not enough liquid cash to distribute.', true); return; }
+  
+  const perShareValue = Math.floor(pool / 3);
+  confirmThen(`Save this payout of ${fmt(perShareValue)} per partner to the ledger?`, async () => {
+    const timestamp = todayISO();
+    const partners = ['Thendral', 'Nagaraj', 'Senthil'];
+    
+    for (const name of partners) {
+      const id = uid();
+      const logPayout = {
+        id, date: timestamp, type: 'Payout / Partner Draw', desc: `Profit Share Drawn: ${name}`,
+        amount: perShareValue, referenceId: '', addedBy: getActor(), isDeleted: false
+      };
+      DATA.expenses.push(logPayout);
+      sendAction('addExpense', logPayout, id); 
+    }
     renderAll();
-    await sendAction('deleteExpense', null, id);
+    showToast('Payouts saved.');
   });
 }
 
 async function savePartners(){
-  Object.keys(DATA.partners).forEach(name=>{
-    const el = document.getElementById('pe-'+name);
-    if (el) DATA.partners[name].contributed = Number(el.value)||0;
-  });
-  renderAll();
-  document.getElementById('btn-save-partners').disabled = true;
-  await sendAction('updatePartners', DATA.partners);
-  document.getElementById('btn-save-partners').disabled = false;
+  Object.keys(DATA.partners).forEach(name=>{ const el = document.getElementById('pe-'+name); if (el) DATA.partners[name].contributed = Number(el.value)||0; });
+  renderAll(); sendAction('updatePartners', DATA.partners);
 }
-async function saveInterestRate(){
-  DATA.config.interestRatePct = Number(document.getElementById('p-interest').value)||0;
-  document.getElementById('btn-save-interest').disabled = true;
-  await sendAction('updateConfig', DATA.config);
-  document.getElementById('btn-save-interest').disabled = false;
-}
-async function saveConfig(){
-  DATA.config.rent1 = Number(document.getElementById('c-rent1').value)||0;
-  DATA.config.rent2 = Number(document.getElementById('c-rent2').value)||0;
-  DATA.config.labour = Number(document.getElementById('c-labour').value)||0;
-  populateFormsFromData();
-  document.getElementById('btn-save-config').disabled = true;
-  await sendAction('updateConfig', DATA.config);
-  document.getElementById('btn-save-config').disabled = false;
-}
-
-const MONTHLY_RATE = 0.015;
-function daysBetween(d1, d2){ return Math.round((new Date(d2) - new Date(d1)) / 86400000); }
-function loanInterest(loan){
-  const today = todayISO();
-  const asOf = loan.returnDate || today;
-  const days = Math.max(0, daysBetween(loan.dateSent, asOf));
-  const interest = loan.amount * MONTHLY_RATE * (days / 30);
-  const isReturned = !!loan.returnDate && loan.returnDate <= today;
-  const isFuturePlan = !!loan.returnDate && loan.returnDate > today;
-  return { days, interest, total: loan.amount + interest, isReturned, isFuturePlan, asOf };
-}
+async function saveInterestRate(){ DATA.config.interestRatePct = Number(document.getElementById('p-interest').value)||0; sendAction('updateConfig', DATA.config); }
+async function saveConfig(){ DATA.config.rent1 = Number(document.getElementById('c-rent1').value)||0; DATA.config.rent2 = Number(document.getElementById('c-rent2').value)||0; DATA.config.labour = Number(document.getElementById('c-labour').value)||0; populateFormsFromData(); sendAction('updateConfig', DATA.config); }
 
 function openLoanModal(existing){
   const l = existing || { partner: Object.keys(DATA.partners)[0], amount:'', dateSent: todayISO(), note:'' };
@@ -760,219 +1014,313 @@ function openLoanModal(existing){
   const html = `
     <label>Partner</label><select id="m-partner">${partnerOptions}</select>
     <label>Amount (₹)</label><input type="number" id="m-amount" value="${l.amount}">
-    <label>Date sent</label><input type="date" id="m-date" value="${l.dateSent}">
-    <label>Note (optional)</label><input type="text" id="m-note" value="${l.note||''}">`;
-  openModal(existing ? 'Edit extra capital entry' : 'Log extra capital sent', html, async () => {
+    <label>Date Sent</label><input type="date" id="m-date" value="${l.dateSent}">
+    <label>Note / Comments</label><input type="text" id="m-note" value="${l.note||''}">`;
+
+  openModal(existing ? 'Edit Advance' : 'Add Advance Money', html, async () => {
     const partner = document.getElementById('m-partner').value;
     const amount = Number(document.getElementById('m-amount').value)||0;
     const dateSent = document.getElementById('m-date').value || todayISO();
     const note = document.getElementById('m-note').value.trim();
-    if (!partner || !amount) { showToast('Fill in partner and amount', true); return false; }
+
+    if (!partner || !amount) { showToast('Please enter an amount.', true); return false; }
+
     if (existing) {
       Object.assign(existing, { partner, amount, dateSent, note });
-      renderLoans();
-      await sendAction('updateCapitalLoan', existing, existing.id);
+      renderLoans(); sendAction('updateCapitalLoan', existing, existing.id);
     } else {
       const id = uid();
-      const loan = { id, partner, amount, dateSent, returnDate:'', note, addedBy: getActor() };
+      const loan = { id, partner, amount, dateSent, returnDate:'', note, addedBy: getActor(), isDeleted: false };
       DATA.capitalLoans.push(loan);
-      renderLoans();
-      await sendAction('addCapitalLoan', loan, id);
+      renderLoans(); sendAction('addCapitalLoan', loan, id);
     }
-  }, existing ? 'Save changes' : 'Log this amount');
-}
-async function setLoanReturnDate(id, value){
-  const loan = DATA.capitalLoans.find(l=>l.id===id);
-  if (!loan) return;
-  loan.returnDate = value;
-  renderLoans();
-  await sendAction('updateCapitalLoan', loan, id);
-}
-async function deleteCapitalLoan(id){
-  confirmThen('Delete this extra capital entry?', async () => {
-    DATA.capitalLoans = DATA.capitalLoans.filter(l=>l.id!==id);
-    renderLoans();
-    await sendAction('deleteCapitalLoan', null, id);
   });
 }
+async function setLoanReturnDate(id, val){ const loan = DATA.capitalLoans.find(l=>l.id===id); if(!loan)return; loan.returnDate = val; renderLoans(); sendAction('updateCapitalLoan', loan, id); }
+async function deleteCapitalLoan(id){ confirmThen('Delete this advance?', async () => { const loan = DATA.capitalLoans.find(l=>l.id===id); if(loan) { loan.isDeleted = true; renderLoans(); sendAction('updateCapitalLoan', loan, id); } }); }
 
-function renderAll(){
-  renderDashboard();
-  renderInventory();
-  renderSalesTable();
-  renderPartners();
-  renderExpensesTable();
-  renderLoans();
+function toggleDetails(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('open');
+}
+
+function renderAll(){ 
+  renderDashboard(); 
+  renderInventory(); 
+  renderSalesTable(); 
+  renderExpensesTable(); 
+  renderPartners(); 
+  renderContactsTable(); 
+  calculatePayoutState(); 
 }
 
 function renderDashboard(){
-  const t = totals();
-  document.getElementById('d-bags-left').textContent = t.remainingBags;
-  document.getElementById('d-kg-left').textContent = t.remainingKg.toFixed(0) + ' kg remaining';
-  document.getElementById('d-revenue').textContent = fmt(t.revenue);
-  document.getElementById('d-cogs').textContent = fmt(t.cogs);
-  document.getElementById('d-expenses').textContent = fmt(t.expenseTotal);
-  const profitEl = document.getElementById('d-profit');
-  profitEl.textContent = fmt(t.profit);
-  profitEl.className = 'value ' + (t.profit>=0 ? 'pos':'neg');
-  document.getElementById('d-retail-rev').textContent = fmt(t.retailRev);
-  document.getElementById('d-wholesale-rev').textContent = fmt(t.wholesaleRev);
-  document.getElementById('d-retail-bags').textContent = t.retailBags;
-  document.getElementById('d-wholesale-bags').textContent = t.wholesaleBags;
+  const t = totals(dashFilter);
+  const elBags = document.getElementById('d-bags-left');
+  const elKg = document.getElementById('d-kg-left');
+  const elRev = document.getElementById('d-revenue');
+  const elCogs = document.getElementById('d-cogs');
+  const elExp = document.getElementById('d-expenses');
+  const elProfit = document.getElementById('d-profit');
+  
+  if(elBags) elBags.textContent = t.remainingBags;
+  if(elKg) elKg.textContent = t.remainingKg.toFixed(1) + ' KG left';
+  if(elRev) elRev.textContent = fmt(t.revenue);
+  if(elCogs) elCogs.textContent = fmt(t.cogs);
+  if(elExp) elExp.textContent = fmt(t.shopExpenseTotal);
+  if(elProfit) {
+    elProfit.textContent = fmt(t.profit); 
+    elProfit.className = 'value ' + (t.profit>=0 ? 'pos':'neg');
+  }
 
-  const lotsDiv = document.getElementById('d-lots');
-  lotsDiv.innerHTML = '';
-  DATA.lots.forEach(lot=>{
-    const st = lotStats(lot);
-    const pct = lot.bags ? Math.min(100, (st.soldBags/lot.bags*100)) : 0;
-    lotsDiv.insertAdjacentHTML('beforeend', `
-      <div class="lot-card">
-        <div class="lot-head"><span class="lot-title">${lot.label}</span><span class="lot-sub">${lot.dateAdded||''}</span></div>
-        <div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div>
-        <div class="lot-mini-grid">
-          <div>Total<b>${lot.bags} bags</b></div>
-          <div>Sold<b>${st.soldBags} bags</b></div>
-          <div>Left<b>${st.remainingBags} bags</b></div>
-        </div>
-      </div>`);
-  });
+  const lotsDiv = document.getElementById('d-lots'); 
+  if(lotsDiv) {
+    lotsDiv.innerHTML = '';
+    
+    // Hide empty lots from the dashboard grid unless they have actual remaining stock
+    const activeLots = DATA.lots
+      .filter(l => !l.isDeleted)
+      .map(l => ({lot: l, st: lotStats(l)}))
+      .filter(x => x.st.remainingKg > 0 || x.st.remainingBags > 0)
+      .reverse()
+      .slice(0, 4);
 
-  const recentBody = document.getElementById('d-recent');
-  const recent = [...DATA.sales].sort((a,b)=> (b.date||'').localeCompare(a.date||'')).slice(0,6);
-  recentBody.innerHTML = recent.map(s=>`
-    <tr><td>${s.date}</td><td>${lotLabel(s.lotId)}</td>
-    <td><span class="badge ${s.channel}">${s.channel==='retail'?'Retail':'Whsl'}</span></td>
-    <td>${s.bags}</td><td>${Number(s.kg||0).toFixed(0)}</td><td>${fmt(s.amount)}</td></tr>`).join('');
-  document.getElementById('d-recent-empty').style.display = recent.length? 'none':'block';
+    activeLots.forEach(item => {
+      const {lot, st} = item;
+      lotsDiv.insertAdjacentHTML('beforeend', `
+        <div class="lot-card">
+          <div class="lot-head">
+            <span class="lot-title">${lot.label}</span>
+            <span class="badge ${lot.sourceOfFunds==='Partner Capital'?'type-tag':'wholesale'}">${lot.sourceOfFunds === 'Partner Capital' ? 'Capital' : 'Sales Rev'}</span>
+          </div>
+          <div class="bar"><div class="bar-fill ${st.shrinkagePct > 8 ? 'warning':''}" style="width:${st.totalBags ? (st.soldBags/st.totalBags*100) : 0}%"></div></div>
+          <div class="lot-mini-grid">
+            <div>Bags Left<b>${st.remainingBags}</b></div>
+            <div>KG Left<b>${st.remainingKg.toFixed(0)}</b></div>
+            <div>Cost/KG<b>${fmt(st.costPerKg)}</b></div>
+          </div>
+        </div>`);
+    });
+    
+    const emptyEl = document.getElementById('d-lots-empty');
+    if(emptyEl) emptyEl.style.display = activeLots.length ? 'none' : 'block';
+  }
+
+  const recentEl = document.getElementById('d-recent');
+  if(recentEl) {
+    const recent = DATA.sales.filter(s => !s.isDeleted).sort((a,b)=> b.date.localeCompare(a.date)).slice(0,5);
+    recentEl.innerHTML = recent.map(s=>`
+      <tr><td>${s.date}</td><td>${lotLabel(s.lotId)}</td><td><span class="badge ${s.channel==='Retail'?'retail':'wholesale'}">${s.channel}</span></td><td>${s.bags}</td><td>${Number(s.kg||0).toFixed(0)}</td><td>${fmt(s.amount)}</td></tr>`).join('');
+    const emptyEl = document.getElementById('d-recent-empty');
+    if(emptyEl) emptyEl.style.display = recent.length? 'none':'block';
+  }
 }
 
 function renderInventory(){
-  const wrap = document.getElementById('inv-lots');
+  const wrap = document.getElementById('inv-lots'); 
+  if(!wrap) return;
   wrap.innerHTML='';
-  DATA.lots.forEach(lot=>{
+  
+  DATA.lots.filter(l => !l.isDeleted).forEach(lot=>{
     const st = lotStats(lot);
-    const pct = lot.bags ? Math.min(100, (st.soldBags/lot.bags*100)) : 0;
+    const expId = `exp-details-${lot.id}`;
+    
+    let expensesHtml = '';
+    if(st.linkedExpenses.length > 0) {
+      expensesHtml = st.linkedExpenses.map(x => {
+        let extra = x.type === 'Procurement' ? `<span style="font-size:0.65rem; color:var(--sage); font-weight:bold;"> (+${x.bags||0} Bags, +${x.kg||0} KG)</span>` : '';
+        return `<div style="display:flex; justify-content:space-between; margin-top:4px; font-size:0.75rem;">
+                  <span><span class="badge type-tag" style="background:#b0a89a; padding:1px 5px; font-size:0.6rem;">${x.type}</span> ${x.desc} ${extra}</span>
+                  <b>${fmt(x.amount)}</b>
+                </div>`;
+      }).join('');
+    } else {
+      expensesHtml = `<div style="color:#8a8272; font-size:0.75rem; font-style:italic;">No additional expenses linked via Expenses tab.</div>`;
+    }
+    
     wrap.insertAdjacentHTML('beforeend', `
       <div class="lot-card">
         <div class="lot-head">
           <span class="lot-title">${lot.label}</span>
           <span class="row-actions">
-            <button class="icon-btn edit" onclick='openLotModal(DATA.lots.find(x=>x.id==="${lot.id}"))'>✎ Edit</button>
+            <button class="icon-btn edit" onclick='openLotModal(DATA.lots.find(x=>x.id==="${lot.id}"))'>✎</button>
             <button class="icon-btn del" onclick="deleteLot('${lot.id}')">✕</button>
           </span>
         </div>
-        <div class="lot-sub">₹${st.costPerKg.toFixed(1)}/kg cost</div>
-        <div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div>
-        <div class="lot-mini-grid">
-          <div>Total<b>${lot.bags} bags / ${lot.kg} kg</b></div>
-          <div>Sold<b>${st.soldBags} bags / ${st.soldKg.toFixed(0)} kg</b></div>
-          <div>Left<b>${st.remainingBags} bags / ${st.remainingKg.toFixed(0)} kg</b></div>
+        <div class="lot-sub">Actual Cost: ${fmt(st.costPerKg)}/KG · Funded by <b>${lot.sourceOfFunds}</b></div>
+        <div class="bar"><div class="bar-fill" style="width:${st.totalBags ? (st.soldBags/st.totalBags*100) : 0}%"></div></div>
+        
+        <div class="lot-mini-grid" style="margin-top:8px;">
+          <div>Sold<b>${st.soldBags} Bags / ${st.soldKg.toFixed(0)} KG</b></div>
+          <div>Left<b>${st.remainingBags} Bags / ${st.remainingKg.toFixed(0)} KG</b></div>
+          <div>Drying Loss<b>${lot.weightLossKg||0} KG (${st.shrinkagePct.toFixed(1)}%)</b></div>
         </div>
-        ${lot.addedBy ? `<div class="by-line">added by ${lot.addedBy}</div>` : ''}
+
+        <button class="toggle-details-btn" onclick="toggleDetails('${expId}')">Show Cost Breakdown & Linked Expenses ▼</button>
+        
+        <div id="${expId}" class="details-expander">
+          <div style="background:#fff; padding:10px; border-radius:6px; border:1px solid var(--line);">
+            
+            <div style="margin-bottom: 6px; font-size:0.7rem; font-weight:bold; color:#8a8272; text-transform:uppercase;">Initial Setup Costs</div>
+            <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-top:4px;">
+              <span>Base Buying Price (${lot.bags} Bags / ${lot.kg} KG):</span> <b>${fmt(st.baseCost)}</b>
+            </div>
+            ${st.loadingCost ? `<div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-top:4px;"><span>Lorry / Unloading Cost:</span> <b>${fmt(st.loadingCost)}</b></div>` : ''}
+            ${st.gradingCost ? `<div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-top:4px;"><span>Initial Grading Cost:</span> <b>${fmt(st.gradingCost)}</b></div>` : ''}
+            
+            <div style="margin-top: 12px; margin-bottom: 6px; font-size:0.7rem; font-weight:bold; color:#8a8272; text-transform:uppercase;">Additional Tagged Expenses</div>
+            ${expensesHtml}
+
+            <div style="display:flex; justify-content:space-between; margin-top:10px; padding-top:8px; border-top:1px dashed var(--line); font-size:0.85rem;">
+              <span>Total Effective Cost (${st.totalBags} Bags / ${st.totalInitialKg} KG):</span> <b style="color:var(--plum-deep);">${fmt(st.totalEffectiveCost)}</b>
+            </div>
+          </div>
+        </div>
       </div>`);
   });
-  document.getElementById('inv-lots-empty').style.display = DATA.lots.length? 'none':'block';
+  const emptyWrap = document.getElementById('inv-lots-empty');
+  if(emptyWrap) emptyWrap.style.display = DATA.lots.filter(l=>!l.isDeleted).length? 'none':'block';
 }
 
 function renderSalesTable(){
-  const body = document.getElementById('sales-table');
-  const filtered = DATA.sales.filter(s=>inPeriod(s.date, salesFilter));
-  const sorted = [...filtered].sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const body = document.getElementById('sales-table'); if(!body) return;
+  const sorted = DATA.sales.filter(s=> !s.isDeleted && inPeriod(s.date, salesFilter)).sort((a,b)=> b.date.localeCompare(a.date));
   body.innerHTML = sorted.map(s=>`
-    <tr><td>${s.date}${s.addedBy?`<div class="by-line">${s.addedBy}</div>`:''}</td><td>${lotLabel(s.lotId)}</td>
-    <td><span class="badge ${s.channel}">${s.channel==='retail'?'Retail':'Whsl'}</span></td>
-    <td>${s.bags}</td><td>${Number(s.kg||0).toFixed(0)}</td><td>${fmt(s.amount)}</td>
-    <td class="row-actions">
-      <button class="icon-btn edit" onclick='openSaleModal(DATA.sales.find(x=>x.id==="${s.id}"))'>✎</button>
-      <button class="icon-btn del" onclick="deleteSale('${s.id}')">✕</button>
-    </td></tr>`).join('');
-  document.getElementById('sales-empty').style.display = sorted.length? 'none':'block';
+    <tr>
+      <td>${s.date}<div class="by-line">${s.addedBy||'System'}</div></td>
+      <td>${lotLabel(s.lotId)}</td>
+      <td><span class="badge ${s.channel==='Retail'?'retail':'wholesale'}">${s.channel}</span><div class="by-line">${contactLabel(s.contactId)}</div></td>
+      <td>${s.bags}</td>
+      <td>${Number(s.kg||0).toFixed(0)}</td>
+      <td>${fmt(s.amount)}</td>
+      <td class="row-actions"><button class="icon-btn edit" onclick='openSaleModal(DATA.sales.find(x=>x.id==="${s.id}"))'>✎</button><button class="icon-btn del" onclick="deleteSale('${s.id}')">✕</button></td>
+    </tr>`).join('');
+  const empty = document.getElementById('sales-empty');
+  if(empty) empty.style.display = sorted.length? 'none':'block';
 }
 
 function renderExpensesTable(){
-  const body = document.getElementById('expenses-table');
-  const filtered = DATA.expenses.filter(x=>inPeriod(x.date, expensesFilter));
-  const sorted = [...filtered].sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const body = document.getElementById('expenses-table'); if(!body) return;
+  const sorted = DATA.expenses.filter(x=> !x.isDeleted && inPeriod(x.date, expensesFilter)).sort((a,b)=> b.date.localeCompare(a.date));
   body.innerHTML = sorted.map(x=>`
-    <tr><td>${x.date}${x.addedBy?`<div class="by-line">${x.addedBy}</div>`:''}</td><td>${x.desc}</td><td>${fmt(x.amount)}</td>
-    <td class="row-actions">
-      <button class="icon-btn edit" onclick='openExpenseModal(DATA.expenses.find(y=>y.id==="${x.id}"))'>✎</button>
-      <button class="icon-btn del" onclick="deleteExpense('${x.id}')">✕</button>
-    </td></tr>`).join('');
-  document.getElementById('expenses-empty').style.display = sorted.length? 'none':'block';
+    <tr>
+      <td>${x.date}</td>
+      <td><span class="badge type-tag">${x.referenceId ? 'Lot Expense' : 'Shop Overhead'}</span></td>
+      <td>${x.desc} ${x.type === 'Procurement' ? `<br><span style="font-size:0.7rem;color:#8a8272;font-weight:600;">(+${x.bags} Bags, ${x.kg} KG)</span>` : ''}</td>
+      <td>${fmt(x.amount)}</td>
+      <td><span style="font-weight:bold; color:var(--plum-deep);">${x.referenceId ? lotLabel(x.referenceId) : 'Shop'}</span></td>
+      <td class="row-actions">
+        <button class="icon-btn edit" onclick='openExpenseModal(DATA.expenses.find(y=>y.id==="${x.id}"))'>✎</button>
+        <button class="icon-btn del" onclick="deleteExpense('${x.id}')">✕</button>
+      </td>
+    </tr>`).join('');
+  const empty = document.getElementById('expenses-empty');
+  if(empty) empty.style.display = sorted.length? 'none':'block';
 }
 
 function renderPartners(){
-  const list = document.getElementById('partners-list');
+  const list = document.getElementById('partners-list'); 
   const editWrap = document.getElementById('partners-edit');
+  if(!list || !editWrap) return;
   list.innerHTML=''; editWrap.innerHTML='';
   Object.keys(DATA.partners).forEach(name=>{
-    const p = DATA.partners[name];
-    const shortfall = p.required - p.contributed;
-    list.insertAdjacentHTML('beforeend', `
-      <div class="partner-row">
-        <div><div class="partner-name">${name}</div><div class="note">${fmt(p.contributed)} of ${fmt(p.required)}</div></div>
-        <span class="badge ${shortfall>0?'owe':''}">${shortfall>0? 'Owes '+fmt(shortfall) : 'Fully paid'}</span>
-      </div>`);
-    editWrap.insertAdjacentHTML('beforeend', `
-      <label>${name} — contributed (₹)</label>
-      <input type="number" id="pe-${name}" value="${p.contributed}">`);
+    const p = DATA.partners[name]; const shortfall = p.required - p.contributed;
+    list.insertAdjacentHTML('beforeend', `<div class="partner-row"><div><div class="partner-name">${name}</div><div class="note">${fmt(p.contributed)} paid</div></div><span class="badge ${shortfall>0?'owe':''}">${shortfall>0? 'Shortfall: '+fmt(shortfall) : 'OK'}</span></div>`);
+    editWrap.insertAdjacentHTML('beforeend', `<label>${name} Base Capital (₹)</label><input type="number" id="pe-${name}" value="${p.contributed}">`);
   });
+  renderLoans();
 }
 
 function renderLoans(){
-  const wrap = document.getElementById('loans-list');
-  if (!wrap) return;
-  wrap.innerHTML = '';
-  const sorted = [...(DATA.capitalLoans||[])].sort((a,b)=> (b.dateSent||'').localeCompare(a.dateSent||''));
-  sorted.forEach(loan=>{
-    const calc = loanInterest(loan);
-    const statusBadge = calc.isReturned ? `<span class="badge">Returned ${loan.returnDate}</span>`
-      : calc.isFuturePlan ? `<span class="badge wholesale">Plan to return ${loan.returnDate}</span>`
-      : `<span class="badge owe">Outstanding</span>`;
+  const wrap = document.getElementById('loans-list'); if(!wrap)return; wrap.innerHTML = '';
+  const activeLoans = DATA.capitalLoans.filter(l => !l.isDeleted).sort((a,b)=> b.dateSent.localeCompare(a.dateSent));
+  activeLoans.forEach(loan=>{
+    const days = Math.max(0, Math.round((new Date(loan.returnDate || todayISO()) - new Date(loan.dateSent)) / 86400000));
+    const rate = DATA.config.interestRatePct || 1.5;
+    const interest = loan.amount * (rate/100) * (days / 30);
+    const total = loan.amount + interest;
+    const isReturned = !!loan.returnDate;
+    
     wrap.insertAdjacentHTML('beforeend', `
       <div class="lot-card">
         <div class="lot-head">
-          <span class="lot-title">${loan.partner} — ${fmt(loan.amount)}</span>
+          <span class="lot-title">${loan.partner} · ${fmt(loan.amount)}</span>
           <span class="row-actions">
-            ${statusBadge}
+            <span class="badge ${isReturned?'':'owe'}">${isReturned?'Returned':'Active'}</span>
             <button class="icon-btn edit" onclick='openLoanModal(DATA.capitalLoans.find(x=>x.id==="${loan.id}"))'>✎</button>
             <button class="icon-btn del" onclick="deleteCapitalLoan('${loan.id}')">✕</button>
           </span>
         </div>
-        <div class="lot-sub">Sent ${loan.dateSent}${loan.note? ' · '+loan.note : ''}${loan.addedBy?' · by '+loan.addedBy:''}</div>
+        <div class="lot-sub">Sent: ${loan.dateSent} ${loan.note?'· '+loan.note:''}</div>
         <div class="lot-mini-grid" style="margin-top:8px;">
-          <div>Days counted<b>${calc.days}</b></div>
-          <div>Interest${calc.isFuturePlan?' (projected)':''}<b>${fmt(calc.interest)}</b></div>
-          <div>Total payable<b>${fmt(calc.total)}</b></div>
+          <div>Days<b>${days}</b></div>
+          <div>Interest<b>${fmt(interest)}</b></div>
+          <div>Total<b>${fmt(total)}</b></div>
         </div>
-        <label style="margin-top:10px;">Return date (blank = still outstanding)</label>
+        <label style="margin-top:10px;">Return Date</label>
         <input type="date" value="${loan.returnDate||''}" onchange="setLoanReturnDate('${loan.id}', this.value)">
       </div>`);
   });
-  document.getElementById('loans-empty').style.display = sorted.length? 'none':'block';
+  const empty = document.getElementById('loans-empty');
+  if(empty) empty.style.display = activeLoans.length? 'none':'block';
 }
 
-async function renderReport(){
-  const tbody = document.getElementById('report-table');
-  tbody.innerHTML = '<tr><td colspan="4" class="empty">Loading…</td></tr>';
-  let report;
-  try { report = await fetchReport(currentReportPeriod); } catch(e){ report = null; }
-  if (!report || !report.buckets || !report.buckets.length){
-    tbody.innerHTML = '';
-    document.getElementById('report-empty').style.display = 'block';
-    return;
-  }
-  document.getElementById('report-empty').style.display = 'none';
-  const rows = [...report.buckets].sort((a,b)=> b.period.localeCompare(a.period));
-  tbody.innerHTML = rows.map(b=>`
-    <tr><td>${b.period}</td><td>${fmt(b.revenue)}</td><td>${fmt(b.expenses)}</td><td>${b.bags}</td></tr>`).join('');
+function renderContactsTable(){
+  const body = document.getElementById('contacts-table'); if(!body)return;
+  const activeContacts = DATA.contacts.filter(c => !c.isDeleted);
+  body.innerHTML = activeContacts.map(c=>`
+    <tr>
+      <td><b>${c.name}</b><div class="by-line">${c.note||''}</div></td>
+      <td><span class="badge type-tag">${c.type}</span></td>
+      <td>${c.phone||'—'}</td>
+      <td>${c.location||'—'}</td>
+      <td class="row-actions">
+        <button class="icon-btn edit" onclick='openContactModal(DATA.contacts.find(x=>x.id==="${c.id}"))'>✎</button>
+        <button class="icon-btn del" onclick="deleteContact('${c.id}')">✕</button>
+      </td>
+    </tr>`).join('');
+  const empty = document.getElementById('contacts-empty');
+  if(empty) empty.style.display = activeContacts.length ? 'none':'block';
 }
 
-document.addEventListener('DOMContentLoaded', ()=>{
-  bindNav();
-  init();
-});
+function renderReportTable(){
+  const tbody = document.getElementById('report-table'); if(!tbody) return;
+  const rep = buildReportLocal(currentReportPeriod);
+  if(!rep || !rep.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">No records for this period.</td></tr>'; return; }
+  tbody.innerHTML = rep.map(b=>`<tr><td><b>${b.period}</b></td><td>${fmt(b.revenue)}</td><td>${fmt(b.expenses)}</td><td>${b.bags}</td></tr>`).join('');
+}
+
+function buildReportLocal(period) {
+  const buckets = {};
+  const getBucketKey = (dateStr) => {
+    const d = new Date(dateStr);
+    if (period === 'daily') return d.toISOString().slice(0,10);
+    if (period === 'weekly') {
+      const onejan = new Date(d.getFullYear(), 0, 1);
+      const week = Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);
+      return `${d.getFullYear()}-W${week}`;
+    }
+    if (period === 'quarterly') return `${d.getFullYear()}-Q${Math.floor(d.getMonth() / 3) + 1}`;
+    return d.toISOString().slice(0,7);
+  };
+
+  DATA.sales.filter(s => !s.isDeleted).forEach(s => {
+    const k = getBucketKey(s.date);
+    buckets[k] = buckets[k] || { period: k, revenue: 0, bags: 0, expenses: 0 };
+    buckets[k].revenue += s.amount;
+    buckets[k].bags += s.bags;
+  });
+
+  DATA.expenses.filter(x => !x.isDeleted && !x.referenceId && x.type !== 'Payout / Partner Draw').forEach(x => {
+    const k = getBucketKey(x.date);
+    buckets[k] = buckets[k] || { period: k, revenue: 0, bags: 0, expenses: 0 };
+    buckets[k].expenses += x.amount;
+  });
+
+  return Object.keys(buckets).sort().reverse().map(k => buckets[k]);
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{ bindNav(); init(); });
 </script>
 </body>
 </html>
