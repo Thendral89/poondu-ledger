@@ -348,8 +348,8 @@
 <div id="toast" class="util"></div>
 
 <script>
-// UPDATE WITH YOUR APPS SCRIPT URL HERE
-const CLOUD_URL = "https://script.google.com/macros/s/AKfycbws9b9NxPmf208QrlEC-MLxEUfqlf5iCZ2_p6XEYgtoNGEasWmP0ZEYwnME-X1_Jejg/exec";
+// IMPORTANT: Update this variable after deploying your Apps Script as a NEW VERSION
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbx06mugZG35MZp0DV0YlxxEwrtZ-PQy25Dt1BV_zx5oGWFDCidTxbJaQJrpP_pRuKlu/exec";
 const KEY = 'garlic-business-data';
 const ACTOR_KEY = 'poondu-actor';
 
@@ -617,6 +617,22 @@ function lotStats(lot){
   const procurementExp = linkedExpenses.filter(x => x.type === 'Procurement');
   const addedBags = procurementExp.reduce((s, x) => s + (Number(x.bags) || 0), 0);
   const addedKg = procurementExp.reduce((s, x) => s + (Number(x.kg) || 0), 0);
+  
+  // Floor location specific tracking
+  let initialG0 = Number(lot.bagsG0) || 0;
+  let initialG1 = Number(lot.bagsG1) || 0;
+  
+  // Fallback map for older lots that didn't have split inputs
+  if (initialG0 === 0 && initialG1 === 0 && Number(lot.bags) > 0) {
+      if (lot.location === 'G+1') initialG1 = Number(lot.bags);
+      else initialG0 = Number(lot.bags);
+  }
+
+  const addedBagsG0 = procurementExp.reduce((s, x) => s + (Number(x.bagsG0) || 0), 0);
+  const addedBagsG1 = procurementExp.reduce((s, x) => s + (Number(x.bagsG1) || 0), 0);
+
+  const totalG0 = initialG0 + addedBagsG0;
+  const totalG1 = initialG1 + addedBagsG1;
 
   const totalBags = (Number(lot.bags) || 0) + addedBags;
   const totalInitialKg = (Number(lot.kg) || 0) + addedKg;
@@ -637,7 +653,7 @@ function lotStats(lot){
   const costPerKg = effectiveUsableKg > 0 ? (totalEffectiveCost / effectiveUsableKg) : 0;
 
   return { 
-    totalBags, totalInitialKg,
+    totalBags, totalInitialKg, totalG0, totalG1,
     soldBags, soldKg, 
     remainingBags: Math.max(0, totalBags - soldBags), 
     remainingKg: actualRemainingKg, 
@@ -699,6 +715,13 @@ function totals(period = 'all'){
 function lotLabel(lotId){ return DATA.lots.find(x=>x.id===lotId)?.label || 'Unknown Lot'; }
 function contactLabel(cId){ return DATA.contacts.find(x=>x.id===cId)?.name || ''; }
 
+function getLocBadge(st) {
+  if (st.totalG0 > 0 && st.totalG1 > 0) return `📍 G0 (${st.totalG0}) & G1 (${st.totalG1})`;
+  if (st.totalG1 > 0 && st.totalG0 === 0) return `📍 G1 (1st Floor)`;
+  if (st.totalG0 > 0 && st.totalG1 === 0) return `📍 G0 (Ground)`;
+  return `📍 G0 (Ground)`;
+}
+
 function populateFormsFromData(){
   if(!DATA.config) return;
   document.getElementById('c-rent1').value = DATA.config.rent1 || 0;
@@ -710,16 +733,29 @@ function populateFormsFromData(){
 }
 
 function openLotModal(existing){
-  const l = existing || { label:'', bags:'', kg:'', cost:'', loadingCost:'', gradingCost:'', sourceOfFunds:'Partner Capital', weightLossKg:0, dateAdded: todayISO() };
+  const l = existing || { label:'', bagsG0:'', bagsG1:'', bags:'', kg:'', cost:'', loadingCost:'', gradingCost:'', sourceOfFunds:'Partner Capital', weightLossKg:0, dateAdded: todayISO(), location: 'Ground' };
   window.__modalSource = l.sourceOfFunds; 
+  
+  // Legacy fallback mapper
+  let initG0 = l.bagsG0 || '';
+  let initG1 = l.bagsG1 || '';
+  if (existing && !l.bagsG0 && !l.bagsG1 && l.bags) {
+      if (l.location === 'G+1') initG1 = l.bags;
+      else initG0 = l.bags;
+  }
   
   const html = `
     <label>Lot Name</label><input type="text" id="m-label" value="${l.label}" placeholder="e.g. Ooty Grade-A">
     <div class="row2">
-      <div><label>Initial Bags</label><input type="number" id="m-bags" value="${l.bags}"></div>
-      <div><label>Initial KG</label><input type="number" id="m-kg" value="${l.kg}"></div>
+      <div><label>Bags in G0 (Ground)</label><input type="number" id="m-bags-g0" value="${initG0}" placeholder="0"></div>
+      <div><label>Bags in G1 (1st Floor)</label><input type="number" id="m-bags-g1" value="${initG1}" placeholder="0"></div>
     </div>
     
+    <div class="row2" style="margin-top: 10px;">
+      <div><label>Total Initial KG</label><input type="number" id="m-kg" value="${l.kg}"></div>
+      <div><label>Drying Loss (Kaaichal) KG</label><input type="number" id="m-loss" value="${l.weightLossKg||0}"></div>
+    </div>
+
     <!-- Unified Initial Cost Inputs -->
     <div class="row2" style="margin-top: 10px;">
       <div><label>Base Buying Price (₹)</label><input type="number" id="m-cost" value="${l.cost||''}" placeholder="Raw cost"></div>
@@ -727,22 +763,20 @@ function openLotModal(existing){
     </div>
     <div class="row2">
       <div><label>Initial Grading Cost (₹)</label><input type="number" id="m-grading" value="${l.gradingCost||''}" placeholder="Sorting"></div>
-      <div><label>Drying Loss (Kaaichal) KG</label><input type="number" id="m-loss" value="${l.weightLossKg||0}"></div>
+      <div><label>Date Added</label><input type="date" id="m-date" value="${safeDate(l.dateAdded)}"></div>
     </div>
 
     <label style="margin-top: 10px;">Funding Source</label>
     <div class="seg2">
       <button type="button" id="m-src-cap" class="${l.sourceOfFunds==='Partner Capital'?'on':''}" onclick="setModalSource('Partner Capital')">Partner Capital</button>
       <button type="button" id="m-src-rev" class="${l.sourceOfFunds==='Sales Revenue'?'on':''}" onclick="setModalSource('Sales Revenue')">Sales Revenue</button>
-    </div>
-    <div class="row2" style="margin-top: 10px;">
-      <div><label>Date</label><input type="date" id="m-date" value="${safeDate(l.dateAdded)}"></div>
-      <div></div>
     </div>`;
   
   openModal(existing ? 'Edit Lot' : 'Add New Lot', html, async () => {
     const label = document.getElementById('m-label').value.trim();
-    const bags = Number(document.getElementById('m-bags').value)||0;
+    const bagsG0 = Number(document.getElementById('m-bags-g0').value)||0;
+    const bagsG1 = Number(document.getElementById('m-bags-g1').value)||0;
+    const bags = bagsG0 + bagsG1;
     const kg = Number(document.getElementById('m-kg').value)||0;
     const cost = Number(document.getElementById('m-cost').value)||0;
     const loadingCost = Number(document.getElementById('m-loading').value)||0;
@@ -754,11 +788,11 @@ function openLotModal(existing){
     if (!label) { showToast('Please enter a lot name.', true); return false; }
     
     if (existing) {
-      Object.assign(existing, { label, bags, kg, cost, loadingCost, gradingCost, sourceOfFunds, weightLossKg, dateAdded });
+      Object.assign(existing, { label, bags, bagsG0, bagsG1, kg, cost, loadingCost, gradingCost, sourceOfFunds, weightLossKg, dateAdded });
       renderAll(); sendAction('updateLots', DATA.lots);
     } else {
       const id = uid();
-      const lot = { id, label, bags, kg, cost, loadingCost, gradingCost, sourceOfFunds, weightLossKg, dateAdded, addedBy: getActor(), isDeleted: false };
+      const lot = { id, label, bags, bagsG0, bagsG1, kg, cost, loadingCost, gradingCost, sourceOfFunds, weightLossKg, dateAdded, location: bagsG1 > 0 && bagsG0 === 0 ? 'G+1' : 'Ground', addedBy: getActor(), isDeleted: false };
       DATA.lots.push(lot);
       renderAll(); sendAction('addLot', lot, id);
     }
@@ -833,7 +867,8 @@ function autoFillModalKg(){
 async function deleteSale(id){ confirmThen('Delete this sale?', async () => { const sale = DATA.sales.find(s=>s.id===id); if(sale) { sale.isDeleted = true; renderAll(); sendAction('updateSale', sale, id); } }); }
 
 function openExpenseModal(existing){
-  const x = existing || { date: todayISO(), type:'Running Cost', desc:'', amount:'', referenceId:'', bags:'', kg:'' };
+  // Defauls to Loading/Unloading if editing a new or existing lot expense
+  const x = existing || { date: todayISO(), type:'Loading/Unloading', desc:'', amount:'', referenceId:'', bags:'', bagsG0:'', bagsG1:'', kg:'' };
   window.__modalExpenseType = x.referenceId ? 'lot' : 'shop'; 
   
   const activeLots = DATA.lots.filter(l=>!l.isDeleted);
@@ -861,16 +896,19 @@ function openExpenseModal(existing){
       <select id="m-reference">${lotOptions}</select>
       <label>Category</label>
       <select id="m-category-lot" onchange="toggleProcurementFields()">
-        <option value="Procurement" ${x.type==='Procurement'?'selected':''}>Procurement (Add Bags/KG)</option>
         <option value="Loading/Unloading" ${x.type==='Loading/Unloading'?'selected':''}>Loading / Unloading</option>
+        <option value="Procurement" ${x.type==='Procurement'?'selected':''}>Procurement (Add Bags/KG)</option>
         <option value="Grading/Sorting" ${x.type==='Grading/Sorting'?'selected':''}>Grading / Sorting</option>
         <option value="Damage/Weight Loss" ${x.type==='Damage/Weight Loss'?'selected':''}>Damage / Weight Loss Labor</option>
         <option value="Repacking" ${x.type==='Repacking'?'selected':''}>Repacking Cost</option>
         <option value="Other Lot Expense" ${x.type==='Other Lot Expense'?'selected':''}>Other Lot Expense</option>
       </select>
-      <div id="procurement-fields" style="display: ${x.type==='Procurement' ? 'grid' : 'none'}; gap: 10px; grid-template-columns: 1fr 1fr; margin-top: 8px;">
-        <div><label>Bags Purchased</label><input type="number" id="m-exp-bags" value="${x.bags||''}"></div>
-        <div><label>KG Purchased</label><input type="number" id="m-exp-kg" value="${x.kg||''}"></div>
+      <div id="procurement-fields" style="display: ${x.type==='Procurement' ? 'block' : 'none'}; margin-top: 8px;">
+        <div class="row2" style="margin-bottom: 8px;">
+          <div><label>Bags Added to G0</label><input type="number" id="m-exp-bags-g0" value="${x.bagsG0||''}" placeholder="0"></div>
+          <div><label>Bags Added to G1</label><input type="number" id="m-exp-bags-g1" value="${x.bagsG1||''}" placeholder="0"></div>
+        </div>
+        <div><label>Total KG Purchased</label><input type="number" id="m-exp-kg" value="${x.kg||''}"></div>
       </div>
     </div>
 
@@ -889,9 +927,11 @@ function openExpenseModal(existing){
     const desc = document.getElementById('m-desc').value.trim();
     const amount = Number(document.getElementById('m-amount').value)||0;
 
-    let bags = 0; let kg = 0;
+    let bags = 0; let bagsG0 = 0; let bagsG1 = 0; let kg = 0;
     if (isLot && type === 'Procurement') {
-      bags = Number(document.getElementById('m-exp-bags').value)||0;
+      bagsG0 = Number(document.getElementById('m-exp-bags-g0').value)||0;
+      bagsG1 = Number(document.getElementById('m-exp-bags-g1').value)||0;
+      bags = bagsG0 + bagsG1;
       kg = Number(document.getElementById('m-exp-kg').value)||0;
       if (!bags && !kg) { showToast('Enter Bags or KG for Procurement', true); return false; }
     }
@@ -900,21 +940,23 @@ function openExpenseModal(existing){
     if (isLot && !referenceId) { showToast('Please select a Lot to tag this expense to', true); return false; }
 
     if (existing) {
-      Object.assign(existing, { date, type, desc, amount, referenceId, bags, kg });
+      Object.assign(existing, { date, type, desc, amount, referenceId, bags, bagsG0, bagsG1, kg });
       renderAll(); sendAction('updateExpense', existing, existing.id);
     } else {
       const id = uid();
-      const exp = { id, date, type, desc, amount, referenceId, bags, kg, addedBy: getActor(), isDeleted: false };
+      const exp = { id, date, type, desc, amount, referenceId, bags, bagsG0, bagsG1, kg, addedBy: getActor(), isDeleted: false };
       DATA.expenses.push(exp);
       renderAll(); sendAction('addExpense', exp, id);
     }
   }, 'Save');
+
+  setTimeout(toggleProcurementFields, 10);
 }
 
 function toggleProcurementFields(){
   const cat = document.getElementById('m-category-lot')?.value;
   const fields = document.getElementById('procurement-fields');
-  if (fields) fields.style.display = (cat === 'Procurement') ? 'grid' : 'none';
+  if (fields) fields.style.display = (cat === 'Procurement') ? 'block' : 'none';
 }
 
 function setModalExpenseType(tp){
@@ -1023,7 +1065,7 @@ function openLoanModal(existing){
   const html = `
     <label>Partner</label><select id="m-partner">${partnerOptions}</select>
     <label>Amount (₹)</label><input type="number" id="m-amount" value="${l.amount}">
-    <label>Date</label><input type="date" id="m-date" value="${safeDate(l.dateSent)}">
+    <label>Date Sent</label><input type="date" id="m-date" value="${safeDate(l.dateSent)}">
     <label>Note / Comments</label><input type="text" id="m-note" value="${l.note||''}">`;
 
   openModal(existing ? 'Edit Advance' : 'Add Advance Money', html, async () => {
@@ -1100,7 +1142,10 @@ function renderDashboard(){
         <div class="lot-card">
           <div class="lot-head">
             <span class="lot-title">${lot.label}</span>
-            <span class="badge ${lot.sourceOfFunds==='Partner Capital'?'type-tag':'wholesale'}">${lot.sourceOfFunds === 'Partner Capital' ? 'Capital' : 'Sales Rev'}</span>
+            <span class="row-actions">
+              <span class="badge type-tag">${getLocBadge(st)}</span>
+              <span class="badge ${lot.sourceOfFunds==='Partner Capital'?'type-tag':'wholesale'}">${lot.sourceOfFunds === 'Partner Capital' ? 'Capital' : 'Sales Rev'}</span>
+            </span>
           </div>
           <div class="bar"><div class="bar-fill ${st.shrinkagePct > 8 ? 'warning':''}" style="width:${st.totalBags ? (st.soldBags/st.totalBags*100) : 0}%"></div></div>
           <div class="lot-mini-grid">
@@ -1137,7 +1182,14 @@ function renderInventory(){
     let expensesHtml = '';
     if(st.linkedExpenses.length > 0) {
       expensesHtml = st.linkedExpenses.map(x => {
-        let extra = x.type === 'Procurement' ? `<span style="font-size:0.65rem; color:var(--sage); font-weight:bold;"> (+${x.bags||0} Bags, +${x.kg||0} KG)</span>` : '';
+        let extra = '';
+        if (x.type === 'Procurement') {
+            let bagStr = [];
+            if (x.bagsG0 > 0) bagStr.push(`${x.bagsG0} in G0`);
+            if (x.bagsG1 > 0) bagStr.push(`${x.bagsG1} in G1`);
+            if (bagStr.length === 0 && x.bags > 0) bagStr.push(`${x.bags} Bags`);
+            extra = `<span style="font-size:0.65rem; color:var(--sage); font-weight:bold;"> (+${bagStr.join(', ')} | +${x.kg||0} KG)</span>`;
+        }
         return `<div style="display:flex; justify-content:space-between; margin-top:4px; font-size:0.75rem;">
                   <span><span class="badge type-tag" style="background:#b0a89a; padding:1px 5px; font-size:0.6rem;">${x.type}</span> ${x.desc} ${extra}</span>
                   <b>${fmt(x.amount)}</b>
@@ -1152,6 +1204,7 @@ function renderInventory(){
         <div class="lot-head">
           <span class="lot-title">${lot.label}</span>
           <span class="row-actions">
+            <span class="badge type-tag">${getLocBadge(st)}</span>
             <button class="icon-btn edit" onclick='openLotModal(DATA.lots.find(x=>x.id==="${lot.id}"))'>✎</button>
             <button class="icon-btn del" onclick="deleteLot('${lot.id}')">✕</button>
           </span>
