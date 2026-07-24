@@ -21,6 +21,7 @@
   body { background: var(--paper); color: var(--ink); font-family: 'Georgia', 'Iowan Old Style', serif; -webkit-font-smoothing: antialiased; padding-bottom: env(safe-area-inset-bottom); }
   .util { font-family: 'Helvetica Neue', Arial, sans-serif; }
   
+  /* Header & Navigation */
   header { padding: 16px 16px 12px; border-bottom: 2px solid var(--plum); background: var(--card); display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
   header h1 { margin: 0; font-size: 1.25rem; letter-spacing: 0.2px; color: var(--plum-deep); }
   header .sub { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.7rem; color: #7a7264; margin-top: 3px; text-transform: uppercase; letter-spacing: 1px; }
@@ -36,6 +37,7 @@
   nav button { font-family: 'Helvetica Neue', Arial, sans-serif; flex: 1; min-width: 85px; padding: 11px 8px; background: none; border: none; font-size: 0.72rem; font-weight: 600; color: #8a8272; border-bottom: 3px solid transparent; cursor: pointer; white-space: nowrap; transition: 0.2s; }
   nav button.active { color: var(--plum-deep); border-bottom: 3px solid var(--rust); }
   
+  /* Main Container & Cards */
   main { padding: 14px; padding-bottom: 90px; max-width: 680px; margin: 0 auto; }
   .view { display: none; animation: fadeIn 0.3s ease; }
   .view.active { display: block; }
@@ -44,6 +46,7 @@
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
   .card h2 { margin: 0 0 10px; font-size: 0.98rem; color: var(--plum-deep); border-bottom: 1px solid var(--line); padding-bottom: 7px; display: flex; justify-content: space-between; align-items: center; }
   
+  /* Stats Grid */
   .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat { background: var(--paper-dim); border-radius: 5px; padding: 10px 12px; }
   .stat .label { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.6px; color: #8a8272; margin-bottom: 3px; }
@@ -53,12 +56,14 @@
   .big-stat { text-align: center; padding: 14px; }
   .big-stat .value { font-size: 1.8rem; }
   
+  /* Forms & Inputs */
   label { display: block; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.72rem; color: #7a7264; margin: 9px 0 4px; text-transform: uppercase; letter-spacing: 0.5px; }
   input, select, textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 4px; font-size: 0.93rem; font-family: 'Helvetica Neue', Arial, sans-serif; background: #fff; color: var(--ink); }
   input:focus, select:focus, textarea:focus { outline: 2px solid var(--plum); outline-offset: 1px; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .highlight-box { background: var(--paper-dim); border: 1px solid var(--line); border-radius: 6px; padding: 10px; margin-top: 8px; }
   
+  /* Buttons */
   .btn { font-family: 'Helvetica Neue', Arial, sans-serif; display: inline-block; width: 100%; margin-top: 12px; padding: 11px; background: var(--plum); color: #fff; border: none; border-radius: 5px; font-size: 0.87rem; font-weight: 600; cursor: pointer; letter-spacing: 0.3px; text-align: center; transition: 0.2s; }
   .btn:active { background: var(--plum-deep); transform: scale(0.98); }
   .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
@@ -66,10 +71,12 @@
   .btn.ghost { background: transparent; border: 1px solid var(--line); color: #7a7264; font-weight: 400; }
   .btn.danger { background: var(--rust); }
   
+  /* Segments & Toggles */
   .seg2 { display: flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; margin-top: 4px; }
   .seg2 button { flex: 1; padding: 8px 4px; border: none; background: #fff; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.72rem; color: #7a7264; cursor: pointer; transition: 0.1s; }
   .seg2 button.on { background: var(--plum); color: #fff; font-weight: 600; }
   
+  /* Tables */
   table { width: 100%; border-collapse: collapse; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.8rem; }
   th { text-align: left; font-size: 0.62rem; text-transform: uppercase; color: #8a8272; padding: 6px 4px; border-bottom: 1px solid var(--line); }
   td { padding: 7px 4px; border-bottom: 1px solid var(--paper-dim); vertical-align: middle; }
@@ -81,18 +88,21 @@
   .icon-btn.del { color: var(--rust); }
   .empty { text-align: center; padding: 20px 10px; color: #a49c8c; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.85rem; }
   
+  /* Partner/List Rows */
   .partner-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--paper-dim); }
   .partner-row:last-child { border-bottom: none; }
   .partner-name { font-weight: bold; color: var(--plum-deep); }
   .note { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.75rem; color: #8a8272; line-height: 1.4; margin-top: 8px; }
   .by-line { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.64rem; color: #a49c8c; margin-top: 2px; }
   
+  /* Badges */
   .badge { display: inline-block; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.66rem; padding: 2px 8px; border-radius: 10px; background: var(--sage); color: #fff; white-space: nowrap; }
   .badge.owe { background: var(--rust); }
   .badge.type-tag { background: #8e7d6b; color: #fff; }
   .badge.wholesale { background: var(--plum); }
   .badge.retail { background: var(--sage); }
   
+  /* Lot Cards */
   .lot-card { border: 1px solid var(--line); border-radius: 5px; padding: 12px; margin-bottom: 10px; background: var(--paper-dim); }
   .lot-card .lot-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
   .lot-card .lot-title { font-weight: bold; color: var(--plum-deep); font-size: 0.93rem; }
@@ -103,16 +113,19 @@
   .lot-mini-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.72rem; color: #5a5346; }
   .lot-mini-grid b { display: block; color: var(--plum-deep); font-size: 0.9rem; }
   
+  /* Toast & Loading */
   #toast { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%); background: var(--plum-deep); color: #fff; padding: 9px 18px; border-radius: 20px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.8rem; opacity: 0; transition: opacity 0.25s; pointer-events: none; z-index: 50; max-width: 85vw; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
   #toast.show { opacity: 1; }
   #toast.err { background: var(--rust); }
   .loading { text-align: center; padding: 40px; color: #8a8272; font-family: 'Helvetica Neue', Arial, sans-serif; }
 
+  /* Floating Action Button */
   .fab { position: fixed; right: 18px; bottom: 18px; width: 56px; height: 56px; border-radius: 50%; background: var(--rust); color: #fff; border: none; font-size: 1.8rem; line-height: 1; box-shadow: 0 4px 14px rgba(0,0,0,0.25); cursor: pointer; z-index: 15; display: none; align-items: center; justify-content: center; transition: 0.2s; }
   .fab.show { display: flex; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
   .fab:active { transform: scale(0.9); }
   @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
 
+  /* Custom Modals */
   .modal-backdrop { position: fixed; inset: 0; background: rgba(43,38,32,0.6); z-index: 40; display: none; align-items: flex-end; justify-content: center; backdrop-filter: blur(2px); }
   .modal-backdrop.show { display: flex; animation: fadeIn 0.2s; }
   .modal-sheet { background: var(--paper); width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; border-radius: 16px 16px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -4px 20px rgba(0,0,0,0.1); animation: slideUp 0.3s cubic-bezier(0.1, 0.9, 0.2, 1); }
@@ -122,6 +135,7 @@
   .modal-close { background: none; border: none; font-size: 1.5rem; color: #8a8272; cursor: pointer; line-height: 1; padding: 4px 8px; }
   .modal-actor-btn { width: 100%; text-align: left; padding: 12px; margin-top: 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.95rem; font-weight: 600; color: var(--plum-deep); cursor: pointer; }
   
+  /* Details Expander */
   .details-expander { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
   .details-expander.open { display: block; animation: fadeIn 0.2s; }
   .toggle-details-btn { background: none; border: none; color: var(--plum); font-size: 0.75rem; font-weight: bold; cursor: pointer; padding: 4px 0; font-family: 'Helvetica Neue', Arial, sans-serif; }
@@ -154,6 +168,7 @@
 <main>
   <div id="loading" class="loading">Loading ledger environment…</div>
 
+  <!-- VIEW: DASHBOARD -->
   <div class="view active" id="view-dashboard">
     <div class="card big-stat">
       <div class="label util">Garlic Available in Stock</div>
@@ -193,6 +208,7 @@
     </div>
   </div>
 
+  <!-- VIEW: SALES -->
   <div class="view" id="view-sales">
     <div class="card">
       <div class="seg2" id="sales-period-filter">
@@ -209,6 +225,7 @@
     </div>
   </div>
 
+  <!-- VIEW: INVENTORY -->
   <div class="view" id="view-inventory">
     <div class="card">
       <h2>Procured Batches & Lots</h2>
@@ -217,6 +234,7 @@
     </div>
   </div>
 
+  <!-- VIEW: EXPENSES -->
   <div class="view" id="view-expenses">
     <div class="card">
       <div class="seg2" id="expenses-period-filter">
@@ -234,6 +252,7 @@
     </div>
   </div>
 
+  <!-- VIEW: CONTACTS -->
   <div class="view" id="view-contacts">
     <div class="card">
       <h2>Business Contacts</h2>
@@ -246,6 +265,7 @@
     </div>
   </div>
 
+  <!-- VIEW: REPORTS -->
   <div class="view" id="view-reports">
     <div class="card">
       <h2>Aggregated Period Reporting</h2>
@@ -262,6 +282,7 @@
     </div>
   </div>
 
+  <!-- VIEW: PARTNERS & PAYOUTS -->
   <div class="view" id="view-partners">
     <div class="card" style="border: 2px solid var(--plum);">
       <h2>3-Way Payout Engine</h2>
@@ -300,6 +321,7 @@
     </div>
   </div>
 
+  <!-- VIEW: SETTINGS -->
   <div class="view" id="view-settings">
     <div class="card">
       <h2>Fixed Monthly Shop Expenses</h2>
@@ -349,7 +371,7 @@
 <div id="toast" class="util"></div>
 
 <script>
-const CLOUD_URL = "https://script.google.com/macros/s/AKfycbz8-lE8_oHvlWyE8MpZdaVS49CWucZqAhEXu-r66BOBMwbjxFu3TQ2Ko0hCc07gDV9-/exec";
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbxGJlumh09uq3mSDgJk91hEGTMrwg9SzzH6YrEgH6wajy7bkUFizp0PToUIWimrUNiY/exec";
 const KEY = 'garlic-business-data';
 const ACTOR_KEY = 'poondu-actor';
 
