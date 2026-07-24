@@ -349,7 +349,7 @@
 <div id="toast" class="util"></div>
 
 <script>
-const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwBkG86x0--ZX_Pqri-eSwS4D2iPmPXPk5PHR2gbIlX5CBPQt9jIt47sTSuJu12wArW/exec";
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbz8-lE8_oHvlWyE8MpZdaVS49CWucZqAhEXu-r66BOBMwbjxFu3TQ2Ko0hCc07gDV9-/exec";
 const KEY = 'garlic-business-data';
 const ACTOR_KEY = 'poondu-actor';
 
@@ -396,7 +396,7 @@ function defaultData(){
   };
 }
 
-// Ensure all string dates mapped perfectly to YYYY-MM-DD to avoid NaN
+// Data Sanitizer: Sweeps arrays to ensure all string dates are safely mapped to YYYY-MM-DD
 function cleanseDataDates(db) {
   if (!db) return;
   ['lots', 'sales', 'expenses', 'capitalLoans'].forEach(table => {
@@ -538,7 +538,7 @@ async function init(){
     try { const raw = localStorage.getItem(KEY); DATA = raw ? JSON.parse(raw) : defaultData(); } catch(e){ DATA = defaultData(); }
   }
 
-  cleanseDataDates(DATA);
+  cleanseDataDates(DATA); // Ensure dates are sanitized for UI processing
   document.getElementById('loading').style.display='none';
   populateFormsFromData();
   renderAll();
@@ -613,12 +613,13 @@ function inPeriod(dateStr, filter){
 }
 
 function lotStats(lot){
-  const activeSales = DATA.sales.filter(s => s.lotId === lot.id && !s.isDeleted);
+  // Calculate solid sales
+  const activeSales = DATA.sales.filter(s => s.lotId === lot.id);
   const soldBags = activeSales.reduce((s,x)=>s+(Number(x.bags)||0),0);
   const soldKg = activeSales.reduce((s,x)=>s+(Number(x.kg)||0),0);
   
   // Isolate dynamically tagged lot expenses
-  const linkedExpenses = DATA.expenses.filter(x => !x.isDeleted && x.referenceId === lot.id);
+  const linkedExpenses = DATA.expenses.filter(x => x.referenceId === lot.id);
   
   // Incorporate Add-On Procurement bags/kgs if logged
   const procurementExp = linkedExpenses.filter(x => x.type === 'Procurement');
@@ -674,15 +675,15 @@ function totals(period = 'all'){
   let remainingBags=0, remainingKg=0;
   let revenue=0, cogs=0, shopExpenseTotal=0;
   
-  const activeLots = DATA.lots.filter(l => !l.isDeleted);
+  const activeLots = DATA.lots; // Array already cleaned of soft deletes by backend
   activeLots.forEach(lot=>{
     const st = lotStats(lot);
     remainingBags += st.remainingBags;
     remainingKg += st.remainingKg;
   });
 
-  const filteredSales = DATA.sales.filter(s => !s.isDeleted && inPeriod(s.date, period));
-  const filteredExpenses = DATA.expenses.filter(x => !x.isDeleted && inPeriod(x.date, period));
+  const filteredSales = DATA.sales.filter(s => inPeriod(s.date, period));
+  const filteredExpenses = DATA.expenses.filter(x => inPeriod(x.date, period));
 
   revenue = filteredSales.reduce((s,x)=>s+(Number(x.amount)||0), 0);
   
@@ -699,15 +700,15 @@ function totals(period = 'all'){
   shopExpenseTotal = shopExpensesOnly.reduce((s,x)=>s+(Number(x.amount)||0), 0);
   
   // Calculate Liquid Cash on hand accurately from all time expenses (ignoring dashboard period filters)
-  const allTimeSales = DATA.sales.filter(s => !s.isDeleted);
-  const allTimeExpenses = DATA.expenses.filter(x => !x.isDeleted);
+  const allTimeSales = DATA.sales;
+  const allTimeExpenses = DATA.expenses;
   
   const totalRevenue = allTimeSales.reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const totalGeneralExpenses = allTimeExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw').reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const totalPayouts = allTimeExpenses.filter(x => x.type === 'Payout / Partner Draw').reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const totalTaggedExpenses = allTimeExpenses.filter(x => !!x.referenceId).reduce((s,x)=>s+(Number(x.amount)||0), 0);
   
-  const revenueFundedLotsCost = DATA.lots.filter(l => !l.isDeleted && l.sourceOfFunds === 'Sales Revenue').reduce((s, l) => s + (Number(l.cost)||0) + (Number(l.loadingCost)||0) + (Number(l.gradingCost)||0), 0);
+  const revenueFundedLotsCost = DATA.lots.filter(l => l.sourceOfFunds === 'Sales Revenue').reduce((s, l) => s + (Number(l.cost)||0) + (Number(l.loadingCost)||0) + (Number(l.gradingCost)||0), 0);
   
   const liquidCash = totalRevenue - totalGeneralExpenses - totalPayouts - revenueFundedLotsCost - totalTaggedExpenses;
 
@@ -779,7 +780,7 @@ function openLotModal(existing){
       <button type="button" id="m-src-rev" class="${l.sourceOfFunds==='Sales Revenue'?'on':''}" onclick="setModalSource('Sales Revenue')">Sales Revenue</button>
     </div>
     <div class="row2" style="margin-top: 10px;">
-      <div><label>Date Added</label><input type="date" id="m-date" value="${safeDate(l.dateAdded)}"></div>
+      <div><label>Date</label><input type="date" id="m-date" value="${safeDate(l.dateAdded)}"></div>
       <div></div>
     </div>`;
   
@@ -800,7 +801,7 @@ function openLotModal(existing){
     
     if (existing) {
       Object.assign(existing, { label, bags, bagsG0, bagsG1, kg, cost, loadingCost, gradingCost, sourceOfFunds, weightLossKg, dateAdded });
-      renderAll(); sendAction('updateLots', DATA.lots);
+      renderAll(); sendAction('updateLot', existing, existing.id);
     } else {
       const id = uid();
       const lot = { id, label, bags, bagsG0, bagsG1, kg, cost, loadingCost, gradingCost, sourceOfFunds, weightLossKg, dateAdded, location: bagsG1 > 0 && bagsG0 === 0 ? 'G+1' : 'Ground', addedBy: getActor(), isDeleted: false };
@@ -823,14 +824,14 @@ function updateTotalBagsModal(type) {
 }
 
 function setModalSource(src){ window.__modalSource = src; document.getElementById('m-src-cap').classList.toggle('on', src==='Partner Capital'); document.getElementById('m-src-rev').classList.toggle('on', src==='Sales Revenue'); }
-async function deleteLot(id){ confirmThen('Delete this lot?', async () => { const lot = DATA.lots.find(l=>l.id===id); if(lot) { lot.isDeleted = true; renderAll(); sendAction('updateLots', DATA.lots); } }); }
+async function deleteLot(id){ confirmThen('Delete this lot?', async () => { const idx = DATA.lots.findIndex(l=>l.id===id); if(idx !== -1) { DATA.lots.splice(idx, 1); renderAll(); sendAction('deleteLot', {id}); } }); }
 
 function openSaleModal(existing){
   const s = existing || { date: todayISO(), lotId:'', channel:'Retail', contactId:'', bags:'', kg:'', amount:'', note:'' };
   window.__modalChannel = s.channel; 
   
-  const lotOptions = DATA.lots.filter(l => !l.isDeleted).map(l=>`<option value="${l.id}" ${s.lotId===l.id?'selected':''}>${l.label}</option>`).join('');
-  const contactOptions = '<option value="">-- Optional (Select Buyer if registered) --</option>' + DATA.contacts.filter(c => !c.isDeleted).map(c=>`<option value="${c.id}" ${s.contactId===c.id?'selected':''}>${c.name}</option>`).join('');
+  const lotOptions = DATA.lots.map(l=>`<option value="${l.id}" ${s.lotId===l.id?'selected':''}>${l.label}</option>`).join('');
+  const contactOptions = '<option value="">-- Optional (Select Buyer if registered) --</option>' + DATA.contacts.map(c=>`<option value="${c.id}" ${s.contactId===c.id?'selected':''}>${c.name}</option>`).join('');
   
   const html = `
     <label>Date</label><input type="date" id="m-date" value="${safeDate(s.date)}">
@@ -888,15 +889,15 @@ function autoFillModalKg(){
     }
   }
 }
-async function deleteSale(id){ confirmThen('Delete this sale?', async () => { const sale = DATA.sales.find(s=>s.id===id); if(sale) { sale.isDeleted = true; renderAll(); sendAction('updateSale', sale, id); } }); }
+async function deleteSale(id){ confirmThen('Delete this sale?', async () => { const idx = DATA.sales.findIndex(s=>s.id===id); if(idx !== -1) { DATA.sales.splice(idx, 1); renderAll(); sendAction('deleteSale', {id}); } }); }
 
 function openExpenseModal(existing){
-  // Defaults to Loading/Unloading if editing a new or existing lot expense
+  // Defauls to Loading/Unloading if lot expense, Running cost if shop expense
   const x = existing || { date: todayISO(), type:'Loading/Unloading', desc:'', amount:'', referenceId:'', bags:'', bagsG0:'', bagsG1:'', kg:'' };
   window.__modalExpenseType = x.referenceId ? 'lot' : 'shop'; 
+  if (!x.referenceId) x.type = 'Running Cost';
   
-  const activeLots = DATA.lots.filter(l=>!l.isDeleted);
-  const lotOptions = '<option value="">-- Select Lot to tag cost --</option>' + activeLots.map(l=>`<option value="${l.id}" ${x.referenceId===l.id?'selected':''}>${l.label}</option>`).join('');
+  const lotOptions = '<option value="">-- Select Lot to tag cost --</option>' + DATA.lots.map(l=>`<option value="${l.id}" ${x.referenceId===l.id?'selected':''}>${l.label}</option>`).join('');
 
   const html = `
     <label>Date</label><input type="date" id="m-date" value="${safeDate(x.date)}">
@@ -1000,7 +1001,7 @@ async function quickMonthlyExpense(){
   const exp = { id, date: todayISO(), type:'Running Cost', desc: 'Auto-added Shop Overhead (Rent + Wages)', amount, referenceId:'', addedBy: getActor(), isDeleted: false };
   DATA.expenses.push(exp); renderAll(); sendAction('addExpense', exp, id);
 }
-async function deleteExpense(id){ confirmThen('Delete this expense?', async () => { const exp = DATA.expenses.find(x=>x.id===id); if(exp) { exp.isDeleted = true; renderAll(); sendAction('updateExpense', exp, id); } }); }
+async function deleteExpense(id){ confirmThen('Delete this expense?', async () => { const idx = DATA.expenses.findIndex(x=>x.id===id); if(idx !== -1) { DATA.expenses.splice(idx, 1); renderAll(); sendAction('deleteExpense', {id}); } }); }
 
 function openContactModal(existing){
   const c = existing || { name:'', type:'Buyer', phone:'', location:'', note:'' };
@@ -1037,7 +1038,7 @@ function openContactModal(existing){
     }
   });
 }
-async function deleteContact(id){ confirmThen('Delete contact?', async () => { const contact = DATA.contacts.find(c=>c.id===id); if(contact) { contact.isDeleted = true; renderAll(); sendAction('updateContact', contact, id); } }); }
+async function deleteContact(id){ confirmThen('Delete contact?', async () => { const idx = DATA.contacts.findIndex(c=>c.id===id); if(idx !== -1) { DATA.contacts.splice(idx, 1); renderAll(); sendAction('deleteContact', {id}); } }); }
 
 function calculatePayoutState(){
   const t = totals('all'); 
@@ -1092,7 +1093,7 @@ function openLoanModal(existing){
   const html = `
     <label>Partner</label><select id="m-partner">${partnerOptions}</select>
     <label>Amount (₹)</label><input type="number" id="m-amount" value="${l.amount}">
-    <label>Date Sent</label><input type="date" id="m-date" value="${safeDate(l.dateSent)}">
+    <label>Date</label><input type="date" id="m-date" value="${safeDate(l.dateSent)}">
     <label>Note / Comments</label><input type="text" id="m-note" value="${l.note||''}">`;
 
   openModal(existing ? 'Edit Advance' : 'Add Advance Money', html, async () => {
@@ -1115,7 +1116,7 @@ function openLoanModal(existing){
   });
 }
 async function setLoanReturnDate(id, val){ const loan = DATA.capitalLoans.find(l=>l.id===id); if(!loan)return; loan.returnDate = val; renderLoans(); sendAction('updateCapitalLoan', loan, id); }
-async function deleteCapitalLoan(id){ confirmThen('Delete this advance?', async () => { const loan = DATA.capitalLoans.find(l=>l.id===id); if(loan) { loan.isDeleted = true; renderLoans(); sendAction('updateCapitalLoan', loan, id); } }); }
+async function deleteCapitalLoan(id){ confirmThen('Delete this advance?', async () => { const idx = DATA.capitalLoans.findIndex(l=>l.id===id); if(idx !== -1) { DATA.capitalLoans.splice(idx, 1); renderLoans(); sendAction('deleteCapitalLoan', {id}); } }); }
 
 function toggleDetails(id) {
   const el = document.getElementById(id);
@@ -1157,7 +1158,6 @@ function renderDashboard(){
     
     // Hide empty lots from the dashboard grid unless they have actual remaining stock
     const activeLots = DATA.lots
-      .filter(l => !l.isDeleted)
       .map(l => ({lot: l, st: lotStats(l)}))
       .filter(x => x.st.remainingKg > 0 || x.st.remainingBags > 0)
       .reverse()
@@ -1189,7 +1189,7 @@ function renderDashboard(){
 
   const recentEl = document.getElementById('d-recent');
   if(recentEl) {
-    const recent = DATA.sales.filter(s => !s.isDeleted).sort((a,b)=> (b.date||'').localeCompare(a.date||'')).slice(0,5);
+    const recent = [...DATA.sales].sort((a,b)=> (b.date||'').localeCompare(a.date||'')).slice(0,5);
     recentEl.innerHTML = recent.map(s=>`
       <tr><td>${s.date}</td><td>${lotLabel(s.lotId)}</td><td><span class="badge ${s.channel==='Retail'?'retail':'wholesale'}">${s.channel}</span></td><td>${s.bags}</td><td>${Number(s.kg||0).toFixed(0)}</td><td>${fmt(s.amount)}</td></tr>`).join('');
     const emptyEl = document.getElementById('d-recent-empty');
@@ -1202,7 +1202,7 @@ function renderInventory(){
   if(!wrap) return;
   wrap.innerHTML='';
   
-  DATA.lots.filter(l => !l.isDeleted).forEach(lot=>{
+  DATA.lots.forEach(lot=>{
     const st = lotStats(lot);
     const expId = `exp-details-${lot.id}`;
     
@@ -1268,12 +1268,12 @@ function renderInventory(){
       </div>`);
   });
   const emptyWrap = document.getElementById('inv-lots-empty');
-  if(emptyWrap) emptyWrap.style.display = DATA.lots.filter(l=>!l.isDeleted).length? 'none':'block';
+  if(emptyWrap) emptyWrap.style.display = DATA.lots.length? 'none':'block';
 }
 
 function renderSalesTable(){
   const body = document.getElementById('sales-table'); if(!body) return;
-  const sorted = DATA.sales.filter(s=> !s.isDeleted && inPeriod(s.date, salesFilter)).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const sorted = DATA.sales.filter(s=> inPeriod(s.date, salesFilter)).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
   body.innerHTML = sorted.map(s=>`
     <tr>
       <td>${s.date}<div class="by-line">${s.addedBy||'System'}</div></td>
@@ -1290,7 +1290,7 @@ function renderSalesTable(){
 
 function renderExpensesTable(){
   const body = document.getElementById('expenses-table'); if(!body) return;
-  const sorted = DATA.expenses.filter(x=> !x.isDeleted && inPeriod(x.date, expensesFilter)).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const sorted = DATA.expenses.filter(x=> inPeriod(x.date, expensesFilter)).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
   body.innerHTML = sorted.map(x=>`
     <tr>
       <td>${x.date}</td>
@@ -1322,7 +1322,7 @@ function renderPartners(){
 
 function renderLoans(){
   const wrap = document.getElementById('loans-list'); if(!wrap)return; wrap.innerHTML = '';
-  const activeLoans = DATA.capitalLoans.filter(l => !l.isDeleted).sort((a,b)=> (b.dateSent||'').localeCompare(a.dateSent||''));
+  const activeLoans = [...DATA.capitalLoans].sort((a,b)=> (b.dateSent||'').localeCompare(a.dateSent||''));
   activeLoans.forEach(loan=>{
     const days = Math.max(0, Math.round((new Date(loan.returnDate || todayISO()) - new Date(loan.dateSent)) / 86400000));
     const rate = DATA.config.interestRatePct || 1.5;
@@ -1356,7 +1356,7 @@ function renderLoans(){
 
 function renderContactsTable(){
   const body = document.getElementById('contacts-table'); if(!body)return;
-  const activeContacts = DATA.contacts.filter(c => !c.isDeleted);
+  const activeContacts = DATA.contacts;
   body.innerHTML = activeContacts.map(c=>`
     <tr>
       <td><b>${c.name}</b><div class="by-line">${c.note||''}</div></td>
@@ -1404,15 +1404,17 @@ function buildReportLocal(period) {
     return `${y}-${m}`;
   };
 
-  DATA.sales.filter(s => !s.isDeleted).forEach(s => {
+  DATA.sales.forEach(s => {
     const k = getBucketKey(s.date);
+    if (k === 'Unknown') return;
     buckets[k] = buckets[k] || { period: k, revenue: 0, bags: 0, expenses: 0 };
     buckets[k].revenue += (Number(s.amount)||0);
     buckets[k].bags += (Number(s.bags)||0);
   });
 
-  DATA.expenses.filter(x => !x.isDeleted && !x.referenceId && x.type !== 'Payout / Partner Draw').forEach(x => {
+  DATA.expenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw').forEach(x => {
     const k = getBucketKey(x.date);
+    if (k === 'Unknown') return;
     buckets[k] = buckets[k] || { period: k, revenue: 0, bags: 0, expenses: 0 };
     buckets[k].expenses += (Number(x.amount)||0);
   });
