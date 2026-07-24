@@ -21,7 +21,6 @@
   body { background: var(--paper); color: var(--ink); font-family: 'Georgia', 'Iowan Old Style', serif; -webkit-font-smoothing: antialiased; padding-bottom: env(safe-area-inset-bottom); }
   .util { font-family: 'Helvetica Neue', Arial, sans-serif; }
   
-  /* Header & Navigation */
   header { padding: 16px 16px 12px; border-bottom: 2px solid var(--plum); background: var(--card); display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
   header h1 { margin: 0; font-size: 1.25rem; letter-spacing: 0.2px; color: var(--plum-deep); }
   header .sub { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.7rem; color: #7a7264; margin-top: 3px; text-transform: uppercase; letter-spacing: 1px; }
@@ -37,7 +36,6 @@
   nav button { font-family: 'Helvetica Neue', Arial, sans-serif; flex: 1; min-width: 85px; padding: 11px 8px; background: none; border: none; font-size: 0.72rem; font-weight: 600; color: #8a8272; border-bottom: 3px solid transparent; cursor: pointer; white-space: nowrap; transition: 0.2s; }
   nav button.active { color: var(--plum-deep); border-bottom: 3px solid var(--rust); }
   
-  /* Main Container & Cards */
   main { padding: 14px; padding-bottom: 90px; max-width: 680px; margin: 0 auto; }
   .view { display: none; animation: fadeIn 0.3s ease; }
   .view.active { display: block; }
@@ -46,7 +44,6 @@
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
   .card h2 { margin: 0 0 10px; font-size: 0.98rem; color: var(--plum-deep); border-bottom: 1px solid var(--line); padding-bottom: 7px; display: flex; justify-content: space-between; align-items: center; }
   
-  /* Stats Grid */
   .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat { background: var(--paper-dim); border-radius: 5px; padding: 10px 12px; }
   .stat .label { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.6px; color: #8a8272; margin-bottom: 3px; }
@@ -348,10 +345,9 @@
   </div>
 </div>
 
-<div id="toast" class="util"></div>
-
 <script>
-const CLOUD_URL = "https://script.google.com/macros/s/AKfycbzateUeTqs95RzB2evgN2cRb2WntJYNZ9Pe0zeQw-6SBvUtYWxrMBNH3msrjWFpjK1a/exec";
+// PLEASE UPDATE YOUR SCRIPT URL HERE AFTER DEPLOYMENT
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbyiS2c20rnchd0X5nQJ6Ld5ObZ2B4D_Mp_nWdrcL4quVQgfIrU4yO5bg2OP7yTRMb8C/exec";
 const KEY = 'garlic-business-data';
 const ACTOR_KEY = 'poondu-actor';
 
@@ -362,6 +358,7 @@ let expensesFilter = 'all';
 let dashFilter = 'all'; 
 let fabAction = null;
 
+// Mathematically safe formatter to prevent NaN from breaking UI
 const fmt = n => '₹' + Math.round(Number(n)||0).toLocaleString('en-IN');
 const todayISO = () => new Date().toISOString().slice(0,10);
 const uid = () => 'id' + Date.now() + Math.random().toString(36).slice(2,7);
@@ -453,7 +450,20 @@ function jsonp(url){
 async function fetchCloudState(){
   const json = await jsonp(CLOUD_URL);
   if (!json || !json.config) return null;
-  ['lots', 'sales', 'expenses', 'capitalLoans', 'contacts'].forEach(k => json[k] = json[k] || []);
+  
+  // Protective Normalization: Force numbers to prevent App Script column shift NaNs from crashing UI
+  ['lots', 'sales', 'expenses', 'capitalLoans', 'contacts'].forEach(k => {
+    json[k] = (json[k] || []).map(row => {
+        if(row.amount !== undefined) row.amount = Number(row.amount) || 0;
+        if(row.bags !== undefined) row.bags = Number(row.bags) || 0;
+        if(row.kg !== undefined) row.kg = Number(row.kg) || 0;
+        if(row.cost !== undefined) row.cost = Number(row.cost) || 0;
+        if(row.loadingCost !== undefined) row.loadingCost = Number(row.loadingCost) || 0;
+        if(row.gradingCost !== undefined) row.gradingCost = Number(row.gradingCost) || 0;
+        return row;
+    });
+  });
+
   if (!json.partners || Object.keys(json.partners).length === 0) {
     json.partners = defaultData().partners;
   }
@@ -470,7 +480,7 @@ async function sendAction(action, payload, id){
     if (res && res.status === 'success') {
       setSyncBadge('ok', 'synced');
       showToast('Saved to cloud ✓');
-      // Background sync to ensure we are up to date
+      // Background sync to ensure we are perfectly aligned
       fetchCloudState().then(fresh => {
         if (fresh) { DATA = fresh; localStorage.setItem(KEY, JSON.stringify(DATA)); renderAll(); }
       });
@@ -582,10 +592,9 @@ function lotStats(lot){
   const soldBags = activeSales.reduce((s,x)=>s+(Number(x.bags)||0),0);
   const soldKg = activeSales.reduce((s,x)=>s+(Number(x.kg)||0),0);
   
-  // Isolate dynamically tagged lot expenses
+  // Dynamically mapped expenses
   const linkedExpenses = DATA.expenses.filter(x => !x.isDeleted && x.referenceId === lot.id);
   
-  // Incorporate Add-On Procurement bags/kgs if logged
   const procurementExp = linkedExpenses.filter(x => x.type === 'Procurement');
   const addedBags = procurementExp.reduce((s, x) => s + (Number(x.bags) || 0), 0);
   const addedKg = procurementExp.reduce((s, x) => s + (Number(x.kg) || 0), 0);
@@ -599,7 +608,6 @@ function lotStats(lot){
   const actualRemainingKg = Math.max(0, theoreticalRemainingKg - realWastage);
   const shrinkagePct = totalInitialKg ? (realWastage / totalInitialKg * 100) : 0;
 
-  // New Initial Explicit Costs included in the Lot
   const baseCost = (Number(lot.cost) || 0);
   const loadingCost = (Number(lot.loadingCost) || 0);
   const gradingCost = (Number(lot.gradingCost) || 0);
@@ -643,11 +651,9 @@ function totals(period = 'all'){
     }
   });
 
-  // Shop Expenses Exclude Lot-Tagged Costs (to avoid double counting) and Payouts
   const shopExpensesOnly = filteredExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw');
   shopExpenseTotal = shopExpensesOnly.reduce((s,x)=>s+(Number(x.amount)||0), 0);
   
-  // Calculate Liquid Cash on hand accurately from all time expenses (ignoring dashboard period filters)
   const allTimeSales = DATA.sales.filter(s => !s.isDeleted);
   const allTimeExpenses = DATA.expenses.filter(x => !x.isDeleted);
   
@@ -692,7 +698,6 @@ function openLotModal(existing){
       <div><label>Initial KG</label><input type="number" id="m-kg" value="${l.kg}"></div>
     </div>
     
-    <!-- Unified Initial Cost Inputs -->
     <div class="row2" style="margin-top: 10px;">
       <div><label>Base Buying Price (₹)</label><input type="number" id="m-cost" value="${l.cost||''}" placeholder="Raw cost"></div>
       <div><label>Lorry / Unloading Cost (₹)</label><input type="number" id="m-loading" value="${l.loadingCost||''}" placeholder="Transport"></div>
