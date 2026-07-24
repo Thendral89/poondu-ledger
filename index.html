@@ -56,13 +56,11 @@
   .big-stat { text-align: center; padding: 14px; }
   .big-stat .value { font-size: 1.8rem; }
   
-  /* Forms & Inputs */
   label { display: block; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.72rem; color: #7a7264; margin: 9px 0 4px; text-transform: uppercase; letter-spacing: 0.5px; }
   input, select, textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 4px; font-size: 0.93rem; font-family: 'Helvetica Neue', Arial, sans-serif; background: #fff; color: var(--ink); }
   input:focus, select:focus, textarea:focus { outline: 2px solid var(--plum); outline-offset: 1px; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   
-  /* Buttons */
   .btn { font-family: 'Helvetica Neue', Arial, sans-serif; display: inline-block; width: 100%; margin-top: 12px; padding: 11px; background: var(--plum); color: #fff; border: none; border-radius: 5px; font-size: 0.87rem; font-weight: 600; cursor: pointer; letter-spacing: 0.3px; text-align: center; transition: 0.2s; }
   .btn:active { background: var(--plum-deep); transform: scale(0.98); }
   .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
@@ -70,12 +68,10 @@
   .btn.ghost { background: transparent; border: 1px solid var(--line); color: #7a7264; font-weight: 400; }
   .btn.danger { background: var(--rust); }
   
-  /* Segments & Toggles */
   .seg2 { display: flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; margin-top: 4px; }
   .seg2 button { flex: 1; padding: 8px 4px; border: none; background: #fff; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.72rem; color: #7a7264; cursor: pointer; transition: 0.1s; }
   .seg2 button.on { background: var(--plum); color: #fff; font-weight: 600; }
   
-  /* Tables */
   table { width: 100%; border-collapse: collapse; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.8rem; }
   th { text-align: left; font-size: 0.62rem; text-transform: uppercase; color: #8a8272; padding: 6px 4px; border-bottom: 1px solid var(--line); }
   td { padding: 7px 4px; border-bottom: 1px solid var(--paper-dim); vertical-align: middle; }
@@ -87,21 +83,18 @@
   .icon-btn.del { color: var(--rust); }
   .empty { text-align: center; padding: 20px 10px; color: #a49c8c; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.85rem; }
   
-  /* Partner/List Rows */
   .partner-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--paper-dim); }
   .partner-row:last-child { border-bottom: none; }
   .partner-name { font-weight: bold; color: var(--plum-deep); }
   .note { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.75rem; color: #8a8272; line-height: 1.4; margin-top: 8px; }
   .by-line { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.64rem; color: #a49c8c; margin-top: 2px; }
   
-  /* Badges */
   .badge { display: inline-block; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.66rem; padding: 2px 8px; border-radius: 10px; background: var(--sage); color: #fff; white-space: nowrap; }
   .badge.owe { background: var(--rust); }
   .badge.type-tag { background: #8e7d6b; }
   .badge.wholesale { background: var(--plum); }
   .badge.retail { background: var(--sage); }
   
-  /* Lot Cards */
   .lot-card { border: 1px solid var(--line); border-radius: 5px; padding: 12px; margin-bottom: 10px; background: var(--paper-dim); }
   .lot-card .lot-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
   .lot-card .lot-title { font-weight: bold; color: var(--plum-deep); font-size: 0.93rem; }
@@ -112,19 +105,16 @@
   .lot-mini-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.72rem; color: #5a5346; }
   .lot-mini-grid b { display: block; color: var(--plum-deep); font-size: 0.9rem; }
   
-  /* Toast & Loading */
   #toast { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%); background: var(--plum-deep); color: #fff; padding: 9px 18px; border-radius: 20px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.8rem; opacity: 0; transition: opacity 0.25s; pointer-events: none; z-index: 50; max-width: 85vw; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
   #toast.show { opacity: 1; }
   #toast.err { background: var(--rust); }
   .loading { text-align: center; padding: 40px; color: #8a8272; font-family: 'Helvetica Neue', Arial, sans-serif; }
 
-  /* Floating Action Button */
   .fab { position: fixed; right: 18px; bottom: 18px; width: 56px; height: 56px; border-radius: 50%; background: var(--rust); color: #fff; border: none; font-size: 1.8rem; line-height: 1; box-shadow: 0 4px 14px rgba(0,0,0,0.25); cursor: pointer; z-index: 15; display: none; align-items: center; justify-content: center; transition: 0.2s; }
   .fab.show { display: flex; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
   .fab:active { transform: scale(0.9); }
   @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
 
-  /* Custom Modals */
   .modal-backdrop { position: fixed; inset: 0; background: rgba(43,38,32,0.6); z-index: 40; display: none; align-items: flex-end; justify-content: center; backdrop-filter: blur(2px); }
   .modal-backdrop.show { display: flex; animation: fadeIn 0.2s; }
   .modal-sheet { background: var(--paper); width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; border-radius: 16px 16px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -4px 20px rgba(0,0,0,0.1); animation: slideUp 0.3s cubic-bezier(0.1, 0.9, 0.2, 1); }
@@ -134,7 +124,6 @@
   .modal-close { background: none; border: none; font-size: 1.5rem; color: #8a8272; cursor: pointer; line-height: 1; padding: 4px 8px; }
   .modal-actor-btn { width: 100%; text-align: left; padding: 12px; margin-top: 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.95rem; font-weight: 600; color: var(--plum-deep); cursor: pointer; }
   
-  /* Details Expander */
   .details-expander { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
   .details-expander.open { display: block; animation: fadeIn 0.2s; }
   .toggle-details-btn { background: none; border: none; color: var(--plum); font-size: 0.75rem; font-weight: bold; cursor: pointer; padding: 4px 0; font-family: 'Helvetica Neue', Arial, sans-serif; }
@@ -167,7 +156,6 @@
 <main>
   <div id="loading" class="loading">Loading ledger environment…</div>
 
-  <!-- VIEW: DASHBOARD -->
   <div class="view active" id="view-dashboard">
     <div class="card big-stat">
       <div class="label util">Garlic Available in Stock</div>
@@ -207,7 +195,6 @@
     </div>
   </div>
 
-  <!-- VIEW: SALES -->
   <div class="view" id="view-sales">
     <div class="card">
       <div class="seg2" id="sales-period-filter">
@@ -224,7 +211,6 @@
     </div>
   </div>
 
-  <!-- VIEW: INVENTORY -->
   <div class="view" id="view-inventory">
     <div class="card">
       <h2>Procured Batches & Lots</h2>
@@ -233,7 +219,6 @@
     </div>
   </div>
 
-  <!-- VIEW: EXPENSES -->
   <div class="view" id="view-expenses">
     <div class="card">
       <div class="seg2" id="expenses-period-filter">
@@ -251,7 +236,6 @@
     </div>
   </div>
 
-  <!-- VIEW: CONTACTS -->
   <div class="view" id="view-contacts">
     <div class="card">
       <h2>Business Contacts</h2>
@@ -264,7 +248,6 @@
     </div>
   </div>
 
-  <!-- VIEW: REPORTS -->
   <div class="view" id="view-reports">
     <div class="card">
       <h2>Aggregated Period Reporting</h2>
@@ -281,7 +264,6 @@
     </div>
   </div>
 
-  <!-- VIEW: PARTNERS & PAYOUTS -->
   <div class="view" id="view-partners">
     <div class="card" style="border: 2px solid var(--plum);">
       <h2>3-Way Payout Engine</h2>
@@ -320,7 +302,6 @@
     </div>
   </div>
 
-  <!-- VIEW: SETTINGS -->
   <div class="view" id="view-settings">
     <div class="card">
       <h2>Fixed Monthly Shop Expenses</h2>
@@ -370,7 +351,7 @@
 <div id="toast" class="util"></div>
 
 <script>
-const CLOUD_URL = "https://script.google.com/macros/s/AKfycbxTAnTAynhYYclFvqoUVcEtiVugvTNcL-ifoROiGjPx-Te0sm5kcxY9CyVdBiBV0T7G/exec";
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbzateUeTqs95RzB2evgN2cRb2WntJYNZ9Pe0zeQw-6SBvUtYWxrMBNH3msrjWFpjK1a/exec";
 const KEY = 'garlic-business-data';
 const ACTOR_KEY = 'poondu-actor';
 
@@ -381,7 +362,7 @@ let expensesFilter = 'all';
 let dashFilter = 'all'; 
 let fabAction = null;
 
-const fmt = n => '₹' + Math.round(n||0).toLocaleString('en-IN');
+const fmt = n => '₹' + Math.round(Number(n)||0).toLocaleString('en-IN');
 const todayISO = () => new Date().toISOString().slice(0,10);
 const uid = () => 'id' + Date.now() + Math.random().toString(36).slice(2,7);
 
@@ -598,34 +579,34 @@ function inPeriod(dateStr, filter){
 
 function lotStats(lot){
   const activeSales = DATA.sales.filter(s => s.lotId === lot.id && !s.isDeleted);
-  const soldBags = activeSales.reduce((s,x)=>s+Number(x.bags||0),0);
-  const soldKg = activeSales.reduce((s,x)=>s+Number(x.kg||0),0);
+  const soldBags = activeSales.reduce((s,x)=>s+(Number(x.bags)||0),0);
+  const soldKg = activeSales.reduce((s,x)=>s+(Number(x.kg)||0),0);
   
   // Isolate dynamically tagged lot expenses
   const linkedExpenses = DATA.expenses.filter(x => !x.isDeleted && x.referenceId === lot.id);
   
   // Incorporate Add-On Procurement bags/kgs if logged
   const procurementExp = linkedExpenses.filter(x => x.type === 'Procurement');
-  const addedBags = procurementExp.reduce((s, x) => s + Number(x.bags || 0), 0);
-  const addedKg = procurementExp.reduce((s, x) => s + Number(x.kg || 0), 0);
+  const addedBags = procurementExp.reduce((s, x) => s + (Number(x.bags) || 0), 0);
+  const addedKg = procurementExp.reduce((s, x) => s + (Number(x.kg) || 0), 0);
 
-  const totalBags = Number(lot.bags || 0) + addedBags;
-  const totalInitialKg = Number(lot.kg || 0) + addedKg;
+  const totalBags = (Number(lot.bags) || 0) + addedBags;
+  const totalInitialKg = (Number(lot.kg) || 0) + addedKg;
   
-  const realWastage = Number(lot.weightLossKg || 0);
+  const realWastage = (Number(lot.weightLossKg) || 0);
   const effectiveUsableKg = Math.max(0.1, totalInitialKg - realWastage);
   const theoreticalRemainingKg = totalInitialKg - soldKg;
   const actualRemainingKg = Math.max(0, theoreticalRemainingKg - realWastage);
   const shrinkagePct = totalInitialKg ? (realWastage / totalInitialKg * 100) : 0;
 
   // New Initial Explicit Costs included in the Lot
-  const baseCost = Number(lot.cost || 0);
-  const loadingCost = Number(lot.loadingCost || 0);
-  const gradingCost = Number(lot.gradingCost || 0);
-  const dynamicTaggedCost = linkedExpenses.reduce((s, x) => s + Number(x.amount || 0), 0);
+  const baseCost = (Number(lot.cost) || 0);
+  const loadingCost = (Number(lot.loadingCost) || 0);
+  const gradingCost = (Number(lot.gradingCost) || 0);
+  const dynamicTaggedCost = linkedExpenses.reduce((s, x) => s + (Number(x.amount) || 0), 0);
   
   const totalEffectiveCost = baseCost + loadingCost + gradingCost + dynamicTaggedCost;
-  const costPerKg = effectiveUsableKg ? (totalEffectiveCost / effectiveUsableKg) : 0;
+  const costPerKg = effectiveUsableKg > 0 ? (totalEffectiveCost / effectiveUsableKg) : 0;
 
   return { 
     totalBags, totalInitialKg,
@@ -652,30 +633,30 @@ function totals(period = 'all'){
   const filteredSales = DATA.sales.filter(s => !s.isDeleted && inPeriod(s.date, period));
   const filteredExpenses = DATA.expenses.filter(x => !x.isDeleted && inPeriod(x.date, period));
 
-  revenue = filteredSales.reduce((s,x)=>s+Number(x.amount||0), 0);
+  revenue = filteredSales.reduce((s,x)=>s+(Number(x.amount)||0), 0);
   
   filteredSales.forEach(sale => {
     const lot = DATA.lots.find(l => l.id === sale.lotId);
     if(lot) {
       const st = lotStats(lot);
-      cogs += (Number(sale.kg||0) * st.costPerKg);
+      cogs += ((Number(sale.kg)||0) * st.costPerKg);
     }
   });
 
   // Shop Expenses Exclude Lot-Tagged Costs (to avoid double counting) and Payouts
   const shopExpensesOnly = filteredExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw');
-  shopExpenseTotal = shopExpensesOnly.reduce((s,x)=>s+Number(x.amount||0), 0);
+  shopExpenseTotal = shopExpensesOnly.reduce((s,x)=>s+(Number(x.amount)||0), 0);
   
   // Calculate Liquid Cash on hand accurately from all time expenses (ignoring dashboard period filters)
   const allTimeSales = DATA.sales.filter(s => !s.isDeleted);
   const allTimeExpenses = DATA.expenses.filter(x => !x.isDeleted);
   
-  const totalRevenue = allTimeSales.reduce((s,x)=>s+Number(x.amount||0), 0);
-  const totalGeneralExpenses = allTimeExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw').reduce((s,x)=>s+x.amount, 0);
-  const totalPayouts = allTimeExpenses.filter(x => x.type === 'Payout / Partner Draw').reduce((s,x)=>s+x.amount, 0);
-  const totalTaggedExpenses = allTimeExpenses.filter(x => !!x.referenceId).reduce((s,x)=>s+x.amount, 0);
+  const totalRevenue = allTimeSales.reduce((s,x)=>s+(Number(x.amount)||0), 0);
+  const totalGeneralExpenses = allTimeExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw').reduce((s,x)=>s+(Number(x.amount)||0), 0);
+  const totalPayouts = allTimeExpenses.filter(x => x.type === 'Payout / Partner Draw').reduce((s,x)=>s+(Number(x.amount)||0), 0);
+  const totalTaggedExpenses = allTimeExpenses.filter(x => !!x.referenceId).reduce((s,x)=>s+(Number(x.amount)||0), 0);
   
-  const revenueFundedLotsCost = DATA.lots.filter(l => !l.isDeleted && l.sourceOfFunds === 'Sales Revenue').reduce((s, l) => s + Number(l.cost || 0) + Number(l.loadingCost || 0) + Number(l.gradingCost || 0), 0);
+  const revenueFundedLotsCost = DATA.lots.filter(l => !l.isDeleted && l.sourceOfFunds === 'Sales Revenue').reduce((s, l) => s + (Number(l.cost)||0) + (Number(l.loadingCost)||0) + (Number(l.gradingCost)||0), 0);
   
   const liquidCash = totalRevenue - totalGeneralExpenses - totalPayouts - revenueFundedLotsCost - totalTaggedExpenses;
 
@@ -696,7 +677,7 @@ function populateFormsFromData(){
   document.getElementById('c-rent2').value = DATA.config.rent2 || 0;
   document.getElementById('c-labour').value = DATA.config.labour || 0;
   document.getElementById('p-interest').value = DATA.config.interestRatePct || 1.5;
-  const quickAmt = Number(DATA.config.rent1||0) + Number(DATA.config.rent2||0) + Number(DATA.config.labour||0);
+  const quickAmt = (Number(DATA.config.rent1)||0) + (Number(DATA.config.rent2)||0) + (Number(DATA.config.labour)||0);
   document.getElementById('e-quick-amt').textContent = quickAmt.toLocaleString('en-IN');
 }
 
@@ -917,7 +898,7 @@ function setModalExpenseType(tp){
 }
 
 async function quickMonthlyExpense(){
-  const amount = Number(DATA.config.rent1||0) + Number(DATA.config.rent2||0) + Number(DATA.config.labour||0);
+  const amount = (Number(DATA.config.rent1)||0) + (Number(DATA.config.rent2)||0) + (Number(DATA.config.labour)||0);
   const id = uid();
   const exp = { id, date: todayISO(), type:'Running Cost', desc: 'Auto-added Shop Overhead (Rent + Wages)', amount, referenceId:'', addedBy: getActor(), isDeleted: false };
   DATA.expenses.push(exp); renderAll(); sendAction('addExpense', exp, id);
@@ -1108,7 +1089,7 @@ function renderDashboard(){
 
   const recentEl = document.getElementById('d-recent');
   if(recentEl) {
-    const recent = DATA.sales.filter(s => !s.isDeleted).sort((a,b)=> b.date.localeCompare(a.date)).slice(0,5);
+    const recent = DATA.sales.filter(s => !s.isDeleted).sort((a,b)=> (b.date||'').localeCompare(a.date||'')).slice(0,5);
     recentEl.innerHTML = recent.map(s=>`
       <tr><td>${s.date}</td><td>${lotLabel(s.lotId)}</td><td><span class="badge ${s.channel==='Retail'?'retail':'wholesale'}">${s.channel}</span></td><td>${s.bags}</td><td>${Number(s.kg||0).toFixed(0)}</td><td>${fmt(s.amount)}</td></tr>`).join('');
     const emptyEl = document.getElementById('d-recent-empty');
@@ -1184,7 +1165,7 @@ function renderInventory(){
 
 function renderSalesTable(){
   const body = document.getElementById('sales-table'); if(!body) return;
-  const sorted = DATA.sales.filter(s=> !s.isDeleted && inPeriod(s.date, salesFilter)).sort((a,b)=> b.date.localeCompare(a.date));
+  const sorted = DATA.sales.filter(s=> !s.isDeleted && inPeriod(s.date, salesFilter)).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
   body.innerHTML = sorted.map(s=>`
     <tr>
       <td>${s.date}<div class="by-line">${s.addedBy||'System'}</div></td>
@@ -1201,7 +1182,7 @@ function renderSalesTable(){
 
 function renderExpensesTable(){
   const body = document.getElementById('expenses-table'); if(!body) return;
-  const sorted = DATA.expenses.filter(x=> !x.isDeleted && inPeriod(x.date, expensesFilter)).sort((a,b)=> b.date.localeCompare(a.date));
+  const sorted = DATA.expenses.filter(x=> !x.isDeleted && inPeriod(x.date, expensesFilter)).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
   body.innerHTML = sorted.map(x=>`
     <tr>
       <td>${x.date}</td>
@@ -1224,7 +1205,7 @@ function renderPartners(){
   if(!list || !editWrap) return;
   list.innerHTML=''; editWrap.innerHTML='';
   Object.keys(DATA.partners).forEach(name=>{
-    const p = DATA.partners[name]; const shortfall = p.required - p.contributed;
+    const p = DATA.partners[name]; const shortfall = (Number(p.required)||0) - (Number(p.contributed)||0);
     list.insertAdjacentHTML('beforeend', `<div class="partner-row"><div><div class="partner-name">${name}</div><div class="note">${fmt(p.contributed)} paid</div></div><span class="badge ${shortfall>0?'owe':''}">${shortfall>0? 'Shortfall: '+fmt(shortfall) : 'OK'}</span></div>`);
     editWrap.insertAdjacentHTML('beforeend', `<label>${name} Base Capital (₹)</label><input type="number" id="pe-${name}" value="${p.contributed}">`);
   });
@@ -1233,7 +1214,7 @@ function renderPartners(){
 
 function renderLoans(){
   const wrap = document.getElementById('loans-list'); if(!wrap)return; wrap.innerHTML = '';
-  const activeLoans = DATA.capitalLoans.filter(l => !l.isDeleted).sort((a,b)=> b.dateSent.localeCompare(a.dateSent));
+  const activeLoans = DATA.capitalLoans.filter(l => !l.isDeleted).sort((a,b)=> (b.dateSent||'').localeCompare(a.dateSent||''));
   activeLoans.forEach(loan=>{
     const days = Math.max(0, Math.round((new Date(loan.returnDate || todayISO()) - new Date(loan.dateSent)) / 86400000));
     const rate = DATA.config.interestRatePct || 1.5;
@@ -1307,14 +1288,14 @@ function buildReportLocal(period) {
   DATA.sales.filter(s => !s.isDeleted).forEach(s => {
     const k = getBucketKey(s.date);
     buckets[k] = buckets[k] || { period: k, revenue: 0, bags: 0, expenses: 0 };
-    buckets[k].revenue += s.amount;
-    buckets[k].bags += s.bags;
+    buckets[k].revenue += (Number(s.amount)||0);
+    buckets[k].bags += (Number(s.bags)||0);
   });
 
   DATA.expenses.filter(x => !x.isDeleted && !x.referenceId && x.type !== 'Payout / Partner Draw').forEach(x => {
     const k = getBucketKey(x.date);
     buckets[k] = buckets[k] || { period: k, revenue: 0, bags: 0, expenses: 0 };
-    buckets[k].expenses += x.amount;
+    buckets[k].expenses += (Number(x.amount)||0);
   });
 
   return Object.keys(buckets).sort().reverse().map(k => buckets[k]);
