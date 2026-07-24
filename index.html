@@ -57,6 +57,7 @@
   input, select, textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 4px; font-size: 0.93rem; font-family: 'Helvetica Neue', Arial, sans-serif; background: #fff; color: var(--ink); }
   input:focus, select:focus, textarea:focus { outline: 2px solid var(--plum); outline-offset: 1px; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .highlight-box { background: var(--paper-dim); border: 1px solid var(--line); border-radius: 6px; padding: 10px; margin-top: 8px; }
   
   .btn { font-family: 'Helvetica Neue', Arial, sans-serif; display: inline-block; width: 100%; margin-top: 12px; padding: 11px; background: var(--plum); color: #fff; border: none; border-radius: 5px; font-size: 0.87rem; font-weight: 600; cursor: pointer; letter-spacing: 0.3px; text-align: center; transition: 0.2s; }
   .btn:active { background: var(--plum-deep); transform: scale(0.98); }
@@ -88,7 +89,7 @@
   
   .badge { display: inline-block; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.66rem; padding: 2px 8px; border-radius: 10px; background: var(--sage); color: #fff; white-space: nowrap; }
   .badge.owe { background: var(--rust); }
-  .badge.type-tag { background: #8e7d6b; }
+  .badge.type-tag { background: #8e7d6b; color: #fff; }
   .badge.wholesale { background: var(--plum); }
   .badge.retail { background: var(--sage); }
   
@@ -348,8 +349,7 @@
 <div id="toast" class="util"></div>
 
 <script>
-// IMPORTANT: Update this variable after deploying your Apps Script as a NEW VERSION
-const CLOUD_URL = "https://script.google.com/macros/s/AKfycbx06mugZG35MZp0DV0YlxxEwrtZ-PQy25Dt1BV_zx5oGWFDCidTxbJaQJrpP_pRuKlu/exec";
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwBkG86x0--ZX_Pqri-eSwS4D2iPmPXPk5PHR2gbIlX5CBPQt9jIt47sTSuJu12wArW/exec";
 const KEY = 'garlic-business-data';
 const ACTOR_KEY = 'poondu-actor';
 
@@ -364,7 +364,13 @@ let fabAction = null;
 const safeDate = (d) => {
   if (!d) return '';
   const str = String(d).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
   if (str.includes('T')) return str.split('T')[0];
+  const dateObj = new Date(str);
+  if (!isNaN(dateObj.getTime())) {
+    const offset = dateObj.getTimezoneOffset() * 60000;
+    return new Date(dateObj.getTime() - offset).toISOString().slice(0, 10);
+  }
   return str.slice(0, 10);
 };
 
@@ -388,6 +394,21 @@ function defaultData(){
     },
     lots: [], sales: [], expenses: [], capitalLoans: [], contacts: []
   };
+}
+
+// Ensure all string dates mapped perfectly to YYYY-MM-DD to avoid NaN
+function cleanseDataDates(db) {
+  if (!db) return;
+  ['lots', 'sales', 'expenses', 'capitalLoans'].forEach(table => {
+    if (db[table]) {
+      db[table].forEach(row => {
+        if (row.date) row.date = safeDate(row.date);
+        if (row.dateAdded) row.dateAdded = safeDate(row.dateAdded);
+        if (row.dateSent) row.dateSent = safeDate(row.dateSent);
+        if (row.returnDate) row.returnDate = safeDate(row.returnDate);
+      });
+    }
+  });
 }
 
 function getActor(){ return localStorage.getItem(ACTOR_KEY) || ''; }
@@ -455,7 +476,7 @@ async function jsonp(url){
     let timeoutId;
     function cleanup(){ clearTimeout(timeoutId); delete window[cbName]; script.remove(); }
     window[cbName] = (data) => { resolve(data); cleanup(); };
-    script.onerror = () => { reject(new Error('Network request failed. Ensure Apps Script is deployed as New Version with Access set to Anyone.')); cleanup(); };
+    script.onerror = () => { reject(new Error('Network request failed')); cleanup(); };
     script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
     timeoutId = setTimeout(() => { reject(new Error('Timeout')); cleanup(); }, 15000);
     document.body.appendChild(script);
@@ -464,17 +485,12 @@ async function jsonp(url){
 
 async function fetchCloudState(){
   const json = await jsonp(CLOUD_URL);
-  if (!json || json.status === 'error') throw new Error(json?.message || "Server Error");
-  if (!json.config) return null;
-  
-  // Safe Array mapping
-  ['lots', 'sales', 'expenses', 'capitalLoans', 'contacts'].forEach(k => {
-    json[k] = json[k] || [];
-  });
-
+  if (!json || !json.config) return null;
+  ['lots', 'sales', 'expenses', 'capitalLoans', 'contacts'].forEach(k => json[k] = json[k] || []);
   if (!json.partners || Object.keys(json.partners).length === 0) {
     json.partners = defaultData().partners;
   }
+  cleanseDataDates(json);
   return json;
 }
 
@@ -488,10 +504,10 @@ async function sendAction(action, payload, id){
     if (res && res.status === 'success') {
       setSyncBadge('ok', 'synced');
       showToast('Saved to cloud ✓');
-      // Background sync to ensure we are perfectly aligned
+      // Background sync to ensure we are up to date
       fetchCloudState().then(fresh => {
         if (fresh) { DATA = fresh; localStorage.setItem(KEY, JSON.stringify(DATA)); renderAll(); }
-      }).catch(e => console.warn(e));
+      });
       return true;
     }
     setSyncBadge('err', 'failed');
@@ -511,12 +527,7 @@ async function init(){
   if (actor) document.getElementById('actor-pill').textContent = actor;
 
   let cloud = null;
-  try { 
-    cloud = await fetchCloudState(); 
-  } catch(e) { 
-    console.error(e);
-    showToast(e.message, true);
-  }
+  try { cloud = await fetchCloudState(); } catch(e){ console.warn(e); }
 
   if (cloud) {
     DATA = cloud;
@@ -527,6 +538,7 @@ async function init(){
     try { const raw = localStorage.getItem(KEY); DATA = raw ? JSON.parse(raw) : defaultData(); } catch(e){ DATA = defaultData(); }
   }
 
+  cleanseDataDates(DATA);
   document.getElementById('loading').style.display='none';
   populateFormsFromData();
   renderAll();
@@ -535,21 +547,16 @@ async function init(){
 
 async function manualRefresh(){
   showToast('Refreshing data…');
-  try {
-    const cloud = await fetchCloudState();
-    if (cloud) {
-      DATA = cloud;
-      localStorage.setItem(KEY, JSON.stringify(DATA));
-      setSyncBadge('ok', 'synced');
-      renderAll();
-      showToast('Data is up to date ✓');
-    } else {
-      setSyncBadge('err', 'offline');
-      showToast('Network error.', true);
-    }
-  } catch (e) {
+  const cloud = await fetchCloudState();
+  if (cloud) {
+    DATA = cloud;
+    localStorage.setItem(KEY, JSON.stringify(DATA));
+    setSyncBadge('ok', 'synced');
+    renderAll();
+    showToast('Data is up to date ✓');
+  } else {
     setSyncBadge('err', 'offline');
-    showToast('Network error: ' + e.message, true);
+    showToast('Network error.', true);
   }
 }
 
@@ -622,8 +629,8 @@ function lotStats(lot){
   let initialG0 = Number(lot.bagsG0) || 0;
   let initialG1 = Number(lot.bagsG1) || 0;
   
-  // Fallback map for older lots that didn't have split inputs
-  if (initialG0 === 0 && initialG1 === 0 && Number(lot.bags) > 0) {
+  // Fallback for older lots that didn't have split inputs
+  if (initialG0 === 0 && initialG1 === 0 && (Number(lot.bags)||0) > 0) {
       if (lot.location === 'G+1') initialG1 = Number(lot.bags);
       else initialG0 = Number(lot.bags);
   }
@@ -746,14 +753,14 @@ function openLotModal(existing){
   
   const html = `
     <label>Lot Name</label><input type="text" id="m-label" value="${l.label}" placeholder="e.g. Ooty Grade-A">
-    <div class="row2">
-      <div><label>Bags in G0 (Ground)</label><input type="number" id="m-bags-g0" value="${initG0}" placeholder="0"></div>
-      <div><label>Bags in G1 (1st Floor)</label><input type="number" id="m-bags-g1" value="${initG1}" placeholder="0"></div>
-    </div>
     
-    <div class="row2" style="margin-top: 10px;">
-      <div><label>Total Initial KG</label><input type="number" id="m-kg" value="${l.kg}"></div>
-      <div><label>Drying Loss (Kaaichal) KG</label><input type="number" id="m-loss" value="${l.weightLossKg||0}"></div>
+    <div class="highlight-box">
+        <div class="row2">
+          <div><label>Bags in G0 (Ground)</label><input type="number" id="m-bags-g0" value="${initG0}" placeholder="0" oninput="updateTotalBagsModal('lot')"></div>
+          <div><label>Bags in G1 (1st Floor)</label><input type="number" id="m-bags-g1" value="${initG1}" placeholder="0" oninput="updateTotalBagsModal('lot')"></div>
+        </div>
+        <div style="text-align:right; font-size: 0.75rem; margin-top: 4px; color: var(--sage); font-weight: bold;">Total Bags: <span id="m-total-bags-disp">${Number(initG0||0) + Number(initG1||0)}</span></div>
+        <div style="margin-top: 8px;"><label>Total Initial KG</label><input type="number" id="m-kg" value="${l.kg}"></div>
     </div>
 
     <!-- Unified Initial Cost Inputs -->
@@ -763,13 +770,17 @@ function openLotModal(existing){
     </div>
     <div class="row2">
       <div><label>Initial Grading Cost (₹)</label><input type="number" id="m-grading" value="${l.gradingCost||''}" placeholder="Sorting"></div>
-      <div><label>Date Added</label><input type="date" id="m-date" value="${safeDate(l.dateAdded)}"></div>
+      <div><label>Drying Loss (Kaaichal) KG</label><input type="number" id="m-loss" value="${l.weightLossKg||0}"></div>
     </div>
 
     <label style="margin-top: 10px;">Funding Source</label>
     <div class="seg2">
       <button type="button" id="m-src-cap" class="${l.sourceOfFunds==='Partner Capital'?'on':''}" onclick="setModalSource('Partner Capital')">Partner Capital</button>
       <button type="button" id="m-src-rev" class="${l.sourceOfFunds==='Sales Revenue'?'on':''}" onclick="setModalSource('Sales Revenue')">Sales Revenue</button>
+    </div>
+    <div class="row2" style="margin-top: 10px;">
+      <div><label>Date Added</label><input type="date" id="m-date" value="${safeDate(l.dateAdded)}"></div>
+      <div></div>
     </div>`;
   
   openModal(existing ? 'Edit Lot' : 'Add New Lot', html, async () => {
@@ -798,6 +809,19 @@ function openLotModal(existing){
     }
   });
 }
+
+function updateTotalBagsModal(type) {
+    if (type === 'lot') {
+        const g0 = Number(document.getElementById('m-bags-g0').value)||0;
+        const g1 = Number(document.getElementById('m-bags-g1').value)||0;
+        document.getElementById('m-total-bags-disp').textContent = g0 + g1;
+    } else if (type === 'expense') {
+        const g0 = Number(document.getElementById('m-exp-bags-g0').value)||0;
+        const g1 = Number(document.getElementById('m-exp-bags-g1').value)||0;
+        document.getElementById('m-exp-total-disp').textContent = g0 + g1;
+    }
+}
+
 function setModalSource(src){ window.__modalSource = src; document.getElementById('m-src-cap').classList.toggle('on', src==='Partner Capital'); document.getElementById('m-src-rev').classList.toggle('on', src==='Sales Revenue'); }
 async function deleteLot(id){ confirmThen('Delete this lot?', async () => { const lot = DATA.lots.find(l=>l.id===id); if(lot) { lot.isDeleted = true; renderAll(); sendAction('updateLots', DATA.lots); } }); }
 
@@ -867,7 +891,7 @@ function autoFillModalKg(){
 async function deleteSale(id){ confirmThen('Delete this sale?', async () => { const sale = DATA.sales.find(s=>s.id===id); if(sale) { sale.isDeleted = true; renderAll(); sendAction('updateSale', sale, id); } }); }
 
 function openExpenseModal(existing){
-  // Defauls to Loading/Unloading if editing a new or existing lot expense
+  // Defaults to Loading/Unloading if editing a new or existing lot expense
   const x = existing || { date: todayISO(), type:'Loading/Unloading', desc:'', amount:'', referenceId:'', bags:'', bagsG0:'', bagsG1:'', kg:'' };
   window.__modalExpenseType = x.referenceId ? 'lot' : 'shop'; 
   
@@ -903,12 +927,15 @@ function openExpenseModal(existing){
         <option value="Repacking" ${x.type==='Repacking'?'selected':''}>Repacking Cost</option>
         <option value="Other Lot Expense" ${x.type==='Other Lot Expense'?'selected':''}>Other Lot Expense</option>
       </select>
-      <div id="procurement-fields" style="display: ${x.type==='Procurement' ? 'block' : 'none'}; margin-top: 8px;">
+      
+      <div id="procurement-fields" class="highlight-box" style="display: ${x.type==='Procurement' ? 'block' : 'none'};">
+        <label style="margin-top:0;">Stock Added (Procurement)</label>
         <div class="row2" style="margin-bottom: 8px;">
-          <div><label>Bags Added to G0</label><input type="number" id="m-exp-bags-g0" value="${x.bagsG0||''}" placeholder="0"></div>
-          <div><label>Bags Added to G1</label><input type="number" id="m-exp-bags-g1" value="${x.bagsG1||''}" placeholder="0"></div>
+          <div><label>Added to G0</label><input type="number" id="m-exp-bags-g0" value="${x.bagsG0||''}" placeholder="0" oninput="updateTotalBagsModal('expense')"></div>
+          <div><label>Added to G1</label><input type="number" id="m-exp-bags-g1" value="${x.bagsG1||''}" placeholder="0" oninput="updateTotalBagsModal('expense')"></div>
         </div>
-        <div><label>Total KG Purchased</label><input type="number" id="m-exp-kg" value="${x.kg||''}"></div>
+        <div style="text-align:right; font-size: 0.75rem; margin-top: 4px; color: var(--sage); font-weight: bold;">Total Added Bags: <span id="m-exp-total-disp">${Number(x.bagsG0||0) + Number(x.bagsG1||0)}</span></div>
+        <div style="margin-top: 8px;"><label>Total KG Purchased</label><input type="number" id="m-exp-kg" value="${x.kg||''}"></div>
       </div>
     </div>
 
@@ -933,7 +960,7 @@ function openExpenseModal(existing){
       bagsG1 = Number(document.getElementById('m-exp-bags-g1').value)||0;
       bags = bagsG0 + bagsG1;
       kg = Number(document.getElementById('m-exp-kg').value)||0;
-      if (!bags && !kg) { showToast('Enter Bags or KG for Procurement', true); return false; }
+      if (!bags && !kg) { showToast('Please enter Bags or KG for Procurement', true); return false; }
     }
 
     if (!desc || !amount) { showToast('Please enter description and amount', true); return false; }
@@ -1187,11 +1214,11 @@ function renderInventory(){
             let bagStr = [];
             if (x.bagsG0 > 0) bagStr.push(`${x.bagsG0} in G0`);
             if (x.bagsG1 > 0) bagStr.push(`${x.bagsG1} in G1`);
-            if (bagStr.length === 0 && x.bags > 0) bagStr.push(`${x.bags} Bags`);
-            extra = `<span style="font-size:0.65rem; color:var(--sage); font-weight:bold;"> (+${bagStr.join(', ')} | +${x.kg||0} KG)</span>`;
+            if (bagStr.length === 0 && x.bags > 0) bagStr.push(`${x.bags} Total Bags`);
+            extra = `<br><span style="font-size:0.68rem; color:var(--sage); font-weight:bold;"> (+${bagStr.join(', ')} | +${x.kg||0} KG)</span>`;
         }
-        return `<div style="display:flex; justify-content:space-between; margin-top:4px; font-size:0.75rem;">
-                  <span><span class="badge type-tag" style="background:#b0a89a; padding:1px 5px; font-size:0.6rem;">${x.type}</span> ${x.desc} ${extra}</span>
+        return `<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:6px; font-size:0.75rem;">
+                  <span><span class="badge type-tag" style="background:#b0a89a; padding:2px 5px; font-size:0.6rem;">${x.type}</span> ${x.desc} ${extra}</span>
                   <b>${fmt(x.amount)}</b>
                 </div>`;
       }).join('');
@@ -1225,7 +1252,7 @@ function renderInventory(){
             
             <div style="margin-bottom: 6px; font-size:0.7rem; font-weight:bold; color:#8a8272; text-transform:uppercase;">Initial Setup Costs</div>
             <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-top:4px;">
-              <span>Base Buying Price (${lot.bags} Bags / ${lot.kg} KG):</span> <b>${fmt(st.baseCost)}</b>
+              <span>Base Buying Price (${lot.bagsG0||0} G0, ${lot.bagsG1||0} G1 / ${lot.kg} KG):</span> <b>${fmt(st.baseCost)}</b>
             </div>
             ${st.loadingCost ? `<div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-top:4px;"><span>Lorry / Unloading Cost:</span> <b>${fmt(st.loadingCost)}</b></div>` : ''}
             ${st.gradingCost ? `<div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-top:4px;"><span>Initial Grading Cost:</span> <b>${fmt(st.gradingCost)}</b></div>` : ''}
@@ -1268,7 +1295,7 @@ function renderExpensesTable(){
     <tr>
       <td>${x.date}</td>
       <td><span class="badge type-tag">${x.referenceId ? 'Lot Expense' : 'Shop Overhead'}</span></td>
-      <td>${x.desc} ${x.type === 'Procurement' ? `<br><span style="font-size:0.7rem;color:#8a8272;font-weight:600;">(+${x.bags} Bags, ${x.kg} KG)</span>` : ''}</td>
+      <td>${x.desc} ${x.type === 'Procurement' ? `<br><span style="font-size:0.7rem;color:#8a8272;font-weight:600;">(+${x.bags||0} Bags, ${x.kg||0} KG)</span>` : ''}</td>
       <td>${fmt(x.amount)}</td>
       <td><span style="font-weight:bold; color:var(--plum-deep);">${x.referenceId ? lotLabel(x.referenceId) : 'Shop'}</span></td>
       <td class="row-actions">
