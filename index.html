@@ -349,7 +349,7 @@
 
 <script>
 // UPDATE WITH YOUR APPS SCRIPT URL HERE
-const CLOUD_URL = "https://script.google.com/macros/s/AKfycbzNdZLsrR7VhJ2NVn6FTPsecVF-kEYqvQnD8BuaR4a3N1TAjkyWH0ziNOnVMgh9z2gx/exec";
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbws9b9NxPmf208QrlEC-MLxEUfqlf5iCZ2_p6XEYgtoNGEasWmP0ZEYwnME-X1_Jejg/exec";
 const KEY = 'garlic-business-data';
 const ACTOR_KEY = 'poondu-actor';
 
@@ -736,7 +736,7 @@ function openLotModal(existing){
       <button type="button" id="m-src-rev" class="${l.sourceOfFunds==='Sales Revenue'?'on':''}" onclick="setModalSource('Sales Revenue')">Sales Revenue</button>
     </div>
     <div class="row2" style="margin-top: 10px;">
-      <div><label>Date Added</label><input type="date" id="m-date" value="${safeDate(l.dateAdded)}"></div>
+      <div><label>Date</label><input type="date" id="m-date" value="${safeDate(l.dateAdded)}"></div>
       <div></div>
     </div>`;
   
@@ -1023,7 +1023,7 @@ function openLoanModal(existing){
   const html = `
     <label>Partner</label><select id="m-partner">${partnerOptions}</select>
     <label>Amount (₹)</label><input type="number" id="m-amount" value="${l.amount}">
-    <label>Date Sent</label><input type="date" id="m-date" value="${safeDate(l.dateSent)}">
+    <label>Date</label><input type="date" id="m-date" value="${safeDate(l.dateSent)}">
     <label>Note / Comments</label><input type="text" id="m-note" value="${l.note||''}">`;
 
   openModal(existing ? 'Edit Advance' : 'Add Advance Money', html, async () => {
@@ -1302,15 +1302,26 @@ function renderReportTable(){
 function buildReportLocal(period) {
   const buckets = {};
   const getBucketKey = (dateStr) => {
-    const d = new Date(dateStr);
-    if (period === 'daily') return d.toISOString().slice(0,10);
+    let d = new Date(dateStr);
+    if (isNaN(d.getTime())) return 'Unknown';
+    
+    // Explicitly parse local values to avoid timezone shifts
+    const parts = dateStr.split('-');
+    if (parts.length === 3) d = new Date(parts[0], parts[1] - 1, parts[2]);
+
+    if (period === 'daily') {
+        const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
+        return `${y}-${m}-${dd}`;
+    }
     if (period === 'weekly') {
       const onejan = new Date(d.getFullYear(), 0, 1);
       const week = Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);
-      return `${d.getFullYear()}-W${week}`;
+      return `${d.getFullYear()}-W${week.toString().padStart(2,'0')}`;
     }
     if (period === 'quarterly') return `${d.getFullYear()}-Q${Math.floor(d.getMonth() / 3) + 1}`;
-    return d.toISOString().slice(0,7);
+    
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0');
+    return `${y}-${m}`;
   };
 
   DATA.sales.filter(s => !s.isDeleted).forEach(s => {
