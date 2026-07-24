@@ -345,9 +345,11 @@
   </div>
 </div>
 
+<div id="toast" class="util"></div>
+
 <script>
-// PLEASE UPDATE YOUR SCRIPT URL HERE AFTER DEPLOYMENT
-const CLOUD_URL = "https://script.google.com/macros/s/AKfycbxoK2rRKreDNgsuPXE1l1Vy72dY1PwYSgFl97gfTIEUGXDiMIfKXJDjCW2w1yvT1LOw/exec";
+// UPDATE WITH YOUR APPS SCRIPT URL HERE
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbzNdZLsrR7VhJ2NVn6FTPsecVF-kEYqvQnD8BuaR4a3N1TAjkyWH0ziNOnVMgh9z2gx/exec";
 const KEY = 'garlic-business-data';
 const ACTOR_KEY = 'poondu-actor';
 
@@ -358,16 +360,22 @@ let expensesFilter = 'all';
 let dashFilter = 'all'; 
 let fabAction = null;
 
-// Safe date formatter for HTML date inputs to prevent ISO string crashes
+// Safe Date Formatting to Prevent App Crash
 const safeDate = (d) => {
   if (!d) return '';
-  if (typeof d === 'string' && d.includes('T')) return d.split('T')[0];
-  return String(d).slice(0, 10);
+  const str = String(d).trim();
+  if (str.includes('T')) return str.split('T')[0];
+  return str.slice(0, 10);
 };
 
-// Mathematically safe formatter to prevent NaN from breaking UI
+// Safe Today ISO to prevent Timezone Shift
+const todayISO = () => {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0,10);
+};
+
 const fmt = n => '₹' + Math.round(Number(n)||0).toLocaleString('en-IN');
-const todayISO = () => new Date().toISOString().slice(0,10);
 const uid = () => 'id' + Date.now() + Math.random().toString(36).slice(2,7);
 
 function defaultData(){
@@ -440,14 +448,14 @@ document.getElementById('confirm-yes-btn').onclick = () => {
 };
 function confirmThen(message, fn){ openConfirm(message, fn); }
 
-function jsonp(url){
+async function jsonp(url){
   return new Promise((resolve, reject) => {
     const cbName = 'jsonp_cb_' + Date.now() + '_' + Math.floor(Math.random()*100000);
     const script = document.createElement('script');
     let timeoutId;
     function cleanup(){ clearTimeout(timeoutId); delete window[cbName]; script.remove(); }
     window[cbName] = (data) => { resolve(data); cleanup(); };
-    script.onerror = () => { reject(new Error('Network request failed')); cleanup(); };
+    script.onerror = () => { reject(new Error('Network request failed. Ensure Apps Script is deployed as New Version with Access set to Anyone.')); cleanup(); };
     script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
     timeoutId = setTimeout(() => { reject(new Error('Timeout')); cleanup(); }, 15000);
     document.body.appendChild(script);
@@ -456,19 +464,12 @@ function jsonp(url){
 
 async function fetchCloudState(){
   const json = await jsonp(CLOUD_URL);
-  if (!json || !json.config) return null;
+  if (!json || json.status === 'error') throw new Error(json?.message || "Server Error");
+  if (!json.config) return null;
   
-  // Protective Normalization: Force numbers to prevent App Script column shift NaNs from crashing UI
+  // Safe Array mapping
   ['lots', 'sales', 'expenses', 'capitalLoans', 'contacts'].forEach(k => {
-    json[k] = (json[k] || []).map(row => {
-        if(row.amount !== undefined) row.amount = Number(row.amount) || 0;
-        if(row.bags !== undefined) row.bags = Number(row.bags) || 0;
-        if(row.kg !== undefined) row.kg = Number(row.kg) || 0;
-        if(row.cost !== undefined) row.cost = Number(row.cost) || 0;
-        if(row.loadingCost !== undefined) row.loadingCost = Number(row.loadingCost) || 0;
-        if(row.gradingCost !== undefined) row.gradingCost = Number(row.gradingCost) || 0;
-        return row;
-    });
+    json[k] = json[k] || [];
   });
 
   if (!json.partners || Object.keys(json.partners).length === 0) {
@@ -490,7 +491,7 @@ async function sendAction(action, payload, id){
       // Background sync to ensure we are perfectly aligned
       fetchCloudState().then(fresh => {
         if (fresh) { DATA = fresh; localStorage.setItem(KEY, JSON.stringify(DATA)); renderAll(); }
-      });
+      }).catch(e => console.warn(e));
       return true;
     }
     setSyncBadge('err', 'failed');
@@ -510,7 +511,12 @@ async function init(){
   if (actor) document.getElementById('actor-pill').textContent = actor;
 
   let cloud = null;
-  try { cloud = await fetchCloudState(); } catch(e){ console.warn(e); }
+  try { 
+    cloud = await fetchCloudState(); 
+  } catch(e) { 
+    console.error(e);
+    showToast(e.message, true);
+  }
 
   if (cloud) {
     DATA = cloud;
@@ -529,16 +535,21 @@ async function init(){
 
 async function manualRefresh(){
   showToast('Refreshing data…');
-  const cloud = await fetchCloudState();
-  if (cloud) {
-    DATA = cloud;
-    localStorage.setItem(KEY, JSON.stringify(DATA));
-    setSyncBadge('ok', 'synced');
-    renderAll();
-    showToast('Data is up to date ✓');
-  } else {
+  try {
+    const cloud = await fetchCloudState();
+    if (cloud) {
+      DATA = cloud;
+      localStorage.setItem(KEY, JSON.stringify(DATA));
+      setSyncBadge('ok', 'synced');
+      renderAll();
+      showToast('Data is up to date ✓');
+    } else {
+      setSyncBadge('err', 'offline');
+      showToast('Network error.', true);
+    }
+  } catch (e) {
     setSyncBadge('err', 'offline');
-    showToast('Network error.', true);
+    showToast('Network error: ' + e.message, true);
   }
 }
 
@@ -599,9 +610,10 @@ function lotStats(lot){
   const soldBags = activeSales.reduce((s,x)=>s+(Number(x.bags)||0),0);
   const soldKg = activeSales.reduce((s,x)=>s+(Number(x.kg)||0),0);
   
-  // Dynamically mapped expenses
+  // Isolate dynamically tagged lot expenses
   const linkedExpenses = DATA.expenses.filter(x => !x.isDeleted && x.referenceId === lot.id);
   
+  // Incorporate Add-On Procurement bags/kgs if logged
   const procurementExp = linkedExpenses.filter(x => x.type === 'Procurement');
   const addedBags = procurementExp.reduce((s, x) => s + (Number(x.bags) || 0), 0);
   const addedKg = procurementExp.reduce((s, x) => s + (Number(x.kg) || 0), 0);
@@ -615,6 +627,7 @@ function lotStats(lot){
   const actualRemainingKg = Math.max(0, theoreticalRemainingKg - realWastage);
   const shrinkagePct = totalInitialKg ? (realWastage / totalInitialKg * 100) : 0;
 
+  // New Initial Explicit Costs included in the Lot
   const baseCost = (Number(lot.cost) || 0);
   const loadingCost = (Number(lot.loadingCost) || 0);
   const gradingCost = (Number(lot.gradingCost) || 0);
@@ -658,9 +671,11 @@ function totals(period = 'all'){
     }
   });
 
+  // Shop Expenses Exclude Lot-Tagged Costs (to avoid double counting) and Payouts
   const shopExpensesOnly = filteredExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw');
   shopExpenseTotal = shopExpensesOnly.reduce((s,x)=>s+(Number(x.amount)||0), 0);
   
+  // Calculate Liquid Cash on hand accurately from all time expenses (ignoring dashboard period filters)
   const allTimeSales = DATA.sales.filter(s => !s.isDeleted);
   const allTimeExpenses = DATA.expenses.filter(x => !x.isDeleted);
   
@@ -705,6 +720,7 @@ function openLotModal(existing){
       <div><label>Initial KG</label><input type="number" id="m-kg" value="${l.kg}"></div>
     </div>
     
+    <!-- Unified Initial Cost Inputs -->
     <div class="row2" style="margin-top: 10px;">
       <div><label>Base Buying Price (₹)</label><input type="number" id="m-cost" value="${l.cost||''}" placeholder="Raw cost"></div>
       <div><label>Lorry / Unloading Cost (₹)</label><input type="number" id="m-loading" value="${l.loadingCost||''}" placeholder="Transport"></div>
