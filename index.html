@@ -197,6 +197,16 @@
   <!-- VIEW: SALES -->
   <div class="view" id="view-sales">
     <div class="card">
+      <h2>Weekly Stock Check <span style="font-family:'Helvetica Neue',Arial,sans-serif; font-size:0.62rem; font-weight:normal; text-transform:none; color:#8a8272;">(estimate)</span></h2>
+      <div class="stat-grid">
+        <div class="stat"><div class="label">G0 Remaining (approx)</div><div class="value" id="wk-g0">—</div></div>
+        <div class="stat"><div class="label">G1 Remaining (approx)</div><div class="value" id="wk-g1">—</div></div>
+        <div class="stat"><div class="label">Sold Last 7 Days</div><div class="value" id="wk-sold7">—</div></div>
+        <div class="stat"><div class="label">Est. Weeks Left</div><div class="value" id="wk-weeks">—</div></div>
+      </div>
+      <div class="note">G0/G1 split is estimated proportionally from each lot's original floor mix, since individual sales aren't tagged to a specific floor.</div>
+    </div>
+    <div class="card">
       <div class="seg2" id="sales-period-filter">
         <button type="button" class="on" data-p="all" onclick="setSalesFilter('all')">All</button>
         <button type="button" data-p="today" onclick="setSalesFilter('today')">Today</button>
@@ -272,7 +282,7 @@
   <div class="view" id="view-partners">
     <div class="card" style="border: 2px solid var(--plum);">
       <h2>3-Way Payout Engine</h2>
-      <div class="note">Distributes actual liquid cash safely (excludes capital tied up in inventory).</div>
+      <div class="note">Distributes actual liquid cash safely (excludes capital tied up in inventory and any lot expenses tagged as Partner Capital).</div>
       <div style="margin: 12px 0;">
         <label>Retained Shop Cash Reserve / Working Capital (₹)</label>
         <input type="number" id="payout-reserve-input" value="50000" oninput="calculatePayoutState()">
@@ -282,6 +292,7 @@
         <div class="stat"><div class="label">Cash to Distribute</div><div class="value" id="rep-distributable">₹0</div></div>
         <div class="stat"><div class="label">Per Partner (1/3)</div><div class="value" id="rep-per-head">₹0</div></div>
       </div>
+      <div class="note" id="rep-capital-excluded-note" style="display:none;"></div>
       <button class="btn" onclick="executeBalancedThreeWayPayout()">Save Payout to Ledger</button>
     </div>
 
@@ -356,7 +367,7 @@
 
 <script>
 // 🔥 PASTE YOUR NEW APPS SCRIPT URL HERE
-const CLOUD_URL = "https://script.google.com/macros/s/AKfycbzJKCZrGsFQPiSOynuLHTi_cGG3Xm4ZDdttjPx83lly8oBVlAZRFXBJ9duCbt3snP8X/exec";
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbxxmTl0Ip7RpAg6MghUcIppEFlfHeTplvwuuiiFsL5E7vxxsp5bxzkxpjdaXe9pKTk0/exec";
 const KEY = 'garlic-business-data';
 const ACTOR_KEY = 'poondu-actor';
 
@@ -375,6 +386,10 @@ const todayISO = () => {
 
 const safeDate = (d) => {
   if (!d) return '';
+  if (d instanceof Date) {
+    const offset = 5.5 * 60 * 60 * 1000;
+    return new Date(d.getTime() + offset).toISOString().slice(0, 10);
+  }
   const str = String(d).trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
   if (str.includes('T')) return str.split('T')[0];
@@ -572,6 +587,7 @@ function bindNav(){
       
       if (view==='reports') renderReportTable();
       if (view==='partners') calculatePayoutState();
+      if (view==='sales') renderWeeklyStockCheck();
 
       const fab = document.getElementById('fab');
       const cfg = FAB_CONFIG[view];
@@ -704,13 +720,22 @@ function totals(period = 'all'){
   const totalRevenue = allTimeSales.reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const totalGeneralExpenses = allTimeExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw').reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const totalPayouts = allTimeExpenses.filter(x => x.type === 'Payout / Partner Draw').reduce((s,x)=>s+(Number(x.amount)||0), 0);
-  const totalTaggedExpenses = allTimeExpenses.filter(x => !!x.referenceId).reduce((s,x)=>s+(Number(x.amount)||0), 0);
+
+  // Lot-tagged expenses: only ones funded by Sales Revenue actually draw down the shop's liquid cash.
+  // Blank/undefined sourceOfFunds defaults to 'Sales Revenue' for backward compatibility with older rows.
+  const taggedExpenses = allTimeExpenses.filter(x => !!x.referenceId);
+  const revenueFundedTaggedExpenses = taggedExpenses
+    .filter(x => (x.sourceOfFunds || 'Sales Revenue') === 'Sales Revenue')
+    .reduce((s,x)=>s+(Number(x.amount)||0), 0);
+  const capitalFundedTaggedExpenses = taggedExpenses
+    .filter(x => x.sourceOfFunds === 'Partner Capital')
+    .reduce((s,x)=>s+(Number(x.amount)||0), 0);
   
   const revenueFundedLotsCost = activeLots.filter(l => l.sourceOfFunds === 'Sales Revenue').reduce((s, l) => s + (Number(l.cost)||0) + (Number(l.loadingCost)||0) + (Number(l.gradingCost)||0), 0);
   
-  const liquidCash = totalRevenue - totalGeneralExpenses - totalPayouts - revenueFundedLotsCost - totalTaggedExpenses;
+  const liquidCash = totalRevenue - totalGeneralExpenses - totalPayouts - revenueFundedLotsCost - revenueFundedTaggedExpenses;
 
-  return { remainingBags, remainingKg, revenue, cogs, shopExpenseTotal, profit: revenue - cogs - shopExpenseTotal, liquidCash };
+  return { remainingBags, remainingKg, revenue, cogs, shopExpenseTotal, profit: revenue - cogs - shopExpenseTotal, liquidCash, revenueFundedTaggedExpenses, capitalFundedTaggedExpenses };
 }
 
 function lotLabel(lotId){ return DATA.lots.find(x=>x.id===lotId)?.label || 'Unknown Lot'; }
@@ -887,8 +912,9 @@ function openExpenseModal(existing){
   let defaultLotType = existing?.type || 'Loading/Unloading';
   if (defaultLotType === 'Running Cost' || defaultLotType === 'Miscellaneous') defaultLotType = 'Loading/Unloading';
 
-  const x = existing || { date: todayISO(), type: defaultLotType, desc:'', amount:'', referenceId:'', bags:'', bagsG0:'', bagsG1:'', kg:'' };
+  const x = existing || { date: todayISO(), type: defaultLotType, desc:'', amount:'', referenceId:'', bags:'', bagsG0:'', bagsG1:'', kg:'', sourceOfFunds:'Sales Revenue' };
   window.__modalExpenseType = x.referenceId ? 'lot' : 'shop'; 
+  window.__modalExpenseSource = x.sourceOfFunds || 'Sales Revenue';
   
   const lotOptions = '<option value="">-- Select Lot to tag cost --</option>' + DATA.lots.filter(l=>!l.isDeleted).map(l=>`<option value="${l.id}" ${x.referenceId===l.id?'selected':''}>${l.label}</option>`).join('');
 
@@ -907,6 +933,7 @@ function openExpenseModal(existing){
         <option value="Running Cost" ${x.type==='Running Cost'?'selected':''}>Running Cost (Rent, Wages)</option>
         <option value="Miscellaneous" ${x.type==='Miscellaneous'?'selected':''}>Miscellaneous / Other</option>
       </select>
+      <div class="note">Shop overhead is always treated as funded from Sales Revenue.</div>
     </div>
 
     <div id="lot-options" style="display: ${x.referenceId ? 'block' : 'none'}">
@@ -931,6 +958,13 @@ function openExpenseModal(existing){
         <div style="text-align:right; font-size: 0.75rem; margin-top: 4px; color: var(--sage); font-weight: bold;">Total Added Bags: <span id="m-exp-total-disp">${Number(x.bagsG0||0) + Number(x.bagsG1||0)}</span></div>
         <div style="margin-top: 8px;"><label>Total KG Purchased</label><input type="number" id="m-exp-kg" value="${x.kg||''}"></div>
       </div>
+
+      <label style="margin-top: 10px;">Funding Source</label>
+      <div class="seg2">
+        <button type="button" id="m-exp-src-rev" class="${(x.sourceOfFunds||'Sales Revenue')==='Sales Revenue'?'on':''}" onclick="setModalExpenseSource('Sales Revenue')">Sales Revenue</button>
+        <button type="button" id="m-exp-src-cap" class="${x.sourceOfFunds==='Partner Capital'?'on':''}" onclick="setModalExpenseSource('Partner Capital')">Partner Capital</button>
+      </div>
+      <div class="note">Sales Revenue expenses reduce the shop's liquid cash. Partner Capital expenses are funded separately by the partners and will NOT reduce liquid cash.</div>
     </div>
 
     <label style="margin-top:10px;">Details / Custom Name</label>
@@ -947,6 +981,7 @@ function openExpenseModal(existing){
     const referenceId = isLot ? document.getElementById('m-reference').value : '';
     const desc = document.getElementById('m-desc').value.trim();
     const amount = Number(document.getElementById('m-amount').value)||0;
+    const sourceOfFunds = isLot ? (window.__modalExpenseSource || 'Sales Revenue') : 'Sales Revenue';
 
     let bags = 0; let bagsG0 = 0; let bagsG1 = 0; let kg = 0;
     if (isLot && type === 'Procurement') {
@@ -961,11 +996,11 @@ function openExpenseModal(existing){
     if (isLot && !referenceId) { showToast('Please select a Lot to tag this expense to', true); return false; }
 
     if (existing) {
-      Object.assign(existing, { date, type, desc, amount, referenceId, bags, bagsG0, bagsG1, kg });
+      Object.assign(existing, { date, type, desc, amount, referenceId, bags, bagsG0, bagsG1, kg, sourceOfFunds });
       renderAll(); sendAction('updateExpense', existing, existing.id);
     } else {
       const id = uid();
-      const exp = { id, date, type, desc, amount, referenceId, bags, bagsG0, bagsG1, kg, addedBy: getActor(), isDeleted: false };
+      const exp = { id, date, type, desc, amount, referenceId, bags, bagsG0, bagsG1, kg, sourceOfFunds, addedBy: getActor(), isDeleted: false };
       DATA.expenses.push(exp);
       renderAll(); sendAction('addExpense', exp, id);
     }
@@ -988,10 +1023,18 @@ function setModalExpenseType(tp){
   document.getElementById('lot-options').style.display = tp==='lot' ? 'block' : 'none';
 }
 
+function setModalExpenseSource(src){
+  window.__modalExpenseSource = src;
+  const revBtn = document.getElementById('m-exp-src-rev');
+  const capBtn = document.getElementById('m-exp-src-cap');
+  if (revBtn) revBtn.classList.toggle('on', src==='Sales Revenue');
+  if (capBtn) capBtn.classList.toggle('on', src==='Partner Capital');
+}
+
 async function quickMonthlyExpense(){
   const amount = (Number(DATA.config.rent1)||0) + (Number(DATA.config.rent2)||0) + (Number(DATA.config.labour)||0);
   const id = uid();
-  const exp = { id, date: todayISO(), type:'Running Cost', desc: 'Auto-added Shop Overhead (Rent + Wages)', amount, referenceId:'', addedBy: getActor(), isDeleted: false };
+  const exp = { id, date: todayISO(), type:'Running Cost', desc: 'Auto-added Shop Overhead (Rent + Wages)', amount, referenceId:'', sourceOfFunds:'Sales Revenue', addedBy: getActor(), isDeleted: false };
   DATA.expenses.push(exp); renderAll(); sendAction('addExpense', exp, id);
 }
 async function deleteExpense(id){ confirmThen('Delete this expense?', async () => { const idx = DATA.expenses.findIndex(x=>x.id===id); if(idx !== -1) { DATA.expenses[idx].isDeleted = true; renderAll(); sendAction('deleteExpense', {id}, id); } }); }
@@ -1041,10 +1084,19 @@ function calculatePayoutState(){
   const elLiq = document.getElementById('rep-liquid-cash');
   const elDist = document.getElementById('rep-distributable');
   const elHead = document.getElementById('rep-per-head');
+  const elCapNote = document.getElementById('rep-capital-excluded-note');
   
   if(elLiq) elLiq.textContent = fmt(t.liquidCash);
   if(elDist) elDist.textContent = fmt(distributionsCalculatedPool);
   if(elHead) elHead.textContent = fmt(distributionsCalculatedPool > 0 ? distributionsCalculatedPool / 3 : 0);
+  if(elCapNote) {
+    if (t.capitalFundedTaggedExpenses > 0) {
+      elCapNote.style.display = 'block';
+      elCapNote.textContent = `Excluded from liquid cash: ${fmt(t.capitalFundedTaggedExpenses)} in lot expenses tagged as Partner Capital.`;
+    } else {
+      elCapNote.style.display = 'none';
+    }
+  }
 }
 
 async function executeBalancedThreeWayPayout(){
@@ -1063,7 +1115,7 @@ async function executeBalancedThreeWayPayout(){
       const id = uid();
       const logPayout = {
         id, date: timestamp, type: 'Payout / Partner Draw', desc: `Profit Share Drawn: ${name}`,
-        amount: perShareValue, referenceId: '', addedBy: getActor(), isDeleted: false
+        amount: perShareValue, referenceId: '', sourceOfFunds: 'Sales Revenue', addedBy: getActor(), isDeleted: false
       };
       DATA.expenses.push(logPayout);
       sendAction('addExpense', logPayout, id); 
@@ -1124,6 +1176,7 @@ function renderAll(){
   renderPartners(); 
   renderContactsTable(); 
   calculatePayoutState(); 
+  renderWeeklyStockCheck();
 }
 
 function renderDashboard(){
@@ -1190,6 +1243,45 @@ function renderDashboard(){
   }
 }
 
+function bagsSoldSince(days){
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const cutoffStr = safeDate(cutoff);
+  return DATA.sales
+    .filter(s => !s.isDeleted && s.date && s.date >= cutoffStr)
+    .reduce((sum,s)=>sum+(Number(s.bags)||0),0);
+}
+
+function weeklyStockEstimate(){
+  const activeLots = DATA.lots.filter(l=>!l.isDeleted);
+  let remG0 = 0, remG1 = 0, remTotal = 0;
+  activeLots.forEach(lot=>{
+    const st = lotStats(lot);
+    remTotal += st.remainingBags;
+    if (st.totalBags > 0) {
+      const g0Share = st.totalG0 / st.totalBags;
+      const g1Share = st.totalG1 / st.totalBags;
+      remG0 += st.remainingBags * g0Share;
+      remG1 += st.remainingBags * g1Share;
+    }
+  });
+  const soldLast7 = bagsSoldSince(7);
+  const dailyPace = soldLast7 / 7;
+  const weeksLeft = dailyPace > 0 ? (remTotal / dailyPace) / 7 : null;
+  return { remG0: Math.round(remG0), remG1: Math.round(remG1), remTotal, soldLast7, weeksLeft };
+}
+
+function renderWeeklyStockCheck(){
+  if (!DATA) return;
+  const el = document.getElementById('wk-g0');
+  if (!el) return;
+  const est = weeklyStockEstimate();
+  document.getElementById('wk-g0').textContent = est.remG0 + ' bags';
+  document.getElementById('wk-g1').textContent = est.remG1 + ' bags';
+  document.getElementById('wk-sold7').textContent = est.soldLast7 + ' bags';
+  document.getElementById('wk-weeks').textContent = est.weeksLeft === null ? '—' : est.weeksLeft.toFixed(1) + ' wks';
+}
+
 function renderInventory(){
   const wrap = document.getElementById('inv-lots'); 
   if(!wrap) return;
@@ -1211,8 +1303,9 @@ function renderInventory(){
             if (bagStr.length === 0 && x.bags > 0) bagStr.push(`${x.bags} Total Bags`);
             extra = `<br><span style="font-size:0.68rem; color:var(--sage); font-weight:bold;"> (+${bagStr.join(', ')} | +${x.kg||0} KG)</span>`;
         }
+        const srcLabel = x.sourceOfFunds || 'Sales Revenue';
         return `<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:6px; font-size:0.75rem;">
-                  <span><span class="badge type-tag" style="background:#b0a89a; padding:2px 5px; font-size:0.6rem;">${x.type}</span> ${x.desc} ${extra}</span>
+                  <span><span class="badge type-tag" style="background:#b0a89a; padding:2px 5px; font-size:0.6rem;">${x.type}</span> <span class="badge ${srcLabel==='Partner Capital'?'type-tag':'wholesale'}" style="padding:2px 5px; font-size:0.6rem;">${srcLabel}</span> ${x.desc} ${extra}</span>
                   <b>${fmt(x.amount)}</b>
                 </div>`;
       }).join('');
@@ -1280,15 +1373,19 @@ function renderSalesTable(){
     </tr>`).join('');
   const empty = document.getElementById('sales-empty');
   if(empty) empty.style.display = sorted.length? 'none':'block';
+  renderWeeklyStockCheck();
 }
 
 function renderExpensesTable(){
   const body = document.getElementById('expenses-table'); if(!body) return;
   const sorted = DATA.expenses.filter(x=> !x.isDeleted && inPeriod(x.date, expensesFilter)).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
-  body.innerHTML = sorted.map(x=>`
+  body.innerHTML = sorted.map(x=>{
+    const srcLabel = x.referenceId ? (x.sourceOfFunds || 'Sales Revenue') : '';
+    const srcBadge = x.referenceId ? `<br><span class="badge ${srcLabel==='Partner Capital'?'type-tag':'wholesale'}" style="margin-top:3px;">${srcLabel}</span>` : '';
+    return `
     <tr>
       <td>${x.date}</td>
-      <td><span class="badge type-tag">${x.referenceId ? 'Lot Expense' : 'Shop Overhead'}</span></td>
+      <td><span class="badge type-tag">${x.referenceId ? 'Lot Expense' : 'Shop Overhead'}</span>${srcBadge}</td>
       <td>${x.desc} ${x.type === 'Procurement' ? `<br><span style="font-size:0.7rem;color:#8a8272;font-weight:600;">(+${Number(x.bags)||0} Bags, ${x.kg||0} KG)</span>` : ''}</td>
       <td>${fmt(x.amount)}</td>
       <td><span style="font-weight:bold; color:var(--plum-deep);">${x.referenceId ? lotLabel(x.referenceId) : 'Shop'}</span></td>
@@ -1296,7 +1393,8 @@ function renderExpensesTable(){
         <button class="icon-btn edit" onclick='openExpenseModal(DATA.expenses.find(y=>y.id==="${x.id}"))'>✎</button>
         <button class="icon-btn del" onclick="deleteExpense('${x.id}')">✕</button>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   const empty = document.getElementById('expenses-empty');
   if(empty) empty.style.display = sorted.length? 'none':'block';
 }
