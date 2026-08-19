@@ -479,11 +479,11 @@ async function jsonp(url){
     const cbName = 'jsonp_cb_' + Date.now() + '_' + Math.floor(Math.random()*100000);
     const script = document.createElement('script');
     let timeoutId;
-    function cleanup(){ clearTimeout(timeoutId); delete window[cbName]; script.remove(); }
+    function cleanup(){ clearTimeout(timeoutId); window[cbName] = () => { delete window[cbName]; }; script.remove(); }
     window[cbName] = (data) => { resolve(data); cleanup(); };
     script.onerror = () => { reject(new Error('Network request failed')); cleanup(); };
     script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
-    timeoutId = setTimeout(() => { reject(new Error('Timeout')); cleanup(); }, 15000);
+    timeoutId = setTimeout(() => { reject(new Error('Timeout')); cleanup(); }, 20000);
     document.body.appendChild(script);
   });
 }
