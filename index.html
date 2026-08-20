@@ -162,11 +162,18 @@
       <div class="value" id="d-bags-left">—</div>
       <div class="note" id="d-kg-left"></div>
     </div>
+	
 
     <div class="card big-stat" style="border: 2px solid var(--sage);">
       <div class="label util">Cash In Hand (Liquid)</div>
       <div class="value" id="d-cash-hand">₹0</div>
       <div class="note">Sales revenue minus shop expenses, revenue-funded procurement, revenue-funded tagged lot expenses, and payouts already drawn.</div>
+      
+      <button class="toggle-details-btn" style="margin-top: 12px; font-size: 0.8rem;" onclick="toggleDetails('cash-breakdown')">Show Calculation Breakdown ▼</button>
+      
+      <div id="cash-breakdown" class="details-expander" style="text-align: left;">
+        <!-- Injected by JS -->
+      </div>
     </div>
 
     <div class="card">
@@ -806,7 +813,10 @@ function totals(period = 'all'){
   
   const liquidCash = totalRevenue - totalGeneralExpenses - totalPayouts - revenueFundedLotsCost - revenueFundedTaggedExpenses;
 
-  return { remainingBags, remainingKg, revenue, cogs, shopExpenseTotal, profit: revenue - cogs - shopExpenseTotal, liquidCash, revenueFundedTaggedExpenses, capitalFundedTaggedExpenses };
+  return { 
+    remainingBags, remainingKg, revenue, cogs, shopExpenseTotal, 
+    profit: revenue - cogs - shopExpenseTotal, liquidCash, totalRevenue, totalGeneralExpenses, totalPayouts, 
+    revenueFundedLotsCost, revenueFundedTaggedExpenses, capitalFundedTaggedExpenses };
 }
 
 function lotLabel(lotId){ return DATA.lots.find(x=>x.id===lotId)?.label || 'Unknown Lot'; }
@@ -1496,9 +1506,38 @@ function renderDashboard(){
 
   const elCash = document.getElementById('d-cash-hand');
   if(elCash) {
-    const cashAllTime = totals('all').liquidCash;
-    elCash.textContent = fmt(cashAllTime);
-    elCash.className = 'value ' + (cashAllTime>=0 ? 'pos':'neg');
+    const allTime = totals('all');
+    elCash.textContent = fmt(allTime.liquidCash);
+    elCash.className = 'value ' + (allTime.liquidCash>=0 ? 'pos':'neg');
+    
+    const breakdownEl = document.getElementById('cash-breakdown');
+    if (breakdownEl) {
+      breakdownEl.innerHTML = `
+        <div style="background:#fff; padding:10px; border-radius:6px; border:1px solid var(--line); font-size: 0.8rem;">
+          <div style="display:flex; justify-content:space-between; color:var(--sage); font-weight:bold;">
+            <span>All-Time Sales Revenue (+)</span><span>${fmt(allTime.totalRevenue)}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-top:8px;">
+            <span>Shop General Expenses (-)</span><span>${fmt(allTime.totalGeneralExpenses)}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-top:6px;">
+            <span>Rev-Funded Tagged Lot Expenses (-)</span><span>${fmt(allTime.revenueFundedTaggedExpenses)}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-top:6px;">
+            <span>Rev-Funded Lot Purchases (-)</span><span>${fmt(allTime.revenueFundedLotsCost)}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-top:6px; border-bottom:1px solid var(--line); padding-bottom:6px;">
+            <span>Partner Payouts Drawn (-)</span><span>${fmt(allTime.totalPayouts)}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-top:6px; font-weight:bold; color:var(--plum-deep);">
+            <span>Calculated Liquid Cash (=)</span><span>${fmt(allTime.liquidCash)}</span>
+          </div>
+        </div>
+        <div class="note" style="margin-top:10px; color: var(--rust);">
+          <b>Note:</b> If old expenses in your Google Sheet have a blank "Source of Funds" column, the app defaults to deducting them from Sales Revenue. Update those sheet cells to "Partner Capital" to restore the liquid cash balance.
+        </div>
+      `;
+    }
   }
 
   if(elRev) elRev.textContent = fmt(t.revenue);
