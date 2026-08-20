@@ -274,18 +274,19 @@
     </div>
   </div>
 
-  <!-- VIEW: REPORTS -->
+  <!-- VIEW: REPORTS (Upgraded with Flex Charts) -->
   <div class="view" id="view-reports">
     <div class="card">
-      <h2>Aggregated Period Reporting</h2>
+      <h2>Business Analytics & Trends</h2>
       <div class="seg2">
         <button type="button" class="on" data-period="daily" onclick="setReportPeriod('daily')">Daily</button>
         <button type="button" data-period="weekly" onclick="setReportPeriod('weekly')">Weekly</button>
         <button type="button" data-period="monthly" onclick="setReportPeriod('monthly')">Monthly</button>
         <button type="button" data-period="quarterly" onclick="setReportPeriod('quarterly')">Quarterly</button>
+        <button type="button" data-period="yearly" onclick="setReportPeriod('yearly')">Yearly</button>
       </div>
-      <table style="margin-top:12px;">
-        <thead><tr><th>Period</th><th>Revenue</th><th>Shop Expenses</th><th>Bags Sold</th></tr></thead>
+      <table style="margin-top:16px;">
+        <thead><tr><th style="width:25%;">Period</th><th style="width:35%;">Revenue Trend</th><th>Shop Exp.</th><th>Bags</th></tr></thead>
         <tbody id="report-table"></tbody>
       </table>
     </div>
@@ -410,6 +411,15 @@ let salesFilter = 'all';
 let expensesFilter = 'all';
 let dashFilter = 'all'; 
 let fabAction = null;
+let invLimit = 10; // Controls lazy rendering for inventory
+
+// Highly efficient date formatter for UI cleanliness (e.g., "08 Aug")
+function shortDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+}
 
 const todayISO = () => {
   const d = new Date();
@@ -572,7 +582,7 @@ async function fetchCloudState(){
   return json;
 }
 
-// 🚀 PHASE 1 UPGRADE: NO OVER-FETCHING
+// 🚀 FAST BACKGROUND SYNC
 async function sendAction(action, payload, id){
   setSyncBadge('pending', 'syncing…');
   try {
@@ -586,7 +596,6 @@ async function sendAction(action, payload, id){
     if (res && res.status === 'success') {
       setSyncBadge('ok', 'synced');
       showToast('Saved to cloud ✓');
-      // Update local storage instantly, no need to re-download the database
       localStorage.setItem(KEY, JSON.stringify(DATA)); 
       return true;
     }
@@ -609,7 +618,7 @@ async function sendAction(action, payload, id){
 async function init(){
   document.getElementById('settings-url').textContent = CLOUD_URL;
   
-  // 🚀 PHASE 2 UPGRADE: PIN CHECK
+  // 🚀 PIN CHECK
   let myPin = localStorage.getItem(PIN_KEY);
   if (!myPin) {
     myPin = prompt("Enter Ledger PIN to access data:");
@@ -662,7 +671,7 @@ const FAB_CONFIG = {
   reconcile: { action: () => openStockCountModal() }
 };
 
-// 🚀 PHASE 1 UPGRADE: LAZY RENDERING
+// 🚀 LAZY RENDERING ENGINE
 function renderActiveView() {
   const activeBtn = document.querySelector('nav button.active');
   const view = activeBtn ? activeBtn.dataset.view : 'dashboard';
@@ -836,7 +845,6 @@ function totals(period = 'all'){
   
   const liquidCash = totalRevenue - totalGeneralExpenses - totalPayouts - revenueFundedLotsCost - revenueFundedTaggedExpenses;
 
-  // Returning all raw components to render in the Cash Breakdown UI
   return { 
     remainingBags, remainingKg, revenue, cogs, shopExpenseTotal, 
     profit: revenue - cogs - shopExpenseTotal, 
@@ -1569,14 +1577,17 @@ function renderDashboard(){
   if(lotsDiv) {
     lotsDiv.innerHTML = '';
     
+    // Only fetch genuinely active lots (Unsold)
     const activeLots = DATA.lots
       .filter(l => !l.isDeleted)
       .map(l => ({lot: l, st: lotStats(l)}))
-      .filter(x => x.st.remainingKg > 0 || x.st.remainingBags > 0)
-      .reverse()
-      .slice(0, 4);
+      .filter(x => x.st.remainingKg > 0.1 || x.st.remainingBags > 0)
+      .reverse();
 
-    activeLots.forEach(item => {
+    // Render only the top 4 to keep DOM light on the dashboard
+    const displayLots = activeLots.slice(0, 4);
+
+    displayLots.forEach(item => {
       const {lot, st} = item;
       lotsDiv.insertAdjacentHTML('beforeend', `
         <div class="lot-card">
@@ -1596,6 +1607,15 @@ function renderDashboard(){
         </div>`);
     });
     
+    // Route to Inventory if there are more
+    if (activeLots.length > 4) {
+      lotsDiv.insertAdjacentHTML('beforeend', `
+        <button class="btn ghost" style="margin-top:4px;" onclick="document.querySelector('[data-view=inventory]').click()">
+          View all ${activeLots.length} Active Lots →
+        </button>
+      `);
+    }
+
     const emptyEl = document.getElementById('d-lots-empty');
     if(emptyEl) emptyEl.style.display = activeLots.length ? 'none' : 'block';
   }
@@ -1649,19 +1669,50 @@ function renderWeeklyStockCheck(){
   document.getElementById('wk-weeks').textContent = est.weeksLeft === null ? '—' : est.weeksLeft.toFixed(1) + ' wks';
 }
 
+function loadMoreInventory() {
+  invLimit += 10;
+  renderInventory();
+}
+
 function renderInventory(){
   const wrap = document.getElementById('inv-lots'); 
   if(!wrap) return;
   wrap.innerHTML='';
   
-  const activeLots = DATA.lots.filter(l => !l.isDeleted);
-  activeLots.forEach(lot=>{
+  // 1. Data Prep & Completion Check
+  const mappedLots = DATA.lots.filter(l => !l.isDeleted).map(lot => {
     const st = lotStats(lot);
+    const isCompleted = st.remainingBags <= 0 && st.remainingKg <= 0.1;
+    
+    // Calculate actual closure date based on the last recorded sale for this lot
+    let closedDate = '';
+    if (isCompleted) {
+      const salesForLot = DATA.sales.filter(s => !s.isDeleted && saleLinesFor(s).some(line => line.lotId === lot.id));
+      if (salesForLot.length) {
+         closedDate = salesForLot.sort((a,b) => b.date.localeCompare(a.date))[0].date;
+      }
+    }
+    return { lot, st, isCompleted, closedDate };
+  });
+
+  // 2. Architectural Sort: Active first (newest to oldest), Completed bottom (newest to oldest)
+  mappedLots.sort((a, b) => {
+    if (a.isCompleted === b.isCompleted) {
+      return (b.lot.dateAdded || '').localeCompare(a.lot.dateAdded || '');
+    }
+    return a.isCompleted ? 1 : -1;
+  });
+
+  // 3. Lazy Render (DOM Pagination)
+  const paginatedLots = mappedLots.slice(0, invLimit);
+
+  paginatedLots.forEach(item => {
+    const {lot, st, isCompleted, closedDate} = item;
     const expId = `exp-details-${lot.id}`;
     
     let expensesHtml = '';
     if(st.linkedExpenses.length > 0) {
-      expensesHtml = st.linkedExpenses.map(x => {
+      expensesHtml = st.linkedExpenses.sort((a,b)=>a.date.localeCompare(b.date)).map(x => {
         let extra = '';
         if (x.type === 'Procurement') {
             let bagStr = [];
@@ -1672,57 +1723,62 @@ function renderInventory(){
         }
         const srcLabel = x.sourceOfFunds || 'Sales Revenue';
         return `<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:6px; font-size:0.75rem;">
-                  <span><span class="badge type-tag" style="background:#b0a89a; padding:2px 5px; font-size:0.6rem;">${x.type}</span> <span class="badge ${srcLabel==='Partner Capital'?'type-tag':'wholesale'}" style="padding:2px 5px; font-size:0.6rem;">${srcLabel}</span> ${x.desc} ${extra}</span>
+                  <span><span style="font-size:0.65rem; color:#8a8272; margin-right:4px;">${shortDate(x.date)}</span> <span class="badge type-tag" style="background:#b0a89a; padding:2px 5px; font-size:0.6rem;">${x.type}</span> ${x.desc} ${extra}</span>
                   <b>${fmt(x.amount)}</b>
                 </div>`;
       }).join('');
     } else {
-      expensesHtml = `<div style="color:#8a8272; font-size:0.75rem; font-style:italic;">No additional expenses linked via Expenses tab.</div>`;
+      expensesHtml = `<div style="color:#8a8272; font-size:0.75rem; font-style:italic;">No additional expenses linked.</div>`;
     }
     
+    const cardStyle = isCompleted ? 'opacity: 0.85; background: #EAE6DB; border-color: #D4CDBA;' : '';
+    const dateHeader = isCompleted ? `Procured: ${shortDate(lot.dateAdded)} · <span style="color:var(--rust);">Closed: ${shortDate(closedDate)}</span>` : `Procured: ${shortDate(lot.dateAdded)} · Active`;
+
     wrap.insertAdjacentHTML('beforeend', `
-      <div class="lot-card">
+      <div class="lot-card" style="${cardStyle}">
         <div class="lot-head">
-          <span class="lot-title">${lot.label}</span>
+          <span class="lot-title">${lot.label} ${isCompleted ? '<span style="font-size:0.65rem; background:var(--rust); color:#fff; padding:2px 6px; border-radius:4px; margin-left:6px; vertical-align:middle;">SOLD OUT</span>' : ''}</span>
           <span class="row-actions">
-            <span class="badge type-tag">${getLocBadge(st)}</span>
+            ${isCompleted ? '' : `<span class="badge type-tag">${getLocBadge(st)}</span>`}
             <button class="icon-btn edit" onclick='openLotModal(DATA.lots.find(x=>x.id==="${lot.id}"))'>✎</button>
-            <button class="icon-btn del" onclick="deleteLot('${lot.id}')">✕</button>
           </span>
         </div>
-        <div class="lot-sub">Actual Cost: ${fmt(st.costPerKg)}/KG · Funded by <b>${lot.sourceOfFunds}</b></div>
+        <div class="lot-sub" style="margin-bottom:8px; font-weight:bold; font-size:0.68rem;">${dateHeader}</div>
         <div class="bar"><div class="bar-fill" style="width:${st.totalBags ? (st.soldBags/st.totalBags*100) : 0}%"></div></div>
         
         <div class="lot-mini-grid" style="margin-top:8px;">
-          <div>Sold<b>${st.soldBags} Bags / ${st.soldKg.toFixed(0)} KG</b></div>
-          <div>Left<b>${st.remainingBags} Bags / ${st.remainingKg.toFixed(0)} KG</b></div>
-          <div>Drying Loss<b>${lot.weightLossKg||0} KG (${st.shrinkagePct.toFixed(1)}%)</b></div>
+          <div>Sold<b>${st.soldBags} Bags</b></div>
+          <div>Left<b>${st.remainingBags} Bags</b></div>
+          <div>Act. Cost<b>${fmt(st.costPerKg)}/KG</b></div>
         </div>
 
-        <button class="toggle-details-btn" onclick="toggleDetails('${expId}')">Show Cost Breakdown & Linked Expenses ▼</button>
+        <button class="toggle-details-btn" onclick="toggleDetails('${expId}')">Cost Breakdown & Timeline ▼</button>
         
         <div id="${expId}" class="details-expander">
           <div style="background:#fff; padding:10px; border-radius:6px; border:1px solid var(--line);">
-            
-            <div style="margin-bottom: 6px; font-size:0.7rem; font-weight:bold; color:#8a8272; text-transform:uppercase;">Initial Setup Costs</div>
+            <div style="margin-bottom: 6px; font-size:0.7rem; font-weight:bold; color:#8a8272; text-transform:uppercase;">Base Logistics</div>
             <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-top:4px;">
-              <span>Base Buying Price (${lot.bagsG0||0} G0, ${lot.bagsG1||0} G1 / ${lot.kg} KG):</span> <b>${fmt(st.baseCost)}</b>
+              <span><span style="font-size:0.65rem; color:#8a8272; margin-right:4px;">${shortDate(lot.dateAdded)}</span> Buying Price:</span> <b>${fmt(st.baseCost)}</b>
             </div>
-            ${st.loadingCost ? `<div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-top:4px;"><span>Lorry / Unloading Cost:</span> <b>${fmt(st.loadingCost)}</b></div>` : ''}
-            ${st.gradingCost ? `<div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-top:4px;"><span>Initial Grading Cost:</span> <b>${fmt(st.gradingCost)}</b></div>` : ''}
+            ${st.loadingCost ? `<div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-top:4px;"><span>Lorry / Unloading:</span> <b>${fmt(st.loadingCost)}</b></div>` : ''}
             
-            <div style="margin-top: 12px; margin-bottom: 6px; font-size:0.7rem; font-weight:bold; color:#8a8272; text-transform:uppercase;">Additional Tagged Expenses</div>
+            <div style="margin-top: 12px; margin-bottom: 6px; font-size:0.7rem; font-weight:bold; color:#8a8272; text-transform:uppercase;">Tagged Timeline</div>
             ${expensesHtml}
 
             <div style="display:flex; justify-content:space-between; margin-top:10px; padding-top:8px; border-top:1px dashed var(--line); font-size:0.85rem;">
-              <span>Total Effective Cost (${st.totalBags} Bags / ${st.totalInitialKg} KG):</span> <b style="color:var(--plum-deep);">${fmt(st.totalEffectiveCost)}</b>
+              <span>Total Effective Cost (${st.totalInitialKg} KG):</span> <b style="color:var(--plum-deep);">${fmt(st.totalEffectiveCost)}</b>
             </div>
           </div>
         </div>
       </div>`);
   });
+
+  if (mappedLots.length > invLimit) {
+    wrap.insertAdjacentHTML('beforeend', `<button class="btn ghost" onclick="loadMoreInventory()">Load More Lots (${mappedLots.length - invLimit} remaining) ↓</button>`);
+  }
+
   const emptyWrap = document.getElementById('inv-lots-empty');
-  if(emptyWrap) emptyWrap.style.display = activeLots.length? 'none':'block';
+  if(emptyWrap) emptyWrap.style.display = mappedLots.length? 'none':'block';
 }
 
 function renderSalesTable(){
@@ -1835,7 +1891,22 @@ function renderReportTable(){
   const tbody = document.getElementById('report-table'); if(!tbody) return;
   const rep = buildReportLocal(currentReportPeriod);
   if(!rep || !rep.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">No records for this period.</td></tr>'; return; }
-  tbody.innerHTML = rep.map(b=>`<tr><td><b>${b.period}</b></td><td>${fmt(b.revenue)}</td><td>${fmt(b.expenses)}</td><td>${b.bags}</td></tr>`).join('');
+  
+  // Find highest revenue to scale the visual CSS bars perfectly
+  const maxRev = Math.max(...rep.map(b => b.revenue), 1);
+
+  tbody.innerHTML = rep.map(b=>`
+    <tr>
+      <td><b>${b.period}</b></td>
+      <td>
+        <div style="font-size:0.85rem; font-weight:bold; color:var(--plum-deep);">${fmt(b.revenue)}</div>
+        <div style="height:5px; background:var(--line); width:100%; border-radius:3px; margin-top:3px; overflow:hidden;">
+           <div style="height:100%; background:var(--sage); width:${(b.revenue/maxRev)*100}%; border-radius:3px;"></div>
+        </div>
+      </td>
+      <td style="font-size:0.8rem;">${fmt(b.expenses)}</td>
+      <td style="font-size:0.8rem;">${b.bags}</td>
+    </tr>`).join('');
 }
 
 function buildReportLocal(period) {
@@ -1849,23 +1920,24 @@ function buildReportLocal(period) {
 
     if (period === 'daily') {
         const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
-        return `${y}-${m}-${dd}`;
+        return `${shortDate(dateStr)}, ${y}`; 
     }
     if (period === 'weekly') {
       const onejan = new Date(d.getFullYear(), 0, 1);
       const week = Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);
-      return `${d.getFullYear()}-W${week.toString().padStart(2,'0')}`;
+      return `${d.getFullYear()} Wk ${week.toString().padStart(2,'0')}`;
     }
-    if (period === 'quarterly') return `${d.getFullYear()}-Q${Math.floor(d.getMonth() / 3) + 1}`;
+    if (period === 'quarterly') return `${d.getFullYear()} Q${Math.floor(d.getMonth() / 3) + 1}`;
+    if (period === 'yearly') return `${d.getFullYear()}`;
     
-    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0');
-    return `${y}-${m}`;
+    // Monthly Default
+    return d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
   };
 
   DATA.sales.filter(s=>!s.isDeleted).forEach(s => {
     const k = getBucketKey(s.date);
     if (k === 'Unknown') return;
-    buckets[k] = buckets[k] || { period: k, revenue: 0, bags: 0, expenses: 0 };
+    buckets[k] = buckets[k] || { period: k, revenue: 0, bags: 0, expenses: 0, sortKey: s.date };
     buckets[k].revenue += (Number(s.amount)||0);
     buckets[k].bags += (Number(s.bags)||0);
   });
@@ -1873,11 +1945,12 @@ function buildReportLocal(period) {
   DATA.expenses.filter(x => !x.isDeleted && !x.referenceId && x.type !== 'Payout / Partner Draw').forEach(x => {
     const k = getBucketKey(x.date);
     if (k === 'Unknown') return;
-    buckets[k] = buckets[k] || { period: k, revenue: 0, bags: 0, expenses: 0 };
+    buckets[k] = buckets[k] || { period: k, revenue: 0, bags: 0, expenses: 0, sortKey: x.date };
     buckets[k].expenses += (Number(x.amount)||0);
   });
 
-  return Object.keys(buckets).sort().reverse().map(k => buckets[k]);
+  // Sort by the raw underlying date string so chronological order is perfectly preserved
+  return Object.values(buckets).sort((a,b) => b.sortKey.localeCompare(a.sortKey));
 }
 
 document.addEventListener('DOMContentLoaded', ()=>{ bindNav(); init(); });
