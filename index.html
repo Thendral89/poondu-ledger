@@ -1683,7 +1683,7 @@ function renderInventory(){
   // 1. Data Prep & Completion Check
   const mappedLots = DATA.lots.filter(l => !l.isDeleted).map(lot => {
     const st = lotStats(lot);
-    const isCompleted = st.remainingBags <= 0 && st.remainingKg <= 0.1;
+    const isCompleted = st.remainingBags <= 0;
     
     // Calculate actual closure date based on the last recorded sale for this lot
     let closedDate = '';
