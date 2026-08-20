@@ -1674,6 +1674,7 @@ function loadMoreInventory() {
   renderInventory();
 }
 
+// 🚀 UPGRADED INVENTORY ENGINE WITH CLOSED LOTS HEADER
 function renderInventory(){
   const wrap = document.getElementById('inv-lots'); 
   if(!wrap) return;
@@ -1705,9 +1706,23 @@ function renderInventory(){
 
   // 3. Lazy Render (DOM Pagination)
   const paginatedLots = mappedLots.slice(0, invLimit);
+  
+  // Header tracker flag
+  let renderedClosedHeader = false;
 
   paginatedLots.forEach(item => {
     const {lot, st, isCompleted, closedDate} = item;
+    
+    // 🔥 DYNAMIC SECTION HEADER FOR CLOSED LOTS
+    if (isCompleted && !renderedClosedHeader) {
+      wrap.insertAdjacentHTML('beforeend', `
+        <h3 style="margin-top:24px; margin-bottom:12px; font-size:0.85rem; color:#8a8272; text-transform:uppercase; letter-spacing:1px; border-bottom:1px dashed var(--line); padding-bottom:6px;">
+          Historical / Closed Lots
+        </h3>
+      `);
+      renderedClosedHeader = true;
+    }
+
     const expId = `exp-details-${lot.id}`;
     
     let expensesHtml = '';
