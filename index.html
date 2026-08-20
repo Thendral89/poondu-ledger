@@ -162,8 +162,7 @@
       <div class="value" id="d-bags-left">—</div>
       <div class="note" id="d-kg-left"></div>
     </div>
-	
-
+    
     <div class="card big-stat" style="border: 2px solid var(--sage);">
       <div class="label util">Cash In Hand (Liquid)</div>
       <div class="value" id="d-cash-hand">₹0</div>
@@ -399,10 +398,11 @@
 <div id="toast" class="util"></div>
 
 <script>
-// 🔥 PASTE YOUR NEW APPS SCRIPT URL HERE
-const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwylXMfy1kdcS94H7fTN2-BJ3fBMmjMChZsH5JG6NeLozdjzPr5soQ3VbL1m2xIoS4p/exec";
+// 🔥 YOUR APPS SCRIPT URL HERE
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwzfMCYsD2UREni9V9K3aRQsFdp-xRUBX7njKDU1Fjp3W50ds49Fn8vWwY6VNkUqKFp/exec";
 const KEY = 'garlic-business-data';
 const ACTOR_KEY = 'poondu-actor';
+const PIN_KEY = 'poondu-pin';
 
 let DATA = null;
 let currentReportPeriod = 'monthly';
@@ -516,10 +516,6 @@ async function jsonp(url, timeoutMs = 25000){
 
     function finalCleanup(){
       script.remove();
-      // Don't delete the callback immediately: if Apps Script's response arrives late
-      // (after we've already given up), the browser will still try to invoke it, and
-      // deleting it now would throw "callback is not defined". Absorb late arrivals
-      // silently for a grace period instead, then clean up for real.
       window[cbName] = () => {};
       setTimeout(() => { delete window[cbName]; }, 60000);
     }
@@ -559,7 +555,15 @@ async function jsonpWithRetry(url, attempts = 2, timeoutMs = 25000){
 }
 
 async function fetchCloudState(){
-  const json = await jsonpWithRetry(CLOUD_URL, 2, 25000);
+  const pin = localStorage.getItem(PIN_KEY) || '';
+  const url = CLOUD_URL + '?pin=' + encodeURIComponent(pin);
+  const json = await jsonpWithRetry(url, 2, 25000);
+  
+  if (json && json.status === 'error') {
+      showToast(json.message, true);
+      return null;
+  }
+  
   if (!json || !json.config) return null;
   ['lots', 'sales', 'expenses', 'capitalLoans', 'contacts', 'stockCounts', 'cashChecks'].forEach(k => json[k] = json[k] || []);
   if (!json.partners || Object.keys(json.partners).length === 0) {
@@ -568,20 +572,22 @@ async function fetchCloudState(){
   return json;
 }
 
+// 🚀 PHASE 1 UPGRADE: NO OVER-FETCHING
 async function sendAction(action, payload, id){
   setSyncBadge('pending', 'syncing…');
   try {
+    const pin = localStorage.getItem(PIN_KEY) || '';
     const url = CLOUD_URL + '?action=' + encodeURIComponent(action)
       + '&payload=' + encodeURIComponent(JSON.stringify(payload || {}))
+      + '&pin=' + encodeURIComponent(pin)
       + (id ? '&id=' + encodeURIComponent(id) : '');
+      
     const res = await jsonp(url);
     if (res && res.status === 'success') {
       setSyncBadge('ok', 'synced');
       showToast('Saved to cloud ✓');
-      // Background sync to ensure we are up to date
-      fetchCloudState().then(fresh => {
-        if (fresh) { DATA = fresh; localStorage.setItem(KEY, JSON.stringify(DATA)); renderAll(); }
-      });
+      // Update local storage instantly, no need to re-download the database
+      localStorage.setItem(KEY, JSON.stringify(DATA)); 
       return true;
     }
     
@@ -589,18 +595,27 @@ async function sendAction(action, payload, id){
     setSyncBadge('err', 'failed');
     showToast('Failed to save: ' + (res?.message || 'Unknown error'), true);
     fetchCloudState().then(fresh => {
-        if (fresh) { DATA = fresh; localStorage.setItem(KEY, JSON.stringify(DATA)); renderAll(); }
+      if (fresh) { DATA = fresh; localStorage.setItem(KEY, JSON.stringify(DATA)); renderActiveView(); }
     });
     return false;
   } catch(e){
     setSyncBadge('err', 'offline');
     showToast('Offline Mode: Saved locally.', true);
+    localStorage.setItem(KEY, JSON.stringify(DATA));
     return false;
   }
 }
 
 async function init(){
   document.getElementById('settings-url').textContent = CLOUD_URL;
+  
+  // 🚀 PHASE 2 UPGRADE: PIN CHECK
+  let myPin = localStorage.getItem(PIN_KEY);
+  if (!myPin) {
+    myPin = prompt("Enter Ledger PIN to access data:");
+    if (myPin) localStorage.setItem(PIN_KEY, myPin);
+  }
+
   document.getElementById('loading').style.display='block';
   const actor = getActor();
   if (actor) document.getElementById('actor-pill').textContent = actor;
@@ -619,7 +634,7 @@ async function init(){
 
   document.getElementById('loading').style.display='none';
   populateFormsFromData();
-  renderAll();
+  renderAll(); // Initial paint
   if (!getActor()) openActorPicker();
 }
 
@@ -630,11 +645,11 @@ async function manualRefresh(){
     DATA = cloud;
     localStorage.setItem(KEY, JSON.stringify(DATA));
     setSyncBadge('ok', 'synced');
-    renderAll();
+    renderActiveView();
     showToast('Data is up to date ✓');
   } else {
     setSyncBadge('err', 'offline');
-    showToast('Network error.', true);
+    showToast('Network error or bad PIN.', true);
   }
 }
 
@@ -647,6 +662,21 @@ const FAB_CONFIG = {
   reconcile: { action: () => openStockCountModal() }
 };
 
+// 🚀 PHASE 1 UPGRADE: LAZY RENDERING
+function renderActiveView() {
+  const activeBtn = document.querySelector('nav button.active');
+  const view = activeBtn ? activeBtn.dataset.view : 'dashboard';
+  
+  if (view === 'dashboard') renderDashboard();
+  else if (view === 'sales') { renderSalesTable(); renderWeeklyStockCheck(); }
+  else if (view === 'inventory') renderInventory();
+  else if (view === 'expenses') renderExpensesTable();
+  else if (view === 'contacts') renderContactsTable();
+  else if (view === 'reports') renderReportTable();
+  else if (view === 'partners') { renderPartners(); calculatePayoutState(); }
+  else if (view === 'reconcile') renderReconcile();
+}
+
 function bindNav(){
   document.querySelectorAll('nav button').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -656,10 +686,8 @@ function bindNav(){
       const view = btn.dataset.view;
       document.getElementById('view-'+view).classList.add('active');
       
-      if (view==='reports') renderReportTable();
-      if (view==='partners') calculatePayoutState();
-      if (view==='sales') renderWeeklyStockCheck();
-      if (view==='reconcile') renderReconcile();
+      // Render ONLY the active view to keep the app lightning fast
+      renderActiveView();
 
       const fab = document.getElementById('fab');
       const cfg = FAB_CONFIG[view];
@@ -702,7 +730,6 @@ function lotStats(lot){
   });
   
   const linkedExpenses = DATA.expenses.filter(x => x.referenceId === lot.id && !x.isDeleted);
-  
   const procurementExp = linkedExpenses.filter(x => x.type === 'Procurement');
   
   let addedBagsG0 = 0;
@@ -721,11 +748,9 @@ function lotStats(lot){
   });
   
   const addedKg = procurementExp.reduce((s, x) => s + (Number(x.kg) || 0), 0);
-  
   let initialG0 = Number(lot.bagsG0) || 0;
   let initialG1 = Number(lot.bagsG1) || 0;
   
-  // fallback for older lots
   if (initialG0 === 0 && initialG1 === 0 && (Number(lot.bags)||0) > 0) {
       if (lot.location === 'G+1') initialG1 = Number(lot.bags);
       else initialG0 = Number(lot.bags);
@@ -799,8 +824,6 @@ function totals(period = 'all'){
   const totalGeneralExpenses = allTimeExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw').reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const totalPayouts = allTimeExpenses.filter(x => x.type === 'Payout / Partner Draw').reduce((s,x)=>s+(Number(x.amount)||0), 0);
 
-  // Lot-tagged expenses: only ones funded by Sales Revenue actually draw down the shop's liquid cash.
-  // Blank/undefined sourceOfFunds defaults to 'Sales Revenue' for backward compatibility with older rows.
   const taggedExpenses = allTimeExpenses.filter(x => !!x.referenceId);
   const revenueFundedTaggedExpenses = taggedExpenses
     .filter(x => (x.sourceOfFunds || 'Sales Revenue') === 'Sales Revenue')
@@ -813,17 +836,19 @@ function totals(period = 'all'){
   
   const liquidCash = totalRevenue - totalGeneralExpenses - totalPayouts - revenueFundedLotsCost - revenueFundedTaggedExpenses;
 
+  // Returning all raw components to render in the Cash Breakdown UI
   return { 
     remainingBags, remainingKg, revenue, cogs, shopExpenseTotal, 
-    profit: revenue - cogs - shopExpenseTotal, liquidCash, totalRevenue, totalGeneralExpenses, totalPayouts, 
-    revenueFundedLotsCost, revenueFundedTaggedExpenses, capitalFundedTaggedExpenses };
+    profit: revenue - cogs - shopExpenseTotal, 
+    liquidCash, 
+    totalRevenue, totalGeneralExpenses, totalPayouts, 
+    revenueFundedLotsCost, revenueFundedTaggedExpenses, capitalFundedTaggedExpenses 
+  };
 }
 
 function lotLabel(lotId){ return DATA.lots.find(x=>x.id===lotId)?.label || 'Unknown Lot'; }
 function contactLabel(cId){ return DATA.contacts.find(x=>x.id===cId)?.name || ''; }
 
-// Returns a sale's lot breakdown as [{lotId, bags, kg}, ...] regardless of whether it's an
-// old single-lot sale (lotId/bags/kg at the top level) or a new multi-lot sale ('lines' array).
 function saleLinesFor(sale){
   if (Array.isArray(sale.lines) && sale.lines.length) return sale.lines;
   if (sale.lotId) return [{ lotId: sale.lotId, bags: Number(sale.bags)||0, kg: Number(sale.kg)||0 }];
@@ -911,12 +936,12 @@ function openLotModal(existing){
     
     if (existing) {
       Object.assign(existing, { label, bags, bagsG0, bagsG1, kg, cost, loadingCost, gradingCost, sourceOfFunds, weightLossKg, dateAdded });
-      renderAll(); sendAction('updateLot', existing, existing.id);
+      renderActiveView(); sendAction('updateLot', existing, existing.id);
     } else {
       const id = uid();
       const lot = { id, label, bags, bagsG0, bagsG1, kg, cost, loadingCost, gradingCost, sourceOfFunds, weightLossKg, dateAdded, location: bagsG1 > 0 && bagsG0 === 0 ? 'G+1' : 'Ground', addedBy: getActor(), isDeleted: false };
       DATA.lots.push(lot);
-      renderAll(); sendAction('addLot', lot, id);
+      renderActiveView(); sendAction('addLot', lot, id);
     }
   });
 }
@@ -934,7 +959,7 @@ function updateTotalBagsModal(type) {
 }
 
 function setModalSource(src){ window.__modalSource = src; document.getElementById('m-src-cap').classList.toggle('on', src==='Partner Capital'); document.getElementById('m-src-rev').classList.toggle('on', src==='Sales Revenue'); }
-async function deleteLot(id){ confirmThen('Delete this lot?', async () => { const idx = DATA.lots.findIndex(l=>l.id===id); if(idx !== -1) { DATA.lots[idx].isDeleted = true; renderAll(); sendAction('deleteLot', {id}, id); } }); }
+async function deleteLot(id){ confirmThen('Delete this lot?', async () => { const idx = DATA.lots.findIndex(l=>l.id===id); if(idx !== -1) { DATA.lots[idx].isDeleted = true; renderActiveView(); sendAction('deleteLot', {id}, id); } }); }
 
 function openSaleModal(existing){
   const s = existing || { date: todayISO(), channel:'Retail', contactId:'', amount:'', note:'' };
@@ -987,12 +1012,12 @@ function openSaleModal(existing){
 
     if (existing) {
       Object.assign(existing, { date, lotId: lines[0].lotId, channel, contactId, bags: totalBags, kg: totalKg, amount, note, lines });
-      renderAll(); sendAction('updateSale', existing, existing.id);
+      renderActiveView(); sendAction('updateSale', existing, existing.id);
     } else {
       const id = uid();
       const sale = { id, date, lotId: lines[0].lotId, channel, contactId, bags: totalBags, kg: totalKg, amount, note, lines, addedBy: getActor(), isDeleted: false };
       DATA.sales.push(sale);
-      renderAll(); sendAction('addSale', sale, id);
+      renderActiveView(); sendAction('addSale', sale, id);
     }
   });
 
@@ -1056,10 +1081,9 @@ function updateSaleLineTotals(){
 }
 
 function setModalChannel(ch){ window.__modalChannel = ch; document.getElementById('m-ch-retail').classList.toggle('on', ch==='Retail'); document.getElementById('m-ch-wholesale').classList.toggle('on', ch==='Wholesale'); }
-async function deleteSale(id){ confirmThen('Delete this sale?', async () => { const idx = DATA.sales.findIndex(s=>s.id===id); if(idx !== -1) { DATA.sales[idx].isDeleted = true; renderAll(); sendAction('deleteSale', {id}, id); } }); }
+async function deleteSale(id){ confirmThen('Delete this sale?', async () => { const idx = DATA.sales.findIndex(s=>s.id===id); if(idx !== -1) { DATA.sales[idx].isDeleted = true; renderActiveView(); sendAction('deleteSale', {id}, id); } }); }
 
 function openExpenseModal(existing){
-  // Fix: Default to Loading/Unloading if lot is selected
   let defaultLotType = existing?.type || 'Loading/Unloading';
   if (defaultLotType === 'Running Cost' || defaultLotType === 'Miscellaneous') defaultLotType = 'Loading/Unloading';
 
@@ -1148,12 +1172,12 @@ function openExpenseModal(existing){
 
     if (existing) {
       Object.assign(existing, { date, type, desc, amount, referenceId, bags, bagsG0, bagsG1, kg, sourceOfFunds });
-      renderAll(); sendAction('updateExpense', existing, existing.id);
+      renderActiveView(); sendAction('updateExpense', existing, existing.id);
     } else {
       const id = uid();
       const exp = { id, date, type, desc, amount, referenceId, bags, bagsG0, bagsG1, kg, sourceOfFunds, addedBy: getActor(), isDeleted: false };
       DATA.expenses.push(exp);
-      renderAll(); sendAction('addExpense', exp, id);
+      renderActiveView(); sendAction('addExpense', exp, id);
     }
   }, 'Save');
 
@@ -1186,9 +1210,9 @@ async function quickMonthlyExpense(){
   const amount = (Number(DATA.config.rent1)||0) + (Number(DATA.config.rent2)||0) + (Number(DATA.config.labour)||0);
   const id = uid();
   const exp = { id, date: todayISO(), type:'Running Cost', desc: 'Auto-added Shop Overhead (Rent + Wages)', amount, referenceId:'', sourceOfFunds:'Sales Revenue', addedBy: getActor(), isDeleted: false };
-  DATA.expenses.push(exp); renderAll(); sendAction('addExpense', exp, id);
+  DATA.expenses.push(exp); renderActiveView(); sendAction('addExpense', exp, id);
 }
-async function deleteExpense(id){ confirmThen('Delete this expense?', async () => { const idx = DATA.expenses.findIndex(x=>x.id===id); if(idx !== -1) { DATA.expenses[idx].isDeleted = true; renderAll(); sendAction('deleteExpense', {id}, id); } }); }
+async function deleteExpense(id){ confirmThen('Delete this expense?', async () => { const idx = DATA.expenses.findIndex(x=>x.id===id); if(idx !== -1) { DATA.expenses[idx].isDeleted = true; renderActiveView(); sendAction('deleteExpense', {id}, id); } }); }
 
 function openContactModal(existing){
   const c = existing || { name:'', type:'Buyer', phone:'', location:'', note:'' };
@@ -1216,18 +1240,17 @@ function openContactModal(existing){
 
     if (existing) {
       Object.assign(existing, { name, type, phone, location, note });
-      renderAll(); sendAction('updateContact', existing, existing.id);
+      renderActiveView(); sendAction('updateContact', existing, existing.id);
     } else {
       const id = uid();
       const contact = { id, name, type, phone, location, note, isDeleted: false };
       DATA.contacts.push(contact);
-      renderAll(); sendAction('addContact', contact, id);
+      renderActiveView(); sendAction('addContact', contact, id);
     }
   });
 }
-async function deleteContact(id){ confirmThen('Delete contact?', async () => { const idx = DATA.contacts.findIndex(c=>c.id===id); if(idx !== -1) { DATA.contacts[idx].isDeleted = true; renderAll(); sendAction('deleteContact', {id}, id); } }); }
+async function deleteContact(id){ confirmThen('Delete contact?', async () => { const idx = DATA.contacts.findIndex(c=>c.id===id); if(idx !== -1) { DATA.contacts[idx].isDeleted = true; renderActiveView(); sendAction('deleteContact', {id}, id); } }); }
 
-// ---------- RECONCILE: PHYSICAL STOCK COUNT (shrinkage) ----------
 function openStockCountModal(){
   const activeLots = DATA.lots.filter(l=>!l.isDeleted);
   if (!activeLots.length) { showToast('No active lots to count.', true); return; }
@@ -1268,7 +1291,7 @@ function openStockCountModal(){
       sendAction('updateLot', lot, lot.id);
     }
 
-    renderAll(); renderReconcile();
+    renderActiveView(); renderReconcile();
 
     if (Math.abs(bagVariance) >= 1) {
       showToast(`Note: ${Math.abs(bagVariance)} bag(s) ${bagVariance>0?'fewer':'more'} than the books expect — worth a look.`, bagVariance>0);
@@ -1311,13 +1334,12 @@ function renderStockCounts(){
 }
 
 async function deleteStockCount(id){
-  confirmThen('Delete this stock count entry? (This will not undo the weight-loss adjustment already applied.)', async () => {
+  confirmThen('Delete this stock count entry?', async () => {
     const idx = DATA.stockCounts.findIndex(x=>x.id===id);
     if (idx !== -1) { DATA.stockCounts[idx].isDeleted = true; renderReconcile(); sendAction('deleteStockCount', {id}, id); }
   });
 }
 
-// ---------- RECONCILE: CASH DRAWER CHECK (leakage) ----------
 function openCashCheckModal(){
   const html = `
     <label>Date</label><input type="date" id="cc-date" value="${todayISO()}">
@@ -1371,7 +1393,7 @@ async function logCashVarianceAsExpense(checkId){
     const id = uid();
     const exp = { id, date: check.date, type: 'Miscellaneous', desc: `Cash variance from reconciliation on ${check.date}`, amount: check.variance, referenceId: '', sourceOfFunds: 'Sales Revenue', addedBy: getActor(), isDeleted: false };
     DATA.expenses.push(exp);
-    renderAll(); renderReconcile();
+    renderActiveView(); renderReconcile();
     sendAction('addExpense', exp, id);
     showToast('Variance logged as expense.');
   });
@@ -1433,14 +1455,14 @@ async function executeBalancedThreeWayPayout(){
       DATA.expenses.push(logPayout);
       sendAction('addExpense', logPayout, id); 
     }
-    renderAll();
+    renderActiveView();
     showToast('Payouts saved.');
   });
 }
 
 async function savePartners(){
   Object.keys(DATA.partners).forEach(name=>{ const el = document.getElementById('pe-'+name); if (el) DATA.partners[name].contributed = Number(el.value)||0; });
-  renderAll(); sendAction('updatePartners', DATA.partners);
+  renderActiveView(); sendAction('updatePartners', DATA.partners);
 }
 async function saveInterestRate(){ DATA.config.interestRatePct = Number(document.getElementById('p-interest').value)||0; sendAction('updateConfig', DATA.config); }
 async function saveConfig(){ DATA.config.rent1 = Number(document.getElementById('c-rent1').value)||0; DATA.config.rent2 = Number(document.getElementById('c-rent2').value)||0; DATA.config.labour = Number(document.getElementById('c-labour').value)||0; populateFormsFromData(); sendAction('updateConfig', DATA.config); }
@@ -1482,14 +1504,8 @@ function toggleDetails(id) {
 }
 
 function renderAll(){ 
-  renderDashboard(); 
-  renderInventory(); 
-  renderSalesTable(); 
-  renderExpensesTable(); 
-  renderPartners(); 
-  renderContactsTable(); 
-  calculatePayoutState(); 
-  renderWeeklyStockCheck();
+  // First paint rendering
+  renderActiveView(); 
 }
 
 function renderDashboard(){
@@ -1510,6 +1526,7 @@ function renderDashboard(){
     elCash.textContent = fmt(allTime.liquidCash);
     elCash.className = 'value ' + (allTime.liquidCash>=0 ? 'pos':'neg');
     
+    // CASH BREAKDOWN INJECTION 
     const breakdownEl = document.getElementById('cash-breakdown');
     if (breakdownEl) {
       breakdownEl.innerHTML = `
@@ -1534,7 +1551,7 @@ function renderDashboard(){
           </div>
         </div>
         <div class="note" style="margin-top:10px; color: var(--rust);">
-          <b>Note:</b> If old expenses in your Google Sheet have a blank "Source of Funds" column, the app defaults to deducting them from Sales Revenue. Update those sheet cells to "Partner Capital" to restore the liquid cash balance.
+          <b>Note:</b> If old expenses in your Google Sheet have a blank "Source of Funds" column, the app defaults to deducting them from Sales Revenue.
         </div>
       `;
     }
