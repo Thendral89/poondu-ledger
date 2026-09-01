@@ -92,6 +92,8 @@
   .badge.type-tag { background: #8e7d6b; color: #fff; }
   .badge.wholesale { background: var(--plum); }
   .badge.retail { background: var(--sage); }
+  .badge.cash { background: var(--sage); }
+  .badge.gpay { background: var(--plum); }
   
   .lot-card { border: 1px solid var(--line); border-radius: 5px; padding: 12px; margin-bottom: 10px; background: var(--paper-dim); }
   .lot-card .lot-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
@@ -164,9 +166,9 @@
     </div>
     
     <div class="card big-stat" style="border: 2px solid var(--sage);">
-      <div class="label util">Cash In Hand (Liquid)</div>
+      <div class="label util">Cash In Hand (Physical)</div>
       <div class="value" id="d-cash-hand">₹0</div>
-      <div class="note">Sales revenue minus shop expenses, revenue-funded procurement, revenue-funded tagged lot expenses, and payouts already drawn.</div>
+      <div class="note">Cash-only sales minus cash-only shop expenses, cash-only revenue-funded procurement, cash-only revenue-funded tagged lot expenses, and cash payouts already drawn. GPay in/out never touches this number.</div>
       
       <button class="toggle-details-btn" style="margin-top: 12px; font-size: 0.8rem;" onclick="toggleDetails('cash-breakdown')">Show Calculation Breakdown ▼</button>
       
@@ -296,13 +298,13 @@
   <div class="view" id="view-partners">
     <div class="card" style="border: 2px solid var(--plum);">
       <h2>3-Way Payout Engine</h2>
-      <div class="note">Distributes actual liquid cash safely (excludes capital tied up in inventory and any lot expenses tagged as Partner Capital).</div>
+      <div class="note">Distributes total liquid funds (cash + GPay/bank combined) safely — excludes capital tied up in inventory and any lot expenses tagged as Partner Capital. This is deliberately NOT the same number as the "Cash In Hand (Physical)" dashboard tile — it also counts money sitting in the bank from GPay sales, which is real distributable profit even though it isn't in the till.</div>
       <div style="margin: 12px 0;">
         <label>Retained Shop Cash Reserve / Working Capital (₹)</label>
         <input type="number" id="payout-reserve-input" value="50000" oninput="calculatePayoutState()">
       </div>
       <div class="stat-grid" style="margin: 12px 0;">
-        <div class="stat"><div class="label">Total Liquid Cash Available</div><div class="value" id="rep-liquid-cash">₹0</div></div>
+        <div class="stat"><div class="label">Total Liquid Funds (Cash+Bank)</div><div class="value" id="rep-liquid-cash">₹0</div></div>
         <div class="stat"><div class="label">Cash to Distribute</div><div class="value" id="rep-distributable">₹0</div></div>
         <div class="stat"><div class="label">Per Partner (1/3)</div><div class="value" id="rep-per-head">₹0</div></div>
       </div>
@@ -344,7 +346,7 @@
 
     <div class="card">
       <h2>Cash Drawer Check <span style="font-family:'Helvetica Neue',Arial,sans-serif; font-size:0.62rem; font-weight:normal; text-transform:none; color:#8a8272;">(leakage check)</span></h2>
-      <div class="note">Count the cash actually on hand. The app compares it to what the books say should be there (revenue minus logged expenses minus capital-funded spend). The gap is cash going untracked.</div>
+      <div class="note">Count the cash actually on hand. The app compares it to Cash In Hand (Physical) — cash sales minus cash-paid expenses only, GPay excluded — so a customer or supplier paying by GPay never shows up as a fake mismatch. Any real gap is cash going untracked.</div>
       <button class="btn secondary" onclick="openCashCheckModal()">New Cash Check</button>
       <div id="cash-checks-list" style="margin-top:14px;"></div>
       <div class="empty" id="cash-checks-empty" style="display:none;">No cash checks logged yet.</div>
@@ -842,15 +844,37 @@ function totals(period = 'all'){
     .reduce((s,x)=>s+(Number(x.amount)||0), 0);
   
   const revenueFundedLotsCost = activeLots.filter(l => l.sourceOfFunds === 'Sales Revenue').reduce((s, l) => s + (Number(l.cost)||0) + (Number(l.loadingCost)||0) + (Number(l.gradingCost)||0), 0);
-  
+
+  // "liquidCash" = TOTAL liquid funds (cash + GPay/bank combined), payment-mode agnostic.
+  // This is what the 3-way payout engine distributes from — GPay revenue sitting in the
+  // bank is real distributable profit even though it never enters the physical till.
   const liquidCash = totalRevenue - totalGeneralExpenses - totalPayouts - revenueFundedLotsCost - revenueFundedTaggedExpenses;
 
-  return { 
-    remainingBags, remainingKg, revenue, cogs, shopExpenseTotal, 
-    profit: revenue - cogs - shopExpenseTotal, 
-    liquidCash, 
-    totalRevenue, totalGeneralExpenses, totalPayouts, 
-    revenueFundedLotsCost, revenueFundedTaggedExpenses, capitalFundedTaggedExpenses 
+  // ---- Physical cash (till) breakdown ----
+  // isCash defaults to true (Cash) for any legacy record saved before this field existed,
+  // matching how the app always implicitly assumed 100% cash before.
+  const isCashTrue = v => v !== false;
+
+  const totalCashRevenue = allTimeSales.filter(s => isCashTrue(s.isCash)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
+  const totalCashGeneralExpenses = allTimeExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw' && isCashTrue(x.isCash)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
+  const totalCashPayouts = allTimeExpenses.filter(x => x.type === 'Payout / Partner Draw' && isCashTrue(x.isCash)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
+  const cashFundedTaggedExpenses = taggedExpenses
+    .filter(x => (x.sourceOfFunds || 'Sales Revenue') === 'Sales Revenue' && isCashTrue(x.isCash))
+    .reduce((s,x)=>s+(Number(x.amount)||0), 0);
+  const cashFundedLotsCost = activeLots
+    .filter(l => l.sourceOfFunds === 'Sales Revenue' && isCashTrue(l.isCash))
+    .reduce((s, l) => s + (Number(l.cost)||0) + (Number(l.loadingCost)||0) + (Number(l.gradingCost)||0), 0);
+
+  const physicalCashInHand = totalCashRevenue - totalCashGeneralExpenses - totalCashPayouts - cashFundedLotsCost - cashFundedTaggedExpenses;
+
+  return {
+    remainingBags, remainingKg, revenue, cogs, shopExpenseTotal,
+    profit: revenue - cogs - shopExpenseTotal,
+    liquidCash,
+    totalRevenue, totalGeneralExpenses, totalPayouts,
+    revenueFundedLotsCost, revenueFundedTaggedExpenses, capitalFundedTaggedExpenses,
+    physicalCashInHand, totalCashRevenue, totalCashGeneralExpenses, totalCashPayouts,
+    cashFundedLotsCost, cashFundedTaggedExpenses
   };
 }
 
@@ -886,8 +910,9 @@ function populateFormsFromData(){
 }
 
 function openLotModal(existing){
-  const l = existing || { label:'', bagsG0:'', bagsG1:'', bags:'', kg:'', cost:'', loadingCost:'', gradingCost:'', sourceOfFunds:'Partner Capital', weightLossKg:0, dateAdded: todayISO() };
-  window.__modalSource = l.sourceOfFunds; 
+  const l = existing || { label:'', bagsG0:'', bagsG1:'', bags:'', kg:'', cost:'', loadingCost:'', gradingCost:'', sourceOfFunds:'Partner Capital', weightLossKg:0, dateAdded: todayISO(), isCash: true };
+  window.__modalSource = l.sourceOfFunds;
+  window.__modalLotPayMode = l.isCash !== false;
   
   let initG0 = l.bagsG0 || '';
   let initG1 = l.bagsG1 || '';
@@ -922,11 +947,19 @@ function openLotModal(existing){
       <button type="button" id="m-src-cap" class="${l.sourceOfFunds==='Partner Capital'?'on':''}" onclick="setModalSource('Partner Capital')">Partner Capital</button>
       <button type="button" id="m-src-rev" class="${l.sourceOfFunds==='Sales Revenue'?'on':''}" onclick="setModalSource('Sales Revenue')">Sales Revenue</button>
     </div>
+    <div id="lot-paymode-row" style="display: ${l.sourceOfFunds==='Sales Revenue' ? 'block' : 'none'};">
+      <label style="margin-top: 10px;">Paid Via</label>
+      <div class="seg2">
+        <button type="button" id="m-lot-pay-cash" class="${l.isCash!==false?'on':''}" onclick="setModalLotPayMode(true)">Cash</button>
+        <button type="button" id="m-lot-pay-gpay" class="${l.isCash===false?'on':''}" onclick="setModalLotPayMode(false)">GPay</button>
+      </div>
+      <div class="note">Cash paid to a farmer/supplier reduces Physical Cash In Hand. GPay does not touch the till.</div>
+    </div>
     <div class="row2" style="margin-top: 10px;">
       <div><label>Date</label><input type="date" id="m-date" value="${safeDate(l.dateAdded)}"></div>
       <div></div>
     </div>`;
-  
+
   openModal(existing ? 'Edit Lot' : 'Add New Lot', html, async () => {
     const label = document.getElementById('m-label').value.trim();
     const bagsG0 = Number(document.getElementById('m-bags-g0').value)||0;
@@ -937,17 +970,18 @@ function openLotModal(existing){
     const loadingCost = Number(document.getElementById('m-loading').value)||0;
     const gradingCost = Number(document.getElementById('m-grading').value)||0;
     const sourceOfFunds = window.__modalSource || l.sourceOfFunds;
+    const isCash = sourceOfFunds === 'Sales Revenue' ? (window.__modalLotPayMode !== false) : true;
     const weightLossKg = Number(document.getElementById('m-loss').value)||0;
     const dateAdded = document.getElementById('m-date').value || todayISO();
 
     if (!label) { showToast('Please enter a lot name.', true); return false; }
-    
+
     if (existing) {
-      Object.assign(existing, { label, bags, bagsG0, bagsG1, kg, cost, loadingCost, gradingCost, sourceOfFunds, weightLossKg, dateAdded });
+      Object.assign(existing, { label, bags, bagsG0, bagsG1, kg, cost, loadingCost, gradingCost, sourceOfFunds, isCash, weightLossKg, dateAdded });
       renderActiveView(); sendAction('updateLot', existing, existing.id);
     } else {
       const id = uid();
-      const lot = { id, label, bags, bagsG0, bagsG1, kg, cost, loadingCost, gradingCost, sourceOfFunds, weightLossKg, dateAdded, location: bagsG1 > 0 && bagsG0 === 0 ? 'G+1' : 'Ground', addedBy: getActor(), isDeleted: false };
+      const lot = { id, label, bags, bagsG0, bagsG1, kg, cost, loadingCost, gradingCost, sourceOfFunds, isCash, weightLossKg, dateAdded, location: bagsG1 > 0 && bagsG0 === 0 ? 'G+1' : 'Ground', addedBy: getActor(), isDeleted: false };
       DATA.lots.push(lot);
       renderActiveView(); sendAction('addLot', lot, id);
     }
@@ -966,12 +1000,24 @@ function updateTotalBagsModal(type) {
     }
 }
 
-function setModalSource(src){ window.__modalSource = src; document.getElementById('m-src-cap').classList.toggle('on', src==='Partner Capital'); document.getElementById('m-src-rev').classList.toggle('on', src==='Sales Revenue'); }
+function setModalSource(src){
+  window.__modalSource = src;
+  document.getElementById('m-src-cap').classList.toggle('on', src==='Partner Capital');
+  document.getElementById('m-src-rev').classList.toggle('on', src==='Sales Revenue');
+  const row = document.getElementById('lot-paymode-row');
+  if (row) row.style.display = src==='Sales Revenue' ? 'block' : 'none';
+}
+function setModalLotPayMode(isCash){
+  window.__modalLotPayMode = isCash;
+  document.getElementById('m-lot-pay-cash').classList.toggle('on', isCash===true);
+  document.getElementById('m-lot-pay-gpay').classList.toggle('on', isCash===false);
+}
 async function deleteLot(id){ confirmThen('Delete this lot?', async () => { const idx = DATA.lots.findIndex(l=>l.id===id); if(idx !== -1) { DATA.lots[idx].isDeleted = true; renderActiveView(); sendAction('deleteLot', {id}, id); } }); }
 
 function openSaleModal(existing){
-  const s = existing || { date: todayISO(), channel:'Retail', contactId:'', amount:'', note:'' };
+  const s = existing || { date: todayISO(), channel:'Retail', contactId:'', amount:'', note:'', isCash: true };
   window.__modalChannel = s.channel;
+  window.__modalSalePayMode = s.isCash !== false;
   window.__saleLineIdx = [];
   window.__saleLineSeq = 0;
 
@@ -992,6 +1038,12 @@ function openSaleModal(existing){
       <button type="button" id="m-ch-retail" class="${s.channel==='Retail'?'on':''}" onclick="setModalChannel('Retail')">Retail</button>
       <button type="button" id="m-ch-wholesale" class="${s.channel==='Wholesale'?'on':''}" onclick="setModalChannel('Wholesale')">Wholesale</button>
     </div>
+    <label style="margin-top:12px;">Payment Received Via</label>
+    <div class="seg2">
+      <button type="button" id="m-sale-pay-cash" class="${s.isCash!==false?'on':''}" onclick="setModalSalePayMode(true)">Cash</button>
+      <button type="button" id="m-sale-pay-gpay" class="${s.isCash===false?'on':''}" onclick="setModalSalePayMode(false)">GPay</button>
+    </div>
+    <div class="note">Cash sales add to Physical Cash In Hand. GPay sales go straight to the bank and never enter the till.</div>
     <label style="margin-top:12px;">Lots Sold From</label>
     <div id="sale-lines-wrap">${linesHtml}</div>
     <button type="button" class="btn ghost" style="margin-top:8px;" onclick="addSaleLine()">+ Add Another Lot</button>
@@ -1005,6 +1057,7 @@ function openSaleModal(existing){
     const amount = Number(document.getElementById('m-amount').value)||0;
     const note = document.getElementById('m-note').value.trim();
     const channel = window.__modalChannel || s.channel;
+    const isCash = window.__modalSalePayMode !== false;
 
     const lines = window.__saleLineIdx.map(idx => ({
       lotId: document.getElementById(`sl-lot-${idx}`)?.value || '',
@@ -1019,11 +1072,11 @@ function openSaleModal(existing){
     const totalKg = lines.reduce((sum,l)=>sum+l.kg,0);
 
     if (existing) {
-      Object.assign(existing, { date, lotId: lines[0].lotId, channel, contactId, bags: totalBags, kg: totalKg, amount, note, lines });
+      Object.assign(existing, { date, lotId: lines[0].lotId, channel, contactId, bags: totalBags, kg: totalKg, amount, note, lines, isCash });
       renderActiveView(); sendAction('updateSale', existing, existing.id);
     } else {
       const id = uid();
-      const sale = { id, date, lotId: lines[0].lotId, channel, contactId, bags: totalBags, kg: totalKg, amount, note, lines, addedBy: getActor(), isDeleted: false };
+      const sale = { id, date, lotId: lines[0].lotId, channel, contactId, bags: totalBags, kg: totalKg, amount, note, lines, isCash, addedBy: getActor(), isDeleted: false };
       DATA.sales.push(sale);
       renderActiveView(); sendAction('addSale', sale, id);
     }
@@ -1089,15 +1142,17 @@ function updateSaleLineTotals(){
 }
 
 function setModalChannel(ch){ window.__modalChannel = ch; document.getElementById('m-ch-retail').classList.toggle('on', ch==='Retail'); document.getElementById('m-ch-wholesale').classList.toggle('on', ch==='Wholesale'); }
+function setModalSalePayMode(isCash){ window.__modalSalePayMode = isCash; document.getElementById('m-sale-pay-cash').classList.toggle('on', isCash===true); document.getElementById('m-sale-pay-gpay').classList.toggle('on', isCash===false); }
 async function deleteSale(id){ confirmThen('Delete this sale?', async () => { const idx = DATA.sales.findIndex(s=>s.id===id); if(idx !== -1) { DATA.sales[idx].isDeleted = true; renderActiveView(); sendAction('deleteSale', {id}, id); } }); }
 
 function openExpenseModal(existing){
   let defaultLotType = existing?.type || 'Loading/Unloading';
   if (defaultLotType === 'Running Cost' || defaultLotType === 'Miscellaneous') defaultLotType = 'Loading/Unloading';
 
-  const x = existing || { date: todayISO(), type: defaultLotType, desc:'', amount:'', referenceId:'', bags:'', bagsG0:'', bagsG1:'', kg:'', sourceOfFunds:'Sales Revenue' };
-  window.__modalExpenseType = x.referenceId ? 'lot' : 'shop'; 
+  const x = existing || { date: todayISO(), type: defaultLotType, desc:'', amount:'', referenceId:'', bags:'', bagsG0:'', bagsG1:'', kg:'', sourceOfFunds:'Sales Revenue', isCash: true };
+  window.__modalExpenseType = x.referenceId ? 'lot' : 'shop';
   window.__modalExpenseSource = x.sourceOfFunds || 'Sales Revenue';
+  window.__modalExpensePayMode = x.isCash !== false;
   
   const lotOptions = '<option value="">-- Select Lot to tag cost --</option>' + DATA.lots.filter(l=>!l.isDeleted).map(l=>`<option value="${l.id}" ${x.referenceId===l.id?'selected':''}>${l.label}</option>`).join('');
 
@@ -1150,6 +1205,13 @@ function openExpenseModal(existing){
       <div class="note">Sales Revenue expenses reduce the shop's liquid cash. Partner Capital expenses are funded separately by the partners and will NOT reduce liquid cash.</div>
     </div>
 
+    <label style="margin-top:10px;">Paid Via</label>
+    <div class="seg2">
+      <button type="button" id="m-exp-pay-cash" class="${x.isCash!==false?'on':''}" onclick="setModalExpensePayMode(true)">Cash</button>
+      <button type="button" id="m-exp-pay-gpay" class="${x.isCash===false?'on':''}" onclick="setModalExpensePayMode(false)">GPay</button>
+    </div>
+    <div class="note">Cash expenses reduce Physical Cash In Hand directly. GPay expenses reduce total liquid funds but never touch the till — so a cash expense that isn't backed by matching cash sales will correctly show up as a deficit in Physical Cash In Hand.</div>
+
     <label style="margin-top:10px;">Details / Custom Name</label>
     <input type="text" id="m-desc" value="${x.desc||''}" placeholder="e.g. Lorry Coolie">
 
@@ -1165,6 +1227,7 @@ function openExpenseModal(existing){
     const desc = document.getElementById('m-desc').value.trim();
     const amount = Number(document.getElementById('m-amount').value)||0;
     const sourceOfFunds = isLot ? (window.__modalExpenseSource || 'Sales Revenue') : 'Sales Revenue';
+    const isCash = window.__modalExpensePayMode !== false;
 
     let bags = 0; let bagsG0 = 0; let bagsG1 = 0; let kg = 0;
     if (isLot && type === 'Procurement') {
@@ -1179,11 +1242,11 @@ function openExpenseModal(existing){
     if (isLot && !referenceId) { showToast('Please select a Lot to tag this expense to', true); return false; }
 
     if (existing) {
-      Object.assign(existing, { date, type, desc, amount, referenceId, bags, bagsG0, bagsG1, kg, sourceOfFunds });
+      Object.assign(existing, { date, type, desc, amount, referenceId, bags, bagsG0, bagsG1, kg, sourceOfFunds, isCash });
       renderActiveView(); sendAction('updateExpense', existing, existing.id);
     } else {
       const id = uid();
-      const exp = { id, date, type, desc, amount, referenceId, bags, bagsG0, bagsG1, kg, sourceOfFunds, addedBy: getActor(), isDeleted: false };
+      const exp = { id, date, type, desc, amount, referenceId, bags, bagsG0, bagsG1, kg, sourceOfFunds, isCash, addedBy: getActor(), isDeleted: false };
       DATA.expenses.push(exp);
       renderActiveView(); sendAction('addExpense', exp, id);
     }
@@ -1213,11 +1276,16 @@ function setModalExpenseSource(src){
   if (revBtn) revBtn.classList.toggle('on', src==='Sales Revenue');
   if (capBtn) capBtn.classList.toggle('on', src==='Partner Capital');
 }
+function setModalExpensePayMode(isCash){
+  window.__modalExpensePayMode = isCash;
+  document.getElementById('m-exp-pay-cash').classList.toggle('on', isCash===true);
+  document.getElementById('m-exp-pay-gpay').classList.toggle('on', isCash===false);
+}
 
 async function quickMonthlyExpense(){
   const amount = (Number(DATA.config.rent1)||0) + (Number(DATA.config.rent2)||0) + (Number(DATA.config.labour)||0);
   const id = uid();
-  const exp = { id, date: todayISO(), type:'Running Cost', desc: 'Auto-added Shop Overhead (Rent + Wages)', amount, referenceId:'', sourceOfFunds:'Sales Revenue', addedBy: getActor(), isDeleted: false };
+  const exp = { id, date: todayISO(), type:'Running Cost', desc: 'Auto-added Shop Overhead (Rent + Wages)', amount, referenceId:'', sourceOfFunds:'Sales Revenue', isCash: true, addedBy: getActor(), isDeleted: false };
   DATA.expenses.push(exp); renderActiveView(); sendAction('addExpense', exp, id);
 }
 async function deleteExpense(id){ confirmThen('Delete this expense?', async () => { const idx = DATA.expenses.findIndex(x=>x.id===id); if(idx !== -1) { DATA.expenses[idx].isDeleted = true; renderActiveView(); sendAction('deleteExpense', {id}, id); } }); }
@@ -1360,7 +1428,7 @@ function openCashCheckModal(){
     const note = document.getElementById('cc-note').value.trim();
     if (isNaN(countedCash)) { showToast('Enter the counted cash amount.', true); return false; }
 
-    const expectedCash = totals('all').liquidCash;
+    const expectedCash = totals('all').physicalCashInHand;
     const variance = expectedCash - countedCash;
 
     const id = uid();
@@ -1399,7 +1467,7 @@ async function logCashVarianceAsExpense(checkId){
   if (!check) return;
   confirmThen(`Log ${fmt(check.variance)} as a Miscellaneous shop expense to close this gap?`, async () => {
     const id = uid();
-    const exp = { id, date: check.date, type: 'Miscellaneous', desc: `Cash variance from reconciliation on ${check.date}`, amount: check.variance, referenceId: '', sourceOfFunds: 'Sales Revenue', addedBy: getActor(), isDeleted: false };
+    const exp = { id, date: check.date, type: 'Miscellaneous', desc: `Cash variance from reconciliation on ${check.date}`, amount: check.variance, referenceId: '', sourceOfFunds: 'Sales Revenue', isCash: true, addedBy: getActor(), isDeleted: false };
     DATA.expenses.push(exp);
     renderActiveView(); renderReconcile();
     sendAction('addExpense', exp, id);
@@ -1458,7 +1526,7 @@ async function executeBalancedThreeWayPayout(){
       const id = uid();
       const logPayout = {
         id, date: timestamp, type: 'Payout / Partner Draw', desc: `Profit Share Drawn: ${name}`,
-        amount: perShareValue, referenceId: '', sourceOfFunds: 'Sales Revenue', addedBy: getActor(), isDeleted: false
+        amount: perShareValue, referenceId: '', sourceOfFunds: 'Sales Revenue', isCash: true, addedBy: getActor(), isDeleted: false
       };
       DATA.expenses.push(logPayout);
       sendAction('addExpense', logPayout, id); 
@@ -1531,35 +1599,38 @@ function renderDashboard(){
   const elCash = document.getElementById('d-cash-hand');
   if(elCash) {
     const allTime = totals('all');
-    elCash.textContent = fmt(allTime.liquidCash);
-    elCash.className = 'value ' + (allTime.liquidCash>=0 ? 'pos':'neg');
-    
-    // CASH BREAKDOWN INJECTION 
+    elCash.textContent = fmt(allTime.physicalCashInHand);
+    elCash.className = 'value ' + (allTime.physicalCashInHand>=0 ? 'pos':'neg');
+
+    // CASH BREAKDOWN INJECTION
     const breakdownEl = document.getElementById('cash-breakdown');
     if (breakdownEl) {
       breakdownEl.innerHTML = `
         <div style="background:#fff; padding:10px; border-radius:6px; border:1px solid var(--line); font-size: 0.8rem;">
           <div style="display:flex; justify-content:space-between; color:var(--sage); font-weight:bold;">
-            <span>All-Time Sales Revenue (+)</span><span>${fmt(allTime.totalRevenue)}</span>
+            <span>Cash Sales Only (+)</span><span>${fmt(allTime.totalCashRevenue)}</span>
           </div>
           <div style="display:flex; justify-content:space-between; margin-top:8px;">
-            <span>Shop General Expenses (-)</span><span>${fmt(allTime.totalGeneralExpenses)}</span>
+            <span>Cash Shop Expenses (-)</span><span>${fmt(allTime.totalCashGeneralExpenses)}</span>
           </div>
           <div style="display:flex; justify-content:space-between; margin-top:6px;">
-            <span>Rev-Funded Tagged Lot Expenses (-)</span><span>${fmt(allTime.revenueFundedTaggedExpenses)}</span>
+            <span>Cash Rev-Funded Tagged Lot Expenses (-)</span><span>${fmt(allTime.cashFundedTaggedExpenses)}</span>
           </div>
           <div style="display:flex; justify-content:space-between; margin-top:6px;">
-            <span>Rev-Funded Lot Purchases (-)</span><span>${fmt(allTime.revenueFundedLotsCost)}</span>
+            <span>Cash Rev-Funded Lot Purchases (-)</span><span>${fmt(allTime.cashFundedLotsCost)}</span>
           </div>
           <div style="display:flex; justify-content:space-between; margin-top:6px; border-bottom:1px solid var(--line); padding-bottom:6px;">
-            <span>Partner Payouts Drawn (-)</span><span>${fmt(allTime.totalPayouts)}</span>
+            <span>Cash Partner Payouts Drawn (-)</span><span>${fmt(allTime.totalCashPayouts)}</span>
           </div>
           <div style="display:flex; justify-content:space-between; margin-top:6px; font-weight:bold; color:var(--plum-deep);">
-            <span>Calculated Liquid Cash (=)</span><span>${fmt(allTime.liquidCash)}</span>
+            <span>Physical Cash In Hand (=)</span><span>${fmt(allTime.physicalCashInHand)}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-top:10px; padding-top:6px; border-top:1px dashed var(--line); color:#8a8272;">
+            <span>+ Total Liquid Funds (Cash+Bank)</span><span>${fmt(allTime.liquidCash)}</span>
           </div>
         </div>
         <div class="note" style="margin-top:10px; color: var(--rust);">
-          <b>Note:</b> If old expenses in your Google Sheet have a blank "Source of Funds" column, the app defaults to deducting them from Sales Revenue.
+          <b>Note:</b> GPay sales/expenses/purchases are excluded from this tile on purpose — they never touch the till. Any record with no "Is Cash" value saved (old rows) defaults to Cash, matching how this app always behaved before.
         </div>
       `;
     }
@@ -1596,6 +1667,7 @@ function renderDashboard(){
             <span class="row-actions">
               <span class="badge type-tag">${getLocBadge(st)}</span>
               <span class="badge ${lot.sourceOfFunds==='Partner Capital'?'type-tag':'wholesale'}">${lot.sourceOfFunds === 'Partner Capital' ? 'Capital' : 'Sales Rev'}</span>
+              ${lot.sourceOfFunds!=='Partner Capital' ? `<span class="badge ${lot.isCash!==false?'cash':'gpay'}">${lot.isCash!==false?'Cash':'GPay'}</span>` : ''}
             </span>
           </div>
           <div class="bar"><div class="bar-fill ${st.shrinkagePct > 8 ? 'warning':''}" style="width:${st.totalBags ? (st.soldBags/st.totalBags*100) : 0}%"></div></div>
@@ -1806,7 +1878,7 @@ function renderSalesTable(){
       <td><span class="badge ${s.channel==='Retail'?'retail':'wholesale'}">${s.channel}</span><div class="by-line">${contactLabel(s.contactId)}</div></td>
       <td>${s.bags}</td>
       <td>${Number(s.kg||0).toFixed(0)}</td>
-      <td>${fmt(s.amount)}</td>
+      <td>${fmt(s.amount)}<div class="by-line"><span class="badge ${s.isCash!==false?'cash':'gpay'}">${s.isCash!==false?'Cash':'GPay'}</span></div></td>
       <td class="row-actions"><button class="icon-btn edit" onclick='openSaleModal(DATA.sales.find(x=>x.id==="${s.id}"))'>✎</button><button class="icon-btn del" onclick="deleteSale('${s.id}')">✕</button></td>
     </tr>`).join('');
   const empty = document.getElementById('sales-empty');
@@ -1825,7 +1897,7 @@ function renderExpensesTable(){
       <td>${x.date}</td>
       <td><span class="badge type-tag">${x.referenceId ? 'Lot Expense' : 'Shop Overhead'}</span>${srcBadge}</td>
       <td>${x.desc} ${x.type === 'Procurement' ? `<br><span style="font-size:0.7rem;color:#8a8272;font-weight:600;">(+${Number(x.bags)||0} Bags, ${x.kg||0} KG)</span>` : ''}</td>
-      <td>${fmt(x.amount)}</td>
+      <td>${fmt(x.amount)}<div class="by-line"><span class="badge ${x.isCash!==false?'cash':'gpay'}">${x.isCash!==false?'Cash':'GPay'}</span></div></td>
       <td><span style="font-weight:bold; color:var(--plum-deep);">${x.referenceId ? lotLabel(x.referenceId) : 'Shop'}</span></td>
       <td class="row-actions">
         <button class="icon-btn edit" onclick='openExpenseModal(DATA.expenses.find(y=>y.id==="${x.id}"))'>✎</button>
