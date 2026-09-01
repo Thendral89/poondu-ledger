@@ -166,9 +166,9 @@
     </div>
     
     <div class="card big-stat" style="border: 2px solid var(--sage);">
-      <div class="label util">Cash In Hand (Physical)</div>
+      <div class="label util">Cash In Hand (Liquid)</div>
       <div class="value" id="d-cash-hand">₹0</div>
-      <div class="note">Cash-only sales minus cash-only shop expenses, cash-only revenue-funded procurement, cash-only revenue-funded tagged lot expenses, and cash payouts already drawn. GPay in/out never touches this number.</div>
+      <div class="note">Sales revenue minus shop expenses, revenue-funded procurement, revenue-funded tagged lot expenses, and payouts already drawn. Combines Cash + GPay — every Sales-Revenue-funded cost is deducted the same way regardless of payment mode.</div>
       
       <button class="toggle-details-btn" style="margin-top: 12px; font-size: 0.8rem;" onclick="toggleDetails('cash-breakdown')">Show Calculation Breakdown ▼</button>
       
@@ -180,9 +180,10 @@
     <div class="card">
       <h2>
         Financial Status
-        <div class="seg2" style="width: 140px; margin-top:0;">
+        <div class="seg2" style="width: 220px; margin-top:0;">
           <button type="button" id="dash-btn-all" class="on" onclick="setDashFilter('all')">All Time</button>
-          <button type="button" id="dash-btn-month" onclick="setDashFilter('month')">Month</button>
+          <button type="button" id="dash-btn-prevmonth" onclick="setDashFilter('prevmonth')">Prev Month</button>
+          <button type="button" id="dash-btn-month" onclick="setDashFilter('month')">This Month</button>
         </div>
       </h2>
       <div class="stat-grid">
@@ -402,7 +403,7 @@
 
 <script>
 // 🔥 YOUR APPS SCRIPT URL HERE
-const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwNJyLhtOH5ciBrhDsEhj3pL7qrdahNkfYhPhgLiLOBATCpMKbyuyQvySooIDGcWQsE/exec";
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwzfMCYsD2UREni9V9K3aRQsFdp-xRUBX7njKDU1Fjp3W50ds49Fn8vWwY6VNkUqKFp/exec";
 const KEY = 'garlic-business-data';
 const ACTOR_KEY = 'poondu-actor';
 const PIN_KEY = 'poondu-pin';
@@ -711,6 +712,7 @@ function bindNav(){
 function setDashFilter(p) {
   dashFilter = p;
   document.getElementById('dash-btn-all').classList.toggle('on', p==='all');
+  document.getElementById('dash-btn-prevmonth').classList.toggle('on', p==='prevmonth');
   document.getElementById('dash-btn-month').classList.toggle('on', p==='month');
   renderDashboard();
 }
@@ -729,6 +731,10 @@ function inPeriod(dateStr, filter){
     return d >= monday;
   }
   if (filter === 'month') return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+  if (filter === 'prevmonth') {
+    const pm = new Date(now.getFullYear(), now.getMonth()-1, 1);
+    return d.getFullYear()===pm.getFullYear() && d.getMonth()===pm.getMonth();
+  }
   return true;
 }
 
@@ -1599,8 +1605,8 @@ function renderDashboard(){
   const elCash = document.getElementById('d-cash-hand');
   if(elCash) {
     const allTime = totals('all');
-    elCash.textContent = fmt(allTime.physicalCashInHand);
-    elCash.className = 'value ' + (allTime.physicalCashInHand>=0 ? 'pos':'neg');
+    elCash.textContent = fmt(allTime.liquidCash);
+    elCash.className = 'value ' + (allTime.liquidCash>=0 ? 'pos':'neg');
 
     // CASH BREAKDOWN INJECTION
     const breakdownEl = document.getElementById('cash-breakdown');
@@ -1608,29 +1614,26 @@ function renderDashboard(){
       breakdownEl.innerHTML = `
         <div style="background:#fff; padding:10px; border-radius:6px; border:1px solid var(--line); font-size: 0.8rem;">
           <div style="display:flex; justify-content:space-between; color:var(--sage); font-weight:bold;">
-            <span>Cash Sales Only (+)</span><span>${fmt(allTime.totalCashRevenue)}</span>
+            <span>All-Time Sales Revenue (+)</span><span>${fmt(allTime.totalRevenue)}</span>
           </div>
           <div style="display:flex; justify-content:space-between; margin-top:8px;">
-            <span>Cash Shop Expenses (-)</span><span>${fmt(allTime.totalCashGeneralExpenses)}</span>
+            <span>Shop General Expenses (-)</span><span>${fmt(allTime.totalGeneralExpenses)}</span>
           </div>
           <div style="display:flex; justify-content:space-between; margin-top:6px;">
-            <span>Cash Rev-Funded Tagged Lot Expenses (-)</span><span>${fmt(allTime.cashFundedTaggedExpenses)}</span>
+            <span>Rev-Funded Tagged Lot Expenses (-)</span><span>${fmt(allTime.revenueFundedTaggedExpenses)}</span>
           </div>
           <div style="display:flex; justify-content:space-between; margin-top:6px;">
-            <span>Cash Rev-Funded Lot Purchases (-)</span><span>${fmt(allTime.cashFundedLotsCost)}</span>
+            <span>Rev-Funded Lot Purchases (-)</span><span>${fmt(allTime.revenueFundedLotsCost)}</span>
           </div>
           <div style="display:flex; justify-content:space-between; margin-top:6px; border-bottom:1px solid var(--line); padding-bottom:6px;">
-            <span>Cash Partner Payouts Drawn (-)</span><span>${fmt(allTime.totalCashPayouts)}</span>
+            <span>Partner Payouts Drawn (-)</span><span>${fmt(allTime.totalPayouts)}</span>
           </div>
           <div style="display:flex; justify-content:space-between; margin-top:6px; font-weight:bold; color:var(--plum-deep);">
-            <span>Physical Cash In Hand (=)</span><span>${fmt(allTime.physicalCashInHand)}</span>
-          </div>
-          <div style="display:flex; justify-content:space-between; margin-top:10px; padding-top:6px; border-top:1px dashed var(--line); color:#8a8272;">
-            <span>+ Total Liquid Funds (Cash+Bank)</span><span>${fmt(allTime.liquidCash)}</span>
+            <span>Calculated Liquid Cash (=)</span><span>${fmt(allTime.liquidCash)}</span>
           </div>
         </div>
         <div class="note" style="margin-top:10px; color: var(--rust);">
-          <b>Note:</b> GPay sales/expenses/purchases are excluded from this tile on purpose — they never touch the till. Any record with no "Is Cash" value saved (old rows) defaults to Cash, matching how this app always behaved before.
+          <b>Note:</b> This combines Cash and GPay — every Sales-Revenue-funded cost is deducted the same way regardless of payment mode. If old expenses in your Google Sheet have a blank "Source of Funds" column, the app defaults to deducting them from Sales Revenue.
         </div>
       `;
     }
