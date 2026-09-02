@@ -177,16 +177,6 @@
       </div>
     </div>
 
-    <div class="card big-stat" style="border: 2px solid var(--rust);">
-      <div class="label util">Credit Outstanding</div>
-      <div class="value" id="d-credit-owed">₹0</div>
-      <div class="note" id="d-credit-count">0 contacts owe you</div>
-      <button class="toggle-details-btn" style="margin-top: 12px; font-size: 0.8rem;" onclick="toggleDetails('d-credit-list')">Show More ▼</button>
-      <div id="d-credit-list" class="details-expander" style="text-align: left;">
-        <!-- Injected by JS -->
-      </div>
-    </div>
-
     <div class="card">
       <h2>
         Financial Status
@@ -238,12 +228,6 @@
         <button type="button" data-p="today" onclick="setSalesFilter('today')">Today</button>
         <button type="button" data-p="week" onclick="setSalesFilter('week')">This Week</button>
         <button type="button" data-p="month" onclick="setSalesFilter('month')">This Month</button>
-      </div>
-      <div class="seg2" id="sales-paymode-filter" style="margin-top:8px;">
-        <button type="button" class="on" data-pm="all" onclick="setSalesPayFilter('all')">All Modes</button>
-        <button type="button" data-pm="cash" onclick="setSalesPayFilter('cash')">Cash</button>
-        <button type="button" data-pm="gpay" onclick="setSalesPayFilter('gpay')">GPay</button>
-        <button type="button" data-pm="credit" onclick="setSalesPayFilter('credit')">Credit</button>
       </div>
       <table style="margin-top:10px;">
         <thead><tr><th>Date</th><th>Lot</th><th>Type</th><th>Bags</th><th>KG</th><th>Amount</th><th></th></tr></thead>
@@ -435,7 +419,6 @@ const PIN_KEY = 'poondu-pin';
 let DATA = null;
 let currentReportPeriod = 'monthly';
 let salesFilter = 'all';
-let salesPayFilter = 'all';
 let expensesFilter = 'all';
 let dashFilter = 'all'; 
 let fabAction = null;
@@ -744,15 +727,6 @@ function setDashFilter(p) {
 
 function setReportPeriod(p){ currentReportPeriod = p; document.querySelectorAll('#view-reports .seg2 button').forEach(b=>b.classList.toggle('on', b.dataset.period === p)); renderReportTable(); }
 function setSalesFilter(p) { salesFilter = p; document.querySelectorAll('#sales-period-filter button').forEach(b=>b.classList.toggle('on', b.dataset.p===p)); renderSalesTable(); }
-function setSalesPayFilter(pm) { salesPayFilter = pm; document.querySelectorAll('#sales-paymode-filter button').forEach(b=>b.classList.toggle('on', b.dataset.pm===pm)); renderSalesTable(); }
-function saleMatchesPayFilter(s, pm) {
-  if (pm === 'all') return true;
-  if (pm === 'credit') return s.isCredit === true;
-  if (s.isCredit) return false;
-  if (pm === 'cash') return s.isCash !== false;
-  if (pm === 'gpay') return s.isCash === false;
-  return true;
-}
 function setExpensesFilter(p) { expensesFilter = p; document.querySelectorAll('#expenses-period-filter button').forEach(b=>b.classList.toggle('on', b.dataset.p===p)); renderExpensesTable(); }
 
 function inPeriod(dateStr, filter){
@@ -1077,9 +1051,7 @@ function openSaleModal(existing){
   window.__saleLineSeq = 0;
 
   const initialLines = saleLinesFor(s).length ? saleLinesFor(s) : [{ lotId:'', bags:'', kg:'' }];
-  const contactOptions = '<option value="">-- Optional (Select Buyer if registered) --</option>'
-    + DATA.contacts.filter(c=>!c.isDeleted).map(c=>`<option value="${c.id}" ${s.contactId===c.id?'selected':''}>${c.name}</option>`).join('')
-    + '<option value="__new__">+ Add new contact…</option>';
+  const contactOptions = '<option value="">-- Optional (Select Buyer if registered) --</option>' + DATA.contacts.filter(c=>!c.isDeleted).map(c=>`<option value="${c.id}" ${s.contactId===c.id?'selected':''}>${c.name}</option>`).join('');
 
   const linesHtml = initialLines.map(line => {
     const idx = window.__saleLineSeq++;
@@ -1089,15 +1061,8 @@ function openSaleModal(existing){
 
   const html = `
     <label>Date</label><input type="date" id="m-date" value="${safeDate(s.date)}">
-    <label id="m-contact-label">Buyer Name</label><select id="m-contact" onchange="onSaleContactSelectChange()">${contactOptions}</select>
+    <label id="m-contact-label">Buyer Name</label><select id="m-contact">${contactOptions}</select>
     <div class="note" id="sale-contact-required-note" style="display:none; color:var(--rust);">A credit sale must be linked to a buyer — that's who owes you.</div>
-    <div id="sale-new-contact-box" style="display:none; margin-top:8px;">
-      <label style="margin-top:0;">New Contact Name</label>
-      <div class="row2">
-        <input type="text" id="sale-new-contact-name" placeholder="e.g. Prabhu">
-        <button type="button" class="btn secondary" style="margin-top:0;" onclick="createInlineContact()">Add</button>
-      </div>
-    </div>
     <label>Sales Type</label>
     <div class="seg2">
       <button type="button" id="m-ch-retail" class="${s.channel==='Retail'?'on':''}" onclick="setModalChannel('Retail')">Retail</button>
@@ -1119,8 +1084,7 @@ function openSaleModal(existing){
 
   openModal(existing ? 'Edit Sale' : 'Add Sale', html, async () => {
     const date = document.getElementById('m-date').value || todayISO();
-    let contactId = document.getElementById('m-contact').value;
-    if (contactId === '__new__') contactId = '';
+    const contactId = document.getElementById('m-contact').value;
     const amount = Number(document.getElementById('m-amount').value)||0;
     const note = document.getElementById('m-note').value.trim();
     const channel = window.__modalChannel || s.channel;
@@ -1137,10 +1101,6 @@ function openSaleModal(existing){
     if (!lines.length) { showToast('Please select at least one lot with bags or KG.', true); return false; }
     if (!amount) { showToast('Please enter the amount collected.', true); return false; }
     if (isCredit && !contactId) { showToast('Select a buyer for a credit sale — that\'s who owes you.', true); return false; }
-    if (existing && existing.isCredit === true && !isCredit && saleCreditRepaidAmount(existing.id) > 0) {
-      showToast('This sale already has repayments logged against it — it converts to Paid automatically once fully repaid. Log or delete a repayment instead of changing its payment mode.', true);
-      return false;
-    }
 
     const totalBags = lines.reduce((sum,l)=>sum+l.bags,0);
     const totalKg = lines.reduce((sum,l)=>sum+l.kg,0);
@@ -1193,32 +1153,6 @@ function refreshSaleLineChrome(){
     if (cell) cell.innerHTML = window.__saleLineIdx.length > 1 ? `<button type="button" class="btn ghost" style="margin-top:0; width:auto; padding:6px 12px;" onclick="removeSaleLine(${idx})">Remove</button>` : '';
   });
   updateSaleLineTotals();
-}
-
-function onSaleContactSelectChange(){
-  const sel = document.getElementById('m-contact');
-  const box = document.getElementById('sale-new-contact-box');
-  if (!sel || !box) return;
-  box.style.display = sel.value === '__new__' ? 'block' : 'none';
-  if (sel.value === '__new__') setTimeout(()=>document.getElementById('sale-new-contact-name')?.focus(), 10);
-}
-async function createInlineContact(){
-  const nameEl = document.getElementById('sale-new-contact-name');
-  const name = (nameEl?.value||'').trim();
-  if (!name) { showToast('Enter a name for the new contact.', true); return; }
-  const id = uid();
-  const contact = { id, name, type:'Buyer', phone:'', location:'', note:'', addedBy: getActor(), isDeleted: false };
-  DATA.contacts.push(contact);
-  sendAction('addContact', contact, id);
-  const sel = document.getElementById('m-contact');
-  if (sel) {
-    const opt = document.createElement('option');
-    opt.value = id; opt.textContent = name; opt.selected = true;
-    sel.insertBefore(opt, sel.lastElementChild);
-    sel.value = id;
-  }
-  document.getElementById('sale-new-contact-box').style.display = 'none';
-  showToast(`${name} added as a contact.`);
 }
 
 function autoFillSaleLine(idx){
@@ -1444,51 +1378,11 @@ function openContactModal(existing){
 async function deleteContact(id){ confirmThen('Delete contact?', async () => { const idx = DATA.contacts.findIndex(c=>c.id===id); if(idx !== -1) { DATA.contacts[idx].isDeleted = true; renderActiveView(); sendAction('deleteContact', {id}, id); } }); }
 
 function salePayModeBadge(s){
-  if (s.isCredit) {
-    if (isSaleFullyRepaid(s)) return `<span class="badge cash">Paid</span>`;
-    const remaining = saleCreditRemaining(s);
-    const partial = remaining < (Number(s.amount)||0);
-    return `<span class="badge owe">Credit${partial ? ' · '+fmt(remaining)+' left' : ''}</span>`;
-  }
+  if (s.isCredit) return `<span class="badge owe">Credit</span>`;
   return `<span class="badge ${s.isCash!==false?'cash':'gpay'}">${s.isCash!==false?'Cash':'GPay'}</span>`;
 }
 
 // ---- Credit / Dues to contacts ----
-// Repayments are allocated to specific credit sales FIFO (oldest sale first) at the
-// moment they're logged, and the breakdown is stored on the repayment record as
-// `allocations`. A sale is never manually flipped out of Credit — once its FIFO-allocated
-// repayments cover its full amount, it's simply displayed as "Paid" instead of "Credit".
-// This keeps the underlying liquidCash/physicalCashInHand math (which only ever looks at
-// aggregate sale/repayment amounts, never at isCredit mutations) safe from double-counting.
-function saleCreditRepaidAmount(saleId){
-  return (DATA.creditPayments||[]).filter(p=>!p.isDeleted).reduce((sum,p)=>{
-    const allocs = Array.isArray(p.allocations) ? p.allocations : [];
-    return sum + allocs.filter(a=>a.saleId===saleId).reduce((s,a)=>s+(Number(a.amount)||0), 0);
-  }, 0);
-}
-function saleCreditRemaining(sale){
-  return Math.max(0, (Number(sale.amount)||0) - saleCreditRepaidAmount(sale.id));
-}
-function isSaleFullyRepaid(sale){
-  return sale.isCredit === true && saleCreditRemaining(sale) <= 0.5;
-}
-function contactOpenCreditSales(contactId){
-  return DATA.sales.filter(s => !s.isDeleted && s.isCredit && s.contactId === contactId)
-    .sort((a,b) => (a.date||'').localeCompare(b.date||'') || String(a.id).localeCompare(String(b.id)));
-}
-function allocateRepaymentFIFO(contactId, amount){
-  let remaining = Number(amount)||0;
-  const allocations = [];
-  for (const sale of contactOpenCreditSales(contactId)) {
-    if (remaining <= 0) break;
-    const owedOnSale = saleCreditRemaining(sale);
-    if (owedOnSale <= 0) continue;
-    const alloc = Math.min(owedOnSale, remaining);
-    allocations.push({ saleId: sale.id, amount: alloc });
-    remaining -= alloc;
-  }
-  return { allocations, unallocated: remaining };
-}
 function contactCreditGiven(contactId){
   return DATA.sales.filter(s => !s.isDeleted && s.isCredit && s.contactId === contactId).reduce((s,x)=>s+(Number(x.amount)||0), 0);
 }
@@ -1500,9 +1394,6 @@ function contactBalanceOwed(contactId){
 }
 function totalOutstandingCredit(){
   return DATA.contacts.filter(c=>!c.isDeleted).reduce((s,c)=>s+Math.max(0, contactBalanceOwed(c.id)), 0);
-}
-function contactsWithOutstandingCredit(){
-  return DATA.contacts.filter(c=>!c.isDeleted).map(c=>({c, owed: contactBalanceOwed(c.id)})).filter(x=>x.owed>0.5).sort((a,b)=>b.owed-a.owed);
 }
 
 function openRepaymentModal(presetContactId){
@@ -1536,14 +1427,12 @@ function openRepaymentModal(presetContactId){
     if (!contactId) { showToast('Select a contact.', true); return false; }
     if (!amount) { showToast('Enter the amount repaid.', true); return false; }
 
-    const { allocations, unallocated } = allocateRepaymentFIFO(contactId, amount);
     const id = uid();
-    const record = { id, date, contactId, amount, isCash, note, allocations, addedBy: getActor(), isDeleted: false };
+    const record = { id, date, contactId, amount, isCash, note, addedBy: getActor(), isDeleted: false };
     DATA.creditPayments.push(record);
     renderActiveView();
     sendAction('addCreditPayment', record, id);
-    if (unallocated > 0.5) showToast(`Repayment logged. ${fmt(unallocated)} was more than they owed — recorded but not tied to any sale.`);
-    else showToast('Repayment logged.');
+    showToast('Repayment logged.');
   }, 'Save');
 
   setTimeout(() => {
@@ -1878,22 +1767,6 @@ function renderDashboard(){
     }
   }
 
-  const elCreditOwed = document.getElementById('d-credit-owed');
-  const elCreditCount = document.getElementById('d-credit-count');
-  const elCreditList = document.getElementById('d-credit-list');
-  if (elCreditOwed) {
-    const owingList = contactsWithOutstandingCredit();
-    const total = owingList.reduce((s,x)=>s+x.owed, 0);
-    elCreditOwed.textContent = fmt(total);
-    if (elCreditCount) elCreditCount.textContent = `${owingList.length} contact${owingList.length===1?'':'s'} owe${owingList.length===1?'s':''} you`;
-    if (elCreditList) {
-      elCreditList.innerHTML = owingList.length ? owingList.map(x => `
-        <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--line);">
-          <span>${x.c.name}</span><span style="color:var(--rust); font-weight:bold;">${fmt(x.owed)}</span>
-        </div>`).join('') : '<div class="note">Nobody currently owes you on credit.</div>';
-    }
-  }
-
   if(elRev) elRev.textContent = fmt(t.revenue);
   if(elCogs) elCogs.textContent = fmt(t.cogs);
   if(elExp) elExp.textContent = fmt(t.shopExpenseTotal);
@@ -2128,7 +2001,7 @@ function renderInventory(){
 
 function renderSalesTable(){
   const body = document.getElementById('sales-table'); if(!body) return;
-  const sorted = DATA.sales.filter(s=> !s.isDeleted && inPeriod(s.date, salesFilter) && saleMatchesPayFilter(s, salesPayFilter)).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const sorted = DATA.sales.filter(s=> !s.isDeleted && inPeriod(s.date, salesFilter)).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
   body.innerHTML = sorted.map(s=>`
     <tr>
       <td>${s.date}<div class="by-line">${s.addedBy||'System'}</div></td>

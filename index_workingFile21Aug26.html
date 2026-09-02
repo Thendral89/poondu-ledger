@@ -92,8 +92,6 @@
   .badge.type-tag { background: #8e7d6b; color: #fff; }
   .badge.wholesale { background: var(--plum); }
   .badge.retail { background: var(--sage); }
-  .badge.cash { background: var(--sage); }
-  .badge.gpay { background: var(--plum); }
   
   .lot-card { border: 1px solid var(--line); border-radius: 5px; padding: 12px; margin-bottom: 10px; background: var(--paper-dim); }
   .lot-card .lot-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
@@ -134,7 +132,7 @@
 <header>
   <div>
     <h1>🧄 Poondu Ledger</h1>
-    <div class="sub">TNS Traders</div>
+    <div class="sub">Thendral · Nagaraj · Senthil</div>
   </div>
   <div class="header-right">
     <div id="sync-badge" class="sync-badge pending util">connecting…</div>
@@ -164,11 +162,12 @@
       <div class="value" id="d-bags-left">—</div>
       <div class="note" id="d-kg-left"></div>
     </div>
-    
+	
+
     <div class="card big-stat" style="border: 2px solid var(--sage);">
       <div class="label util">Cash In Hand (Liquid)</div>
       <div class="value" id="d-cash-hand">₹0</div>
-      <div class="note">Sales revenue minus shop expenses, revenue-funded procurement, revenue-funded tagged lot expenses, and payouts already drawn. Combines Cash + GPay — every Sales-Revenue-funded cost is deducted the same way regardless of payment mode.</div>
+      <div class="note">Sales revenue minus shop expenses, revenue-funded procurement, revenue-funded tagged lot expenses, and payouts already drawn.</div>
       
       <button class="toggle-details-btn" style="margin-top: 12px; font-size: 0.8rem;" onclick="toggleDetails('cash-breakdown')">Show Calculation Breakdown ▼</button>
       
@@ -177,23 +176,12 @@
       </div>
     </div>
 
-    <div class="card big-stat" style="border: 2px solid var(--rust);">
-      <div class="label util">Credit Outstanding</div>
-      <div class="value" id="d-credit-owed">₹0</div>
-      <div class="note" id="d-credit-count">0 contacts owe you</div>
-      <button class="toggle-details-btn" style="margin-top: 12px; font-size: 0.8rem;" onclick="toggleDetails('d-credit-list')">Show More ▼</button>
-      <div id="d-credit-list" class="details-expander" style="text-align: left;">
-        <!-- Injected by JS -->
-      </div>
-    </div>
-
     <div class="card">
       <h2>
         Financial Status
-        <div class="seg2" style="width: 220px; margin-top:0;">
+        <div class="seg2" style="width: 140px; margin-top:0;">
           <button type="button" id="dash-btn-all" class="on" onclick="setDashFilter('all')">All Time</button>
-          <button type="button" id="dash-btn-prevmonth" onclick="setDashFilter('prevmonth')">Prev Month</button>
-          <button type="button" id="dash-btn-month" onclick="setDashFilter('month')">This Month</button>
+          <button type="button" id="dash-btn-month" onclick="setDashFilter('month')">Month</button>
         </div>
       </h2>
       <div class="stat-grid">
@@ -239,12 +227,6 @@
         <button type="button" data-p="week" onclick="setSalesFilter('week')">This Week</button>
         <button type="button" data-p="month" onclick="setSalesFilter('month')">This Month</button>
       </div>
-      <div class="seg2" id="sales-paymode-filter" style="margin-top:8px;">
-        <button type="button" class="on" data-pm="all" onclick="setSalesPayFilter('all')">All Modes</button>
-        <button type="button" data-pm="cash" onclick="setSalesPayFilter('cash')">Cash</button>
-        <button type="button" data-pm="gpay" onclick="setSalesPayFilter('gpay')">GPay</button>
-        <button type="button" data-pm="credit" onclick="setSalesPayFilter('credit')">Credit</button>
-      </div>
       <table style="margin-top:10px;">
         <thead><tr><th>Date</th><th>Lot</th><th>Type</th><th>Bags</th><th>KG</th><th>Amount</th><th></th></tr></thead>
         <tbody id="sales-table"></tbody>
@@ -282,38 +264,29 @@
 
   <!-- VIEW: CONTACTS -->
   <div class="view" id="view-contacts">
-    <div class="card" style="border: 2px solid var(--rust);">
-      <h2>Credit Given Out</h2>
-      <div class="note">Money owed to you by contacts on credit sales — excluded from Cash In Hand until they repay.</div>
-      <div class="stat-grid" style="margin-top:10px;">
-        <div class="stat"><div class="label">Total Outstanding Credit</div><div class="value" id="c-total-owed">₹0</div></div>
-      </div>
-      <button class="btn secondary" style="margin-top:10px;" onclick="openRepaymentModal()">Log Credit Repayment</button>
-    </div>
     <div class="card">
       <h2>Business Contacts</h2>
       <div class="note">Keep track of regular buyers, farmers, and transport drivers.</div>
       <table style="margin-top:10px;">
-        <thead><tr><th>Name</th><th>Type</th><th>Phone</th><th>Owes</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>Type</th><th>Phone</th><th>Location</th><th></th></tr></thead>
         <tbody id="contacts-table"></tbody>
       </table>
       <div class="empty" id="contacts-empty" style="display:none;">No contacts logged. Press + to register.</div>
     </div>
   </div>
 
-  <!-- VIEW: REPORTS (Upgraded with Flex Charts) -->
+  <!-- VIEW: REPORTS -->
   <div class="view" id="view-reports">
     <div class="card">
-      <h2>Business Analytics & Trends</h2>
+      <h2>Aggregated Period Reporting</h2>
       <div class="seg2">
         <button type="button" class="on" data-period="daily" onclick="setReportPeriod('daily')">Daily</button>
         <button type="button" data-period="weekly" onclick="setReportPeriod('weekly')">Weekly</button>
         <button type="button" data-period="monthly" onclick="setReportPeriod('monthly')">Monthly</button>
         <button type="button" data-period="quarterly" onclick="setReportPeriod('quarterly')">Quarterly</button>
-        <button type="button" data-period="yearly" onclick="setReportPeriod('yearly')">Yearly</button>
       </div>
-      <table style="margin-top:16px;">
-        <thead><tr><th style="width:25%;">Period</th><th style="width:35%;">Revenue Trend</th><th>Shop Exp.</th><th>Bags</th></tr></thead>
+      <table style="margin-top:12px;">
+        <thead><tr><th>Period</th><th>Revenue</th><th>Shop Expenses</th><th>Bags Sold</th></tr></thead>
         <tbody id="report-table"></tbody>
       </table>
     </div>
@@ -323,13 +296,13 @@
   <div class="view" id="view-partners">
     <div class="card" style="border: 2px solid var(--plum);">
       <h2>3-Way Payout Engine</h2>
-      <div class="note">Distributes total liquid funds (cash + GPay/bank combined) safely — excludes capital tied up in inventory and any lot expenses tagged as Partner Capital. This is deliberately NOT the same number as the "Cash In Hand (Physical)" dashboard tile — it also counts money sitting in the bank from GPay sales, which is real distributable profit even though it isn't in the till.</div>
+      <div class="note">Distributes actual liquid cash safely (excludes capital tied up in inventory and any lot expenses tagged as Partner Capital).</div>
       <div style="margin: 12px 0;">
         <label>Retained Shop Cash Reserve / Working Capital (₹)</label>
         <input type="number" id="payout-reserve-input" value="50000" oninput="calculatePayoutState()">
       </div>
       <div class="stat-grid" style="margin: 12px 0;">
-        <div class="stat"><div class="label">Total Liquid Funds (Cash+Bank)</div><div class="value" id="rep-liquid-cash">₹0</div></div>
+        <div class="stat"><div class="label">Total Liquid Cash Available</div><div class="value" id="rep-liquid-cash">₹0</div></div>
         <div class="stat"><div class="label">Cash to Distribute</div><div class="value" id="rep-distributable">₹0</div></div>
         <div class="stat"><div class="label">Per Partner (1/3)</div><div class="value" id="rep-per-head">₹0</div></div>
       </div>
@@ -371,7 +344,7 @@
 
     <div class="card">
       <h2>Cash Drawer Check <span style="font-family:'Helvetica Neue',Arial,sans-serif; font-size:0.62rem; font-weight:normal; text-transform:none; color:#8a8272;">(leakage check)</span></h2>
-      <div class="note">Count the cash actually on hand. The app compares it to Cash In Hand (Physical) — cash sales minus cash-paid expenses only, GPay excluded — so a customer or supplier paying by GPay never shows up as a fake mismatch. Any real gap is cash going untracked.</div>
+      <div class="note">Count the cash actually on hand. The app compares it to what the books say should be there (revenue minus logged expenses minus capital-funded spend). The gap is cash going untracked.</div>
       <button class="btn secondary" onclick="openCashCheckModal()">New Cash Check</button>
       <div id="cash-checks-list" style="margin-top:14px;"></div>
       <div class="empty" id="cash-checks-empty" style="display:none;">No cash checks logged yet.</div>
@@ -426,28 +399,17 @@
 <div id="toast" class="util"></div>
 
 <script>
-// 🔥 YOUR APPS SCRIPT URL HERE
-const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwzfMCYsD2UREni9V9K3aRQsFdp-xRUBX7njKDU1Fjp3W50ds49Fn8vWwY6VNkUqKFp/exec";
+// 🔥 PASTE YOUR NEW APPS SCRIPT URL HERE
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwylXMfy1kdcS94H7fTN2-BJ3fBMmjMChZsH5JG6NeLozdjzPr5soQ3VbL1m2xIoS4p/exec";
 const KEY = 'garlic-business-data';
 const ACTOR_KEY = 'poondu-actor';
-const PIN_KEY = 'poondu-pin';
 
 let DATA = null;
 let currentReportPeriod = 'monthly';
 let salesFilter = 'all';
-let salesPayFilter = 'all';
 let expensesFilter = 'all';
 let dashFilter = 'all'; 
 let fabAction = null;
-let invLimit = 10; // Controls lazy rendering for inventory
-
-// Highly efficient date formatter for UI cleanliness (e.g., "08 Aug")
-function shortDate(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-}
 
 const todayISO = () => {
   const d = new Date();
@@ -483,7 +445,7 @@ function defaultData(){
       Nagaraj:  {required:650000, contributed:289550},
       Senthil:  {required:650000, contributed:625953}
     },
-    lots: [], sales: [], expenses: [], capitalLoans: [], contacts: [], stockCounts: [], cashChecks: [], creditPayments: []
+    lots: [], sales: [], expenses: [], capitalLoans: [], contacts: [], stockCounts: [], cashChecks: []
   };
 }
 
@@ -554,6 +516,10 @@ async function jsonp(url, timeoutMs = 25000){
 
     function finalCleanup(){
       script.remove();
+      // Don't delete the callback immediately: if Apps Script's response arrives late
+      // (after we've already given up), the browser will still try to invoke it, and
+      // deleting it now would throw "callback is not defined". Absorb late arrivals
+      // silently for a grace period instead, then clean up for real.
       window[cbName] = () => {};
       setTimeout(() => { delete window[cbName]; }, 60000);
     }
@@ -593,38 +559,29 @@ async function jsonpWithRetry(url, attempts = 2, timeoutMs = 25000){
 }
 
 async function fetchCloudState(){
-  const pin = localStorage.getItem(PIN_KEY) || '';
-  const url = CLOUD_URL + '?pin=' + encodeURIComponent(pin);
-  const json = await jsonpWithRetry(url, 2, 25000);
-  
-  if (json && json.status === 'error') {
-      showToast(json.message, true);
-      return null;
-  }
-  
+  const json = await jsonpWithRetry(CLOUD_URL, 2, 25000);
   if (!json || !json.config) return null;
-  ['lots', 'sales', 'expenses', 'capitalLoans', 'contacts', 'stockCounts', 'cashChecks', 'creditPayments'].forEach(k => json[k] = json[k] || []);
+  ['lots', 'sales', 'expenses', 'capitalLoans', 'contacts', 'stockCounts', 'cashChecks'].forEach(k => json[k] = json[k] || []);
   if (!json.partners || Object.keys(json.partners).length === 0) {
     json.partners = defaultData().partners;
   }
   return json;
 }
 
-// 🚀 FAST BACKGROUND SYNC
 async function sendAction(action, payload, id){
   setSyncBadge('pending', 'syncing…');
   try {
-    const pin = localStorage.getItem(PIN_KEY) || '';
     const url = CLOUD_URL + '?action=' + encodeURIComponent(action)
       + '&payload=' + encodeURIComponent(JSON.stringify(payload || {}))
-      + '&pin=' + encodeURIComponent(pin)
       + (id ? '&id=' + encodeURIComponent(id) : '');
-      
     const res = await jsonp(url);
     if (res && res.status === 'success') {
       setSyncBadge('ok', 'synced');
       showToast('Saved to cloud ✓');
-      localStorage.setItem(KEY, JSON.stringify(DATA)); 
+      // Background sync to ensure we are up to date
+      fetchCloudState().then(fresh => {
+        if (fresh) { DATA = fresh; localStorage.setItem(KEY, JSON.stringify(DATA)); renderAll(); }
+      });
       return true;
     }
     
@@ -632,27 +589,18 @@ async function sendAction(action, payload, id){
     setSyncBadge('err', 'failed');
     showToast('Failed to save: ' + (res?.message || 'Unknown error'), true);
     fetchCloudState().then(fresh => {
-      if (fresh) { DATA = fresh; localStorage.setItem(KEY, JSON.stringify(DATA)); renderActiveView(); }
+        if (fresh) { DATA = fresh; localStorage.setItem(KEY, JSON.stringify(DATA)); renderAll(); }
     });
     return false;
   } catch(e){
     setSyncBadge('err', 'offline');
     showToast('Offline Mode: Saved locally.', true);
-    localStorage.setItem(KEY, JSON.stringify(DATA));
     return false;
   }
 }
 
 async function init(){
   document.getElementById('settings-url').textContent = CLOUD_URL;
-  
-  // 🚀 PIN CHECK
-  let myPin = localStorage.getItem(PIN_KEY);
-  if (!myPin) {
-    myPin = prompt("Enter Ledger PIN to access data:");
-    if (myPin) localStorage.setItem(PIN_KEY, myPin);
-  }
-
   document.getElementById('loading').style.display='block';
   const actor = getActor();
   if (actor) document.getElementById('actor-pill').textContent = actor;
@@ -671,7 +619,7 @@ async function init(){
 
   document.getElementById('loading').style.display='none';
   populateFormsFromData();
-  renderAll(); // Initial paint
+  renderAll();
   if (!getActor()) openActorPicker();
 }
 
@@ -682,11 +630,11 @@ async function manualRefresh(){
     DATA = cloud;
     localStorage.setItem(KEY, JSON.stringify(DATA));
     setSyncBadge('ok', 'synced');
-    renderActiveView();
+    renderAll();
     showToast('Data is up to date ✓');
   } else {
     setSyncBadge('err', 'offline');
-    showToast('Network error or bad PIN.', true);
+    showToast('Network error.', true);
   }
 }
 
@@ -699,21 +647,6 @@ const FAB_CONFIG = {
   reconcile: { action: () => openStockCountModal() }
 };
 
-// 🚀 LAZY RENDERING ENGINE
-function renderActiveView() {
-  const activeBtn = document.querySelector('nav button.active');
-  const view = activeBtn ? activeBtn.dataset.view : 'dashboard';
-  
-  if (view === 'dashboard') renderDashboard();
-  else if (view === 'sales') { renderSalesTable(); renderWeeklyStockCheck(); }
-  else if (view === 'inventory') renderInventory();
-  else if (view === 'expenses') renderExpensesTable();
-  else if (view === 'contacts') renderContactsTable();
-  else if (view === 'reports') renderReportTable();
-  else if (view === 'partners') { renderPartners(); calculatePayoutState(); }
-  else if (view === 'reconcile') renderReconcile();
-}
-
 function bindNav(){
   document.querySelectorAll('nav button').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -723,8 +656,10 @@ function bindNav(){
       const view = btn.dataset.view;
       document.getElementById('view-'+view).classList.add('active');
       
-      // Render ONLY the active view to keep the app lightning fast
-      renderActiveView();
+      if (view==='reports') renderReportTable();
+      if (view==='partners') calculatePayoutState();
+      if (view==='sales') renderWeeklyStockCheck();
+      if (view==='reconcile') renderReconcile();
 
       const fab = document.getElementById('fab');
       const cfg = FAB_CONFIG[view];
@@ -737,22 +672,12 @@ function bindNav(){
 function setDashFilter(p) {
   dashFilter = p;
   document.getElementById('dash-btn-all').classList.toggle('on', p==='all');
-  document.getElementById('dash-btn-prevmonth').classList.toggle('on', p==='prevmonth');
   document.getElementById('dash-btn-month').classList.toggle('on', p==='month');
   renderDashboard();
 }
 
 function setReportPeriod(p){ currentReportPeriod = p; document.querySelectorAll('#view-reports .seg2 button').forEach(b=>b.classList.toggle('on', b.dataset.period === p)); renderReportTable(); }
 function setSalesFilter(p) { salesFilter = p; document.querySelectorAll('#sales-period-filter button').forEach(b=>b.classList.toggle('on', b.dataset.p===p)); renderSalesTable(); }
-function setSalesPayFilter(pm) { salesPayFilter = pm; document.querySelectorAll('#sales-paymode-filter button').forEach(b=>b.classList.toggle('on', b.dataset.pm===pm)); renderSalesTable(); }
-function saleMatchesPayFilter(s, pm) {
-  if (pm === 'all') return true;
-  if (pm === 'credit') return s.isCredit === true;
-  if (s.isCredit) return false;
-  if (pm === 'cash') return s.isCash !== false;
-  if (pm === 'gpay') return s.isCash === false;
-  return true;
-}
 function setExpensesFilter(p) { expensesFilter = p; document.querySelectorAll('#expenses-period-filter button').forEach(b=>b.classList.toggle('on', b.dataset.p===p)); renderExpensesTable(); }
 
 function inPeriod(dateStr, filter){
@@ -765,10 +690,6 @@ function inPeriod(dateStr, filter){
     return d >= monday;
   }
   if (filter === 'month') return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
-  if (filter === 'prevmonth') {
-    const pm = new Date(now.getFullYear(), now.getMonth()-1, 1);
-    return d.getFullYear()===pm.getFullYear() && d.getMonth()===pm.getMonth();
-  }
   return true;
 }
 
@@ -781,6 +702,7 @@ function lotStats(lot){
   });
   
   const linkedExpenses = DATA.expenses.filter(x => x.referenceId === lot.id && !x.isDeleted);
+  
   const procurementExp = linkedExpenses.filter(x => x.type === 'Procurement');
   
   let addedBagsG0 = 0;
@@ -799,9 +721,11 @@ function lotStats(lot){
   });
   
   const addedKg = procurementExp.reduce((s, x) => s + (Number(x.kg) || 0), 0);
+  
   let initialG0 = Number(lot.bagsG0) || 0;
   let initialG1 = Number(lot.bagsG1) || 0;
   
+  // fallback for older lots
   if (initialG0 === 0 && initialG1 === 0 && (Number(lot.bags)||0) > 0) {
       if (lot.location === 'G+1') initialG1 = Number(lot.bags);
       else initialG0 = Number(lot.bags);
@@ -870,25 +794,13 @@ function totals(period = 'all'){
   
   const allTimeSales = DATA.sales.filter(s => !s.isDeleted);
   const allTimeExpenses = DATA.expenses.filter(x => !x.isDeleted);
-  const allTimeCreditPayments = (DATA.creditPayments||[]).filter(p => !p.isDeleted);
-
-  // isCash/isCredit default true/false respectively for any legacy record saved before
-  // these fields existed, matching how the app always implicitly behaved before.
-  const isCashTrue = v => v !== false;
-  const isCreditSale = s => s.isCredit === true;
-
-  // "totalRevenue" = ALL sales booked (incl. credit) — accrual view, shown for reference.
+  
   const totalRevenue = allTimeSales.reduce((s,x)=>s+(Number(x.amount)||0), 0);
-  // Money actually collected at time of sale — excludes credit sales, since no money
-  // changed hands yet for those.
-  const totalCollectedRevenue = allTimeSales.filter(s => !isCreditSale(s)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
-  const totalCreditGiven = allTimeSales.filter(isCreditSale).reduce((s,x)=>s+(Number(x.amount)||0), 0);
-  const totalCreditRepaid = allTimeCreditPayments.reduce((s,x)=>s+(Number(x.amount)||0), 0);
-  const outstandingCredit = totalCreditGiven - totalCreditRepaid;
-
   const totalGeneralExpenses = allTimeExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw').reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const totalPayouts = allTimeExpenses.filter(x => x.type === 'Payout / Partner Draw').reduce((s,x)=>s+(Number(x.amount)||0), 0);
 
+  // Lot-tagged expenses: only ones funded by Sales Revenue actually draw down the shop's liquid cash.
+  // Blank/undefined sourceOfFunds defaults to 'Sales Revenue' for backward compatibility with older rows.
   const taggedExpenses = allTimeExpenses.filter(x => !!x.referenceId);
   const revenueFundedTaggedExpenses = taggedExpenses
     .filter(x => (x.sourceOfFunds || 'Sales Revenue') === 'Sales Revenue')
@@ -896,46 +808,22 @@ function totals(period = 'all'){
   const capitalFundedTaggedExpenses = taggedExpenses
     .filter(x => x.sourceOfFunds === 'Partner Capital')
     .reduce((s,x)=>s+(Number(x.amount)||0), 0);
-
+  
   const revenueFundedLotsCost = activeLots.filter(l => l.sourceOfFunds === 'Sales Revenue').reduce((s, l) => s + (Number(l.cost)||0) + (Number(l.loadingCost)||0) + (Number(l.gradingCost)||0), 0);
+  
+  const liquidCash = totalRevenue - totalGeneralExpenses - totalPayouts - revenueFundedLotsCost - revenueFundedTaggedExpenses;
 
-  // "liquidCash" = TOTAL liquid funds actually collected (cash + GPay/bank combined),
-  // payment-mode agnostic, credit-aware. Credit sales don't count until repaid; the
-  // moment a repayment is logged, it counts here regardless of how it was repaid. This
-  // is what the 3-way payout engine distributes from — GPay revenue sitting in the
-  // bank is real distributable profit even though it never enters the physical till,
-  // but uncollected credit is not, since you don't actually have that money yet.
-  const liquidCash = totalCollectedRevenue + totalCreditRepaid - totalGeneralExpenses - totalPayouts - revenueFundedLotsCost - revenueFundedTaggedExpenses;
-
-  // ---- Physical cash (till) breakdown ----
-  const totalCashRevenue = allTimeSales.filter(s => !isCreditSale(s) && isCashTrue(s.isCash)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
-  const totalCashCreditRepaid = allTimeCreditPayments.filter(p => isCashTrue(p.isCash)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
-  const totalCashGeneralExpenses = allTimeExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw' && isCashTrue(x.isCash)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
-  const totalCashPayouts = allTimeExpenses.filter(x => x.type === 'Payout / Partner Draw' && isCashTrue(x.isCash)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
-  const cashFundedTaggedExpenses = taggedExpenses
-    .filter(x => (x.sourceOfFunds || 'Sales Revenue') === 'Sales Revenue' && isCashTrue(x.isCash))
-    .reduce((s,x)=>s+(Number(x.amount)||0), 0);
-  const cashFundedLotsCost = activeLots
-    .filter(l => l.sourceOfFunds === 'Sales Revenue' && isCashTrue(l.isCash))
-    .reduce((s, l) => s + (Number(l.cost)||0) + (Number(l.loadingCost)||0) + (Number(l.gradingCost)||0), 0);
-
-  const physicalCashInHand = totalCashRevenue + totalCashCreditRepaid - totalCashGeneralExpenses - totalCashPayouts - cashFundedLotsCost - cashFundedTaggedExpenses;
-
-  return {
-    remainingBags, remainingKg, revenue, cogs, shopExpenseTotal,
-    profit: revenue - cogs - shopExpenseTotal,
-    liquidCash,
-    totalRevenue, totalCollectedRevenue, totalGeneralExpenses, totalPayouts,
-    totalCreditGiven, totalCreditRepaid, outstandingCredit,
-    revenueFundedLotsCost, revenueFundedTaggedExpenses, capitalFundedTaggedExpenses,
-    physicalCashInHand, totalCashRevenue, totalCashCreditRepaid, totalCashGeneralExpenses, totalCashPayouts,
-    cashFundedLotsCost, cashFundedTaggedExpenses
-  };
+  return { 
+    remainingBags, remainingKg, revenue, cogs, shopExpenseTotal, 
+    profit: revenue - cogs - shopExpenseTotal, liquidCash, totalRevenue, totalGeneralExpenses, totalPayouts, 
+    revenueFundedLotsCost, revenueFundedTaggedExpenses, capitalFundedTaggedExpenses };
 }
 
 function lotLabel(lotId){ return DATA.lots.find(x=>x.id===lotId)?.label || 'Unknown Lot'; }
 function contactLabel(cId){ return DATA.contacts.find(x=>x.id===cId)?.name || ''; }
 
+// Returns a sale's lot breakdown as [{lotId, bags, kg}, ...] regardless of whether it's an
+// old single-lot sale (lotId/bags/kg at the top level) or a new multi-lot sale ('lines' array).
 function saleLinesFor(sale){
   if (Array.isArray(sale.lines) && sale.lines.length) return sale.lines;
   if (sale.lotId) return [{ lotId: sale.lotId, bags: Number(sale.bags)||0, kg: Number(sale.kg)||0 }];
@@ -965,9 +853,8 @@ function populateFormsFromData(){
 }
 
 function openLotModal(existing){
-  const l = existing || { label:'', bagsG0:'', bagsG1:'', bags:'', kg:'', cost:'', loadingCost:'', gradingCost:'', sourceOfFunds:'Partner Capital', weightLossKg:0, dateAdded: todayISO(), isCash: true };
-  window.__modalSource = l.sourceOfFunds;
-  window.__modalLotPayMode = l.isCash !== false;
+  const l = existing || { label:'', bagsG0:'', bagsG1:'', bags:'', kg:'', cost:'', loadingCost:'', gradingCost:'', sourceOfFunds:'Partner Capital', weightLossKg:0, dateAdded: todayISO() };
+  window.__modalSource = l.sourceOfFunds; 
   
   let initG0 = l.bagsG0 || '';
   let initG1 = l.bagsG1 || '';
@@ -1002,19 +889,11 @@ function openLotModal(existing){
       <button type="button" id="m-src-cap" class="${l.sourceOfFunds==='Partner Capital'?'on':''}" onclick="setModalSource('Partner Capital')">Partner Capital</button>
       <button type="button" id="m-src-rev" class="${l.sourceOfFunds==='Sales Revenue'?'on':''}" onclick="setModalSource('Sales Revenue')">Sales Revenue</button>
     </div>
-    <div id="lot-paymode-row" style="display: ${l.sourceOfFunds==='Sales Revenue' ? 'block' : 'none'};">
-      <label style="margin-top: 10px;">Paid Via</label>
-      <div class="seg2">
-        <button type="button" id="m-lot-pay-cash" class="${l.isCash!==false?'on':''}" onclick="setModalLotPayMode(true)">Cash</button>
-        <button type="button" id="m-lot-pay-gpay" class="${l.isCash===false?'on':''}" onclick="setModalLotPayMode(false)">GPay</button>
-      </div>
-      <div class="note">Cash paid to a farmer/supplier reduces Physical Cash In Hand. GPay does not touch the till.</div>
-    </div>
     <div class="row2" style="margin-top: 10px;">
       <div><label>Date</label><input type="date" id="m-date" value="${safeDate(l.dateAdded)}"></div>
       <div></div>
     </div>`;
-
+  
   openModal(existing ? 'Edit Lot' : 'Add New Lot', html, async () => {
     const label = document.getElementById('m-label').value.trim();
     const bagsG0 = Number(document.getElementById('m-bags-g0').value)||0;
@@ -1025,20 +904,19 @@ function openLotModal(existing){
     const loadingCost = Number(document.getElementById('m-loading').value)||0;
     const gradingCost = Number(document.getElementById('m-grading').value)||0;
     const sourceOfFunds = window.__modalSource || l.sourceOfFunds;
-    const isCash = sourceOfFunds === 'Sales Revenue' ? (window.__modalLotPayMode !== false) : true;
     const weightLossKg = Number(document.getElementById('m-loss').value)||0;
     const dateAdded = document.getElementById('m-date').value || todayISO();
 
     if (!label) { showToast('Please enter a lot name.', true); return false; }
-
+    
     if (existing) {
-      Object.assign(existing, { label, bags, bagsG0, bagsG1, kg, cost, loadingCost, gradingCost, sourceOfFunds, isCash, weightLossKg, dateAdded });
-      renderActiveView(); sendAction('updateLot', existing, existing.id);
+      Object.assign(existing, { label, bags, bagsG0, bagsG1, kg, cost, loadingCost, gradingCost, sourceOfFunds, weightLossKg, dateAdded });
+      renderAll(); sendAction('updateLot', existing, existing.id);
     } else {
       const id = uid();
-      const lot = { id, label, bags, bagsG0, bagsG1, kg, cost, loadingCost, gradingCost, sourceOfFunds, isCash, weightLossKg, dateAdded, location: bagsG1 > 0 && bagsG0 === 0 ? 'G+1' : 'Ground', addedBy: getActor(), isDeleted: false };
+      const lot = { id, label, bags, bagsG0, bagsG1, kg, cost, loadingCost, gradingCost, sourceOfFunds, weightLossKg, dateAdded, location: bagsG1 > 0 && bagsG0 === 0 ? 'G+1' : 'Ground', addedBy: getActor(), isDeleted: false };
       DATA.lots.push(lot);
-      renderActiveView(); sendAction('addLot', lot, id);
+      renderAll(); sendAction('addLot', lot, id);
     }
   });
 }
@@ -1055,31 +933,17 @@ function updateTotalBagsModal(type) {
     }
 }
 
-function setModalSource(src){
-  window.__modalSource = src;
-  document.getElementById('m-src-cap').classList.toggle('on', src==='Partner Capital');
-  document.getElementById('m-src-rev').classList.toggle('on', src==='Sales Revenue');
-  const row = document.getElementById('lot-paymode-row');
-  if (row) row.style.display = src==='Sales Revenue' ? 'block' : 'none';
-}
-function setModalLotPayMode(isCash){
-  window.__modalLotPayMode = isCash;
-  document.getElementById('m-lot-pay-cash').classList.toggle('on', isCash===true);
-  document.getElementById('m-lot-pay-gpay').classList.toggle('on', isCash===false);
-}
-async function deleteLot(id){ confirmThen('Delete this lot?', async () => { const idx = DATA.lots.findIndex(l=>l.id===id); if(idx !== -1) { DATA.lots[idx].isDeleted = true; renderActiveView(); sendAction('deleteLot', {id}, id); } }); }
+function setModalSource(src){ window.__modalSource = src; document.getElementById('m-src-cap').classList.toggle('on', src==='Partner Capital'); document.getElementById('m-src-rev').classList.toggle('on', src==='Sales Revenue'); }
+async function deleteLot(id){ confirmThen('Delete this lot?', async () => { const idx = DATA.lots.findIndex(l=>l.id===id); if(idx !== -1) { DATA.lots[idx].isDeleted = true; renderAll(); sendAction('deleteLot', {id}, id); } }); }
 
 function openSaleModal(existing){
-  const s = existing || { date: todayISO(), channel:'Retail', contactId:'', amount:'', note:'', isCash: true, isCredit: false };
+  const s = existing || { date: todayISO(), channel:'Retail', contactId:'', amount:'', note:'' };
   window.__modalChannel = s.channel;
-  window.__modalSalePayMode = s.isCredit ? 'credit' : (s.isCash === false ? 'gpay' : 'cash');
   window.__saleLineIdx = [];
   window.__saleLineSeq = 0;
 
   const initialLines = saleLinesFor(s).length ? saleLinesFor(s) : [{ lotId:'', bags:'', kg:'' }];
-  const contactOptions = '<option value="">-- Optional (Select Buyer if registered) --</option>'
-    + DATA.contacts.filter(c=>!c.isDeleted).map(c=>`<option value="${c.id}" ${s.contactId===c.id?'selected':''}>${c.name}</option>`).join('')
-    + '<option value="__new__">+ Add new contact…</option>';
+  const contactOptions = '<option value="">-- Optional (Select Buyer if registered) --</option>' + DATA.contacts.filter(c=>!c.isDeleted).map(c=>`<option value="${c.id}" ${s.contactId===c.id?'selected':''}>${c.name}</option>`).join('');
 
   const linesHtml = initialLines.map(line => {
     const idx = window.__saleLineSeq++;
@@ -1089,27 +953,12 @@ function openSaleModal(existing){
 
   const html = `
     <label>Date</label><input type="date" id="m-date" value="${safeDate(s.date)}">
-    <label id="m-contact-label">Buyer Name</label><select id="m-contact" onchange="onSaleContactSelectChange()">${contactOptions}</select>
-    <div class="note" id="sale-contact-required-note" style="display:none; color:var(--rust);">A credit sale must be linked to a buyer — that's who owes you.</div>
-    <div id="sale-new-contact-box" style="display:none; margin-top:8px;">
-      <label style="margin-top:0;">New Contact Name</label>
-      <div class="row2">
-        <input type="text" id="sale-new-contact-name" placeholder="e.g. Prabhu">
-        <button type="button" class="btn secondary" style="margin-top:0;" onclick="createInlineContact()">Add</button>
-      </div>
-    </div>
+    <label>Buyer Name</label><select id="m-contact">${contactOptions}</select>
     <label>Sales Type</label>
     <div class="seg2">
       <button type="button" id="m-ch-retail" class="${s.channel==='Retail'?'on':''}" onclick="setModalChannel('Retail')">Retail</button>
       <button type="button" id="m-ch-wholesale" class="${s.channel==='Wholesale'?'on':''}" onclick="setModalChannel('Wholesale')">Wholesale</button>
     </div>
-    <label style="margin-top:12px;">Payment Received Via</label>
-    <div class="seg2">
-      <button type="button" id="m-sale-pay-cash" class="${window.__modalSalePayMode==='cash'?'on':''}" onclick="setModalSalePayMode('cash')">Cash</button>
-      <button type="button" id="m-sale-pay-gpay" class="${window.__modalSalePayMode==='gpay'?'on':''}" onclick="setModalSalePayMode('gpay')">GPay</button>
-      <button type="button" id="m-sale-pay-credit" class="${window.__modalSalePayMode==='credit'?'on':''}" onclick="setModalSalePayMode('credit')">Credit</button>
-    </div>
-    <div class="note" id="sale-paymode-note">Cash sales add to Physical Cash In Hand. GPay sales go straight to the bank and never enter the till.</div>
     <label style="margin-top:12px;">Lots Sold From</label>
     <div id="sale-lines-wrap">${linesHtml}</div>
     <button type="button" class="btn ghost" style="margin-top:8px;" onclick="addSaleLine()">+ Add Another Lot</button>
@@ -1119,14 +968,10 @@ function openSaleModal(existing){
 
   openModal(existing ? 'Edit Sale' : 'Add Sale', html, async () => {
     const date = document.getElementById('m-date').value || todayISO();
-    let contactId = document.getElementById('m-contact').value;
-    if (contactId === '__new__') contactId = '';
+    const contactId = document.getElementById('m-contact').value;
     const amount = Number(document.getElementById('m-amount').value)||0;
     const note = document.getElementById('m-note').value.trim();
     const channel = window.__modalChannel || s.channel;
-    const payMode = window.__modalSalePayMode || 'cash';
-    const isCredit = payMode === 'credit';
-    const isCash = payMode === 'cash';
 
     const lines = window.__saleLineIdx.map(idx => ({
       lotId: document.getElementById(`sl-lot-${idx}`)?.value || '',
@@ -1136,28 +981,22 @@ function openSaleModal(existing){
 
     if (!lines.length) { showToast('Please select at least one lot with bags or KG.', true); return false; }
     if (!amount) { showToast('Please enter the amount collected.', true); return false; }
-    if (isCredit && !contactId) { showToast('Select a buyer for a credit sale — that\'s who owes you.', true); return false; }
-    if (existing && existing.isCredit === true && !isCredit && saleCreditRepaidAmount(existing.id) > 0) {
-      showToast('This sale already has repayments logged against it — it converts to Paid automatically once fully repaid. Log or delete a repayment instead of changing its payment mode.', true);
-      return false;
-    }
 
     const totalBags = lines.reduce((sum,l)=>sum+l.bags,0);
     const totalKg = lines.reduce((sum,l)=>sum+l.kg,0);
 
     if (existing) {
-      Object.assign(existing, { date, lotId: lines[0].lotId, channel, contactId, bags: totalBags, kg: totalKg, amount, note, lines, isCash, isCredit });
-      renderActiveView(); sendAction('updateSale', existing, existing.id);
+      Object.assign(existing, { date, lotId: lines[0].lotId, channel, contactId, bags: totalBags, kg: totalKg, amount, note, lines });
+      renderAll(); sendAction('updateSale', existing, existing.id);
     } else {
       const id = uid();
-      const sale = { id, date, lotId: lines[0].lotId, channel, contactId, bags: totalBags, kg: totalKg, amount, note, lines, isCash, isCredit, addedBy: getActor(), isDeleted: false };
+      const sale = { id, date, lotId: lines[0].lotId, channel, contactId, bags: totalBags, kg: totalKg, amount, note, lines, addedBy: getActor(), isDeleted: false };
       DATA.sales.push(sale);
-      renderActiveView(); sendAction('addSale', sale, id);
+      renderAll(); sendAction('addSale', sale, id);
     }
   });
 
   refreshSaleLineChrome();
-  setTimeout(() => updateSalePayModeUI(window.__modalSalePayMode), 10);
 }
 
 function saleLineRowHtml(idx, line){
@@ -1195,32 +1034,6 @@ function refreshSaleLineChrome(){
   updateSaleLineTotals();
 }
 
-function onSaleContactSelectChange(){
-  const sel = document.getElementById('m-contact');
-  const box = document.getElementById('sale-new-contact-box');
-  if (!sel || !box) return;
-  box.style.display = sel.value === '__new__' ? 'block' : 'none';
-  if (sel.value === '__new__') setTimeout(()=>document.getElementById('sale-new-contact-name')?.focus(), 10);
-}
-async function createInlineContact(){
-  const nameEl = document.getElementById('sale-new-contact-name');
-  const name = (nameEl?.value||'').trim();
-  if (!name) { showToast('Enter a name for the new contact.', true); return; }
-  const id = uid();
-  const contact = { id, name, type:'Buyer', phone:'', location:'', note:'', addedBy: getActor(), isDeleted: false };
-  DATA.contacts.push(contact);
-  sendAction('addContact', contact, id);
-  const sel = document.getElementById('m-contact');
-  if (sel) {
-    const opt = document.createElement('option');
-    opt.value = id; opt.textContent = name; opt.selected = true;
-    sel.insertBefore(opt, sel.lastElementChild);
-    sel.value = id;
-  }
-  document.getElementById('sale-new-contact-box').style.display = 'none';
-  showToast(`${name} added as a contact.`);
-}
-
 function autoFillSaleLine(idx){
   const lotId = document.getElementById(`sl-lot-${idx}`)?.value;
   const bags = Number(document.getElementById(`sl-bags-${idx}`)?.value)||0;
@@ -1243,32 +1056,16 @@ function updateSaleLineTotals(){
 }
 
 function setModalChannel(ch){ window.__modalChannel = ch; document.getElementById('m-ch-retail').classList.toggle('on', ch==='Retail'); document.getElementById('m-ch-wholesale').classList.toggle('on', ch==='Wholesale'); }
-function setModalSalePayMode(mode){ window.__modalSalePayMode = mode; updateSalePayModeUI(mode); }
-function updateSalePayModeUI(mode){
-  document.getElementById('m-sale-pay-cash')?.classList.toggle('on', mode==='cash');
-  document.getElementById('m-sale-pay-gpay')?.classList.toggle('on', mode==='gpay');
-  document.getElementById('m-sale-pay-credit')?.classList.toggle('on', mode==='credit');
-  const note = document.getElementById('sale-paymode-note');
-  const reqNote = document.getElementById('sale-contact-required-note');
-  const contactLabel = document.getElementById('m-contact-label');
-  if (note) {
-    if (mode === 'credit') note.textContent = "Credit sales don't add to Cash In Hand or Physical Cash In Hand until the buyer actually repays — log a repayment from the Contacts tab when they do.";
-    else if (mode === 'gpay') note.textContent = 'GPay sales go straight to the bank and never enter the till.';
-    else note.textContent = 'Cash sales add to Physical Cash In Hand.';
-  }
-  if (reqNote) reqNote.style.display = mode === 'credit' ? 'block' : 'none';
-  if (contactLabel) contactLabel.textContent = mode === 'credit' ? 'Buyer Name (required for credit)' : 'Buyer Name';
-}
-async function deleteSale(id){ confirmThen('Delete this sale?', async () => { const idx = DATA.sales.findIndex(s=>s.id===id); if(idx !== -1) { DATA.sales[idx].isDeleted = true; renderActiveView(); sendAction('deleteSale', {id}, id); } }); }
+async function deleteSale(id){ confirmThen('Delete this sale?', async () => { const idx = DATA.sales.findIndex(s=>s.id===id); if(idx !== -1) { DATA.sales[idx].isDeleted = true; renderAll(); sendAction('deleteSale', {id}, id); } }); }
 
 function openExpenseModal(existing){
+  // Fix: Default to Loading/Unloading if lot is selected
   let defaultLotType = existing?.type || 'Loading/Unloading';
   if (defaultLotType === 'Running Cost' || defaultLotType === 'Miscellaneous') defaultLotType = 'Loading/Unloading';
 
-  const x = existing || { date: todayISO(), type: defaultLotType, desc:'', amount:'', referenceId:'', bags:'', bagsG0:'', bagsG1:'', kg:'', sourceOfFunds:'Sales Revenue', isCash: true };
-  window.__modalExpenseType = x.referenceId ? 'lot' : 'shop';
+  const x = existing || { date: todayISO(), type: defaultLotType, desc:'', amount:'', referenceId:'', bags:'', bagsG0:'', bagsG1:'', kg:'', sourceOfFunds:'Sales Revenue' };
+  window.__modalExpenseType = x.referenceId ? 'lot' : 'shop'; 
   window.__modalExpenseSource = x.sourceOfFunds || 'Sales Revenue';
-  window.__modalExpensePayMode = x.isCash !== false;
   
   const lotOptions = '<option value="">-- Select Lot to tag cost --</option>' + DATA.lots.filter(l=>!l.isDeleted).map(l=>`<option value="${l.id}" ${x.referenceId===l.id?'selected':''}>${l.label}</option>`).join('');
 
@@ -1321,13 +1118,6 @@ function openExpenseModal(existing){
       <div class="note">Sales Revenue expenses reduce the shop's liquid cash. Partner Capital expenses are funded separately by the partners and will NOT reduce liquid cash.</div>
     </div>
 
-    <label style="margin-top:10px;">Paid Via</label>
-    <div class="seg2">
-      <button type="button" id="m-exp-pay-cash" class="${x.isCash!==false?'on':''}" onclick="setModalExpensePayMode(true)">Cash</button>
-      <button type="button" id="m-exp-pay-gpay" class="${x.isCash===false?'on':''}" onclick="setModalExpensePayMode(false)">GPay</button>
-    </div>
-    <div class="note">Cash expenses reduce Physical Cash In Hand directly. GPay expenses reduce total liquid funds but never touch the till — so a cash expense that isn't backed by matching cash sales will correctly show up as a deficit in Physical Cash In Hand.</div>
-
     <label style="margin-top:10px;">Details / Custom Name</label>
     <input type="text" id="m-desc" value="${x.desc||''}" placeholder="e.g. Lorry Coolie">
 
@@ -1343,7 +1133,6 @@ function openExpenseModal(existing){
     const desc = document.getElementById('m-desc').value.trim();
     const amount = Number(document.getElementById('m-amount').value)||0;
     const sourceOfFunds = isLot ? (window.__modalExpenseSource || 'Sales Revenue') : 'Sales Revenue';
-    const isCash = window.__modalExpensePayMode !== false;
 
     let bags = 0; let bagsG0 = 0; let bagsG1 = 0; let kg = 0;
     if (isLot && type === 'Procurement') {
@@ -1358,13 +1147,13 @@ function openExpenseModal(existing){
     if (isLot && !referenceId) { showToast('Please select a Lot to tag this expense to', true); return false; }
 
     if (existing) {
-      Object.assign(existing, { date, type, desc, amount, referenceId, bags, bagsG0, bagsG1, kg, sourceOfFunds, isCash });
-      renderActiveView(); sendAction('updateExpense', existing, existing.id);
+      Object.assign(existing, { date, type, desc, amount, referenceId, bags, bagsG0, bagsG1, kg, sourceOfFunds });
+      renderAll(); sendAction('updateExpense', existing, existing.id);
     } else {
       const id = uid();
-      const exp = { id, date, type, desc, amount, referenceId, bags, bagsG0, bagsG1, kg, sourceOfFunds, isCash, addedBy: getActor(), isDeleted: false };
+      const exp = { id, date, type, desc, amount, referenceId, bags, bagsG0, bagsG1, kg, sourceOfFunds, addedBy: getActor(), isDeleted: false };
       DATA.expenses.push(exp);
-      renderActiveView(); sendAction('addExpense', exp, id);
+      renderAll(); sendAction('addExpense', exp, id);
     }
   }, 'Save');
 
@@ -1392,19 +1181,14 @@ function setModalExpenseSource(src){
   if (revBtn) revBtn.classList.toggle('on', src==='Sales Revenue');
   if (capBtn) capBtn.classList.toggle('on', src==='Partner Capital');
 }
-function setModalExpensePayMode(isCash){
-  window.__modalExpensePayMode = isCash;
-  document.getElementById('m-exp-pay-cash').classList.toggle('on', isCash===true);
-  document.getElementById('m-exp-pay-gpay').classList.toggle('on', isCash===false);
-}
 
 async function quickMonthlyExpense(){
   const amount = (Number(DATA.config.rent1)||0) + (Number(DATA.config.rent2)||0) + (Number(DATA.config.labour)||0);
   const id = uid();
-  const exp = { id, date: todayISO(), type:'Running Cost', desc: 'Auto-added Shop Overhead (Rent + Wages)', amount, referenceId:'', sourceOfFunds:'Sales Revenue', isCash: true, addedBy: getActor(), isDeleted: false };
-  DATA.expenses.push(exp); renderActiveView(); sendAction('addExpense', exp, id);
+  const exp = { id, date: todayISO(), type:'Running Cost', desc: 'Auto-added Shop Overhead (Rent + Wages)', amount, referenceId:'', sourceOfFunds:'Sales Revenue', addedBy: getActor(), isDeleted: false };
+  DATA.expenses.push(exp); renderAll(); sendAction('addExpense', exp, id);
 }
-async function deleteExpense(id){ confirmThen('Delete this expense?', async () => { const idx = DATA.expenses.findIndex(x=>x.id===id); if(idx !== -1) { DATA.expenses[idx].isDeleted = true; renderActiveView(); sendAction('deleteExpense', {id}, id); } }); }
+async function deleteExpense(id){ confirmThen('Delete this expense?', async () => { const idx = DATA.expenses.findIndex(x=>x.id===id); if(idx !== -1) { DATA.expenses[idx].isDeleted = true; renderAll(); sendAction('deleteExpense', {id}, id); } }); }
 
 function openContactModal(existing){
   const c = existing || { name:'', type:'Buyer', phone:'', location:'', note:'' };
@@ -1432,140 +1216,18 @@ function openContactModal(existing){
 
     if (existing) {
       Object.assign(existing, { name, type, phone, location, note });
-      renderActiveView(); sendAction('updateContact', existing, existing.id);
+      renderAll(); sendAction('updateContact', existing, existing.id);
     } else {
       const id = uid();
       const contact = { id, name, type, phone, location, note, isDeleted: false };
       DATA.contacts.push(contact);
-      renderActiveView(); sendAction('addContact', contact, id);
+      renderAll(); sendAction('addContact', contact, id);
     }
   });
 }
-async function deleteContact(id){ confirmThen('Delete contact?', async () => { const idx = DATA.contacts.findIndex(c=>c.id===id); if(idx !== -1) { DATA.contacts[idx].isDeleted = true; renderActiveView(); sendAction('deleteContact', {id}, id); } }); }
+async function deleteContact(id){ confirmThen('Delete contact?', async () => { const idx = DATA.contacts.findIndex(c=>c.id===id); if(idx !== -1) { DATA.contacts[idx].isDeleted = true; renderAll(); sendAction('deleteContact', {id}, id); } }); }
 
-function salePayModeBadge(s){
-  if (s.isCredit) {
-    if (isSaleFullyRepaid(s)) return `<span class="badge cash">Paid</span>`;
-    const remaining = saleCreditRemaining(s);
-    const partial = remaining < (Number(s.amount)||0);
-    return `<span class="badge owe">Credit${partial ? ' · '+fmt(remaining)+' left' : ''}</span>`;
-  }
-  return `<span class="badge ${s.isCash!==false?'cash':'gpay'}">${s.isCash!==false?'Cash':'GPay'}</span>`;
-}
-
-// ---- Credit / Dues to contacts ----
-// Repayments are allocated to specific credit sales FIFO (oldest sale first) at the
-// moment they're logged, and the breakdown is stored on the repayment record as
-// `allocations`. A sale is never manually flipped out of Credit — once its FIFO-allocated
-// repayments cover its full amount, it's simply displayed as "Paid" instead of "Credit".
-// This keeps the underlying liquidCash/physicalCashInHand math (which only ever looks at
-// aggregate sale/repayment amounts, never at isCredit mutations) safe from double-counting.
-function saleCreditRepaidAmount(saleId){
-  return (DATA.creditPayments||[]).filter(p=>!p.isDeleted).reduce((sum,p)=>{
-    const allocs = Array.isArray(p.allocations) ? p.allocations : [];
-    return sum + allocs.filter(a=>a.saleId===saleId).reduce((s,a)=>s+(Number(a.amount)||0), 0);
-  }, 0);
-}
-function saleCreditRemaining(sale){
-  return Math.max(0, (Number(sale.amount)||0) - saleCreditRepaidAmount(sale.id));
-}
-function isSaleFullyRepaid(sale){
-  return sale.isCredit === true && saleCreditRemaining(sale) <= 0.5;
-}
-function contactOpenCreditSales(contactId){
-  return DATA.sales.filter(s => !s.isDeleted && s.isCredit && s.contactId === contactId)
-    .sort((a,b) => (a.date||'').localeCompare(b.date||'') || String(a.id).localeCompare(String(b.id)));
-}
-function allocateRepaymentFIFO(contactId, amount){
-  let remaining = Number(amount)||0;
-  const allocations = [];
-  for (const sale of contactOpenCreditSales(contactId)) {
-    if (remaining <= 0) break;
-    const owedOnSale = saleCreditRemaining(sale);
-    if (owedOnSale <= 0) continue;
-    const alloc = Math.min(owedOnSale, remaining);
-    allocations.push({ saleId: sale.id, amount: alloc });
-    remaining -= alloc;
-  }
-  return { allocations, unallocated: remaining };
-}
-function contactCreditGiven(contactId){
-  return DATA.sales.filter(s => !s.isDeleted && s.isCredit && s.contactId === contactId).reduce((s,x)=>s+(Number(x.amount)||0), 0);
-}
-function contactCreditRepaid(contactId){
-  return (DATA.creditPayments||[]).filter(p => !p.isDeleted && p.contactId === contactId).reduce((s,x)=>s+(Number(x.amount)||0), 0);
-}
-function contactBalanceOwed(contactId){
-  return contactCreditGiven(contactId) - contactCreditRepaid(contactId);
-}
-function totalOutstandingCredit(){
-  return DATA.contacts.filter(c=>!c.isDeleted).reduce((s,c)=>s+Math.max(0, contactBalanceOwed(c.id)), 0);
-}
-function contactsWithOutstandingCredit(){
-  return DATA.contacts.filter(c=>!c.isDeleted).map(c=>({c, owed: contactBalanceOwed(c.id)})).filter(x=>x.owed>0.5).sort((a,b)=>b.owed-a.owed);
-}
-
-function openRepaymentModal(presetContactId){
-  const contactsWithBalance = DATA.contacts.filter(c=>!c.isDeleted);
-  const contactOptions = contactsWithBalance.map(c => {
-    const owed = contactBalanceOwed(c.id);
-    return `<option value="${c.id}" ${presetContactId===c.id?'selected':''}>${c.name}${owed>0.5 ? ' — owes '+fmt(owed) : ''}</option>`;
-  }).join('');
-
-  const html = `
-    <label>Date</label><input type="date" id="rp-date" value="${todayISO()}">
-    <label>Contact</label><select id="rp-contact">${contactOptions || '<option value="">-- No contacts --</option>'}</select>
-    <div class="note" id="rp-balance-note"></div>
-    <label>Amount Repaid (₹)</label><input type="number" id="rp-amount" placeholder="0">
-    <label style="margin-top:10px;">Received Via</label>
-    <div class="seg2">
-      <button type="button" id="rp-pay-cash" class="on" onclick="setRepaymentPayMode(true)">Cash</button>
-      <button type="button" id="rp-pay-gpay" onclick="setRepaymentPayMode(false)">GPay</button>
-    </div>
-    <label>Note</label><input type="text" id="rp-note" placeholder="e.g. paid off last month's garlic">`;
-
-  window.__repaymentIsCash = true;
-
-  openModal('Log Credit Repayment', html, async () => {
-    const contactId = document.getElementById('rp-contact').value;
-    const date = document.getElementById('rp-date').value || todayISO();
-    const amount = Number(document.getElementById('rp-amount').value)||0;
-    const note = document.getElementById('rp-note').value.trim();
-    const isCash = window.__repaymentIsCash !== false;
-
-    if (!contactId) { showToast('Select a contact.', true); return false; }
-    if (!amount) { showToast('Enter the amount repaid.', true); return false; }
-
-    const { allocations, unallocated } = allocateRepaymentFIFO(contactId, amount);
-    const id = uid();
-    const record = { id, date, contactId, amount, isCash, note, allocations, addedBy: getActor(), isDeleted: false };
-    DATA.creditPayments.push(record);
-    renderActiveView();
-    sendAction('addCreditPayment', record, id);
-    if (unallocated > 0.5) showToast(`Repayment logged. ${fmt(unallocated)} was more than they owed — recorded but not tied to any sale.`);
-    else showToast('Repayment logged.');
-  }, 'Save');
-
-  setTimeout(() => {
-    document.getElementById('rp-contact')?.addEventListener('change', refreshRepaymentBalanceNote);
-    refreshRepaymentBalanceNote();
-  }, 10);
-}
-function refreshRepaymentBalanceNote(){
-  const contactId = document.getElementById('rp-contact')?.value;
-  const note = document.getElementById('rp-balance-note');
-  if (!note) return;
-  if (!contactId) { note.textContent = ''; return; }
-  const owed = contactBalanceOwed(contactId);
-  note.textContent = owed > 0.5 ? `Currently owes ${fmt(owed)}.` : 'No outstanding balance on record.';
-}
-function setRepaymentPayMode(isCash){
-  window.__repaymentIsCash = isCash;
-  document.getElementById('rp-pay-cash').classList.toggle('on', isCash===true);
-  document.getElementById('rp-pay-gpay').classList.toggle('on', isCash===false);
-}
-async function deleteCreditPayment(id){ confirmThen('Delete this repayment record?', async () => { const idx = DATA.creditPayments.findIndex(p=>p.id===id); if(idx !== -1) { DATA.creditPayments[idx].isDeleted = true; renderActiveView(); sendAction('deleteCreditPayment', {id}, id); } }); }
-
+// ---------- RECONCILE: PHYSICAL STOCK COUNT (shrinkage) ----------
 function openStockCountModal(){
   const activeLots = DATA.lots.filter(l=>!l.isDeleted);
   if (!activeLots.length) { showToast('No active lots to count.', true); return; }
@@ -1606,7 +1268,7 @@ function openStockCountModal(){
       sendAction('updateLot', lot, lot.id);
     }
 
-    renderActiveView(); renderReconcile();
+    renderAll(); renderReconcile();
 
     if (Math.abs(bagVariance) >= 1) {
       showToast(`Note: ${Math.abs(bagVariance)} bag(s) ${bagVariance>0?'fewer':'more'} than the books expect — worth a look.`, bagVariance>0);
@@ -1649,12 +1311,13 @@ function renderStockCounts(){
 }
 
 async function deleteStockCount(id){
-  confirmThen('Delete this stock count entry?', async () => {
+  confirmThen('Delete this stock count entry? (This will not undo the weight-loss adjustment already applied.)', async () => {
     const idx = DATA.stockCounts.findIndex(x=>x.id===id);
     if (idx !== -1) { DATA.stockCounts[idx].isDeleted = true; renderReconcile(); sendAction('deleteStockCount', {id}, id); }
   });
 }
 
+// ---------- RECONCILE: CASH DRAWER CHECK (leakage) ----------
 function openCashCheckModal(){
   const html = `
     <label>Date</label><input type="date" id="cc-date" value="${todayISO()}">
@@ -1667,7 +1330,7 @@ function openCashCheckModal(){
     const note = document.getElementById('cc-note').value.trim();
     if (isNaN(countedCash)) { showToast('Enter the counted cash amount.', true); return false; }
 
-    const expectedCash = totals('all').physicalCashInHand;
+    const expectedCash = totals('all').liquidCash;
     const variance = expectedCash - countedCash;
 
     const id = uid();
@@ -1706,9 +1369,9 @@ async function logCashVarianceAsExpense(checkId){
   if (!check) return;
   confirmThen(`Log ${fmt(check.variance)} as a Miscellaneous shop expense to close this gap?`, async () => {
     const id = uid();
-    const exp = { id, date: check.date, type: 'Miscellaneous', desc: `Cash variance from reconciliation on ${check.date}`, amount: check.variance, referenceId: '', sourceOfFunds: 'Sales Revenue', isCash: true, addedBy: getActor(), isDeleted: false };
+    const exp = { id, date: check.date, type: 'Miscellaneous', desc: `Cash variance from reconciliation on ${check.date}`, amount: check.variance, referenceId: '', sourceOfFunds: 'Sales Revenue', addedBy: getActor(), isDeleted: false };
     DATA.expenses.push(exp);
-    renderActiveView(); renderReconcile();
+    renderAll(); renderReconcile();
     sendAction('addExpense', exp, id);
     showToast('Variance logged as expense.');
   });
@@ -1765,19 +1428,19 @@ async function executeBalancedThreeWayPayout(){
       const id = uid();
       const logPayout = {
         id, date: timestamp, type: 'Payout / Partner Draw', desc: `Profit Share Drawn: ${name}`,
-        amount: perShareValue, referenceId: '', sourceOfFunds: 'Sales Revenue', isCash: true, addedBy: getActor(), isDeleted: false
+        amount: perShareValue, referenceId: '', sourceOfFunds: 'Sales Revenue', addedBy: getActor(), isDeleted: false
       };
       DATA.expenses.push(logPayout);
       sendAction('addExpense', logPayout, id); 
     }
-    renderActiveView();
+    renderAll();
     showToast('Payouts saved.');
   });
 }
 
 async function savePartners(){
   Object.keys(DATA.partners).forEach(name=>{ const el = document.getElementById('pe-'+name); if (el) DATA.partners[name].contributed = Number(el.value)||0; });
-  renderActiveView(); sendAction('updatePartners', DATA.partners);
+  renderAll(); sendAction('updatePartners', DATA.partners);
 }
 async function saveInterestRate(){ DATA.config.interestRatePct = Number(document.getElementById('p-interest').value)||0; sendAction('updateConfig', DATA.config); }
 async function saveConfig(){ DATA.config.rent1 = Number(document.getElementById('c-rent1').value)||0; DATA.config.rent2 = Number(document.getElementById('c-rent2').value)||0; DATA.config.labour = Number(document.getElementById('c-labour').value)||0; populateFormsFromData(); sendAction('updateConfig', DATA.config); }
@@ -1819,8 +1482,14 @@ function toggleDetails(id) {
 }
 
 function renderAll(){ 
-  // First paint rendering
-  renderActiveView(); 
+  renderDashboard(); 
+  renderInventory(); 
+  renderSalesTable(); 
+  renderExpensesTable(); 
+  renderPartners(); 
+  renderContactsTable(); 
+  calculatePayoutState(); 
+  renderWeeklyStockCheck();
 }
 
 function renderDashboard(){
@@ -1840,17 +1509,13 @@ function renderDashboard(){
     const allTime = totals('all');
     elCash.textContent = fmt(allTime.liquidCash);
     elCash.className = 'value ' + (allTime.liquidCash>=0 ? 'pos':'neg');
-
-    // CASH BREAKDOWN INJECTION
+    
     const breakdownEl = document.getElementById('cash-breakdown');
     if (breakdownEl) {
       breakdownEl.innerHTML = `
         <div style="background:#fff; padding:10px; border-radius:6px; border:1px solid var(--line); font-size: 0.8rem;">
           <div style="display:flex; justify-content:space-between; color:var(--sage); font-weight:bold;">
-            <span>Sales Collected (Cash+GPay) (+)</span><span>${fmt(allTime.totalCollectedRevenue)}</span>
-          </div>
-          <div style="display:flex; justify-content:space-between; margin-top:6px; color:var(--sage);">
-            <span>Credit Repayments Collected (+)</span><span>${fmt(allTime.totalCreditRepaid)}</span>
+            <span>All-Time Sales Revenue (+)</span><span>${fmt(allTime.totalRevenue)}</span>
           </div>
           <div style="display:flex; justify-content:space-between; margin-top:8px;">
             <span>Shop General Expenses (-)</span><span>${fmt(allTime.totalGeneralExpenses)}</span>
@@ -1867,30 +1532,11 @@ function renderDashboard(){
           <div style="display:flex; justify-content:space-between; margin-top:6px; font-weight:bold; color:var(--plum-deep);">
             <span>Calculated Liquid Cash (=)</span><span>${fmt(allTime.liquidCash)}</span>
           </div>
-          <div style="display:flex; justify-content:space-between; margin-top:10px; padding-top:6px; border-top:1px dashed var(--line); color:var(--rust);">
-            <span>Outstanding Credit (not counted above)</span><span>${fmt(allTime.outstandingCredit)}</span>
-          </div>
         </div>
         <div class="note" style="margin-top:10px; color: var(--rust);">
-          <b>Note:</b> This combines Cash and GPay — every Sales-Revenue-funded cost is deducted the same way regardless of payment mode. Credit sales are excluded until the buyer actually repays (see Contacts tab). If old expenses in your Google Sheet have a blank "Source of Funds" column, the app defaults to deducting them from Sales Revenue.
+          <b>Note:</b> If old expenses in your Google Sheet have a blank "Source of Funds" column, the app defaults to deducting them from Sales Revenue. Update those sheet cells to "Partner Capital" to restore the liquid cash balance.
         </div>
       `;
-    }
-  }
-
-  const elCreditOwed = document.getElementById('d-credit-owed');
-  const elCreditCount = document.getElementById('d-credit-count');
-  const elCreditList = document.getElementById('d-credit-list');
-  if (elCreditOwed) {
-    const owingList = contactsWithOutstandingCredit();
-    const total = owingList.reduce((s,x)=>s+x.owed, 0);
-    elCreditOwed.textContent = fmt(total);
-    if (elCreditCount) elCreditCount.textContent = `${owingList.length} contact${owingList.length===1?'':'s'} owe${owingList.length===1?'s':''} you`;
-    if (elCreditList) {
-      elCreditList.innerHTML = owingList.length ? owingList.map(x => `
-        <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--line);">
-          <span>${x.c.name}</span><span style="color:var(--rust); font-weight:bold;">${fmt(x.owed)}</span>
-        </div>`).join('') : '<div class="note">Nobody currently owes you on credit.</div>';
     }
   }
 
@@ -1906,17 +1552,14 @@ function renderDashboard(){
   if(lotsDiv) {
     lotsDiv.innerHTML = '';
     
-    // Only fetch genuinely active lots (Unsold)
     const activeLots = DATA.lots
       .filter(l => !l.isDeleted)
       .map(l => ({lot: l, st: lotStats(l)}))
-      .filter(x => x.st.remainingKg > 0.1 || x.st.remainingBags > 0)
-      .reverse();
+      .filter(x => x.st.remainingKg > 0 || x.st.remainingBags > 0)
+      .reverse()
+      .slice(0, 4);
 
-    // Render only the top 4 to keep DOM light on the dashboard
-    const displayLots = activeLots.slice(0, 4);
-
-    displayLots.forEach(item => {
+    activeLots.forEach(item => {
       const {lot, st} = item;
       lotsDiv.insertAdjacentHTML('beforeend', `
         <div class="lot-card">
@@ -1925,7 +1568,6 @@ function renderDashboard(){
             <span class="row-actions">
               <span class="badge type-tag">${getLocBadge(st)}</span>
               <span class="badge ${lot.sourceOfFunds==='Partner Capital'?'type-tag':'wholesale'}">${lot.sourceOfFunds === 'Partner Capital' ? 'Capital' : 'Sales Rev'}</span>
-              ${lot.sourceOfFunds!=='Partner Capital' ? `<span class="badge ${lot.isCash!==false?'cash':'gpay'}">${lot.isCash!==false?'Cash':'GPay'}</span>` : ''}
             </span>
           </div>
           <div class="bar"><div class="bar-fill ${st.shrinkagePct > 8 ? 'warning':''}" style="width:${st.totalBags ? (st.soldBags/st.totalBags*100) : 0}%"></div></div>
@@ -1937,15 +1579,6 @@ function renderDashboard(){
         </div>`);
     });
     
-    // Route to Inventory if there are more
-    if (activeLots.length > 4) {
-      lotsDiv.insertAdjacentHTML('beforeend', `
-        <button class="btn ghost" style="margin-top:4px;" onclick="document.querySelector('[data-view=inventory]').click()">
-          View all ${activeLots.length} Active Lots →
-        </button>
-      `);
-    }
-
     const emptyEl = document.getElementById('d-lots-empty');
     if(emptyEl) emptyEl.style.display = activeLots.length ? 'none' : 'block';
   }
@@ -1999,65 +1632,19 @@ function renderWeeklyStockCheck(){
   document.getElementById('wk-weeks').textContent = est.weeksLeft === null ? '—' : est.weeksLeft.toFixed(1) + ' wks';
 }
 
-function loadMoreInventory() {
-  invLimit += 10;
-  renderInventory();
-}
-
-// 🚀 UPGRADED INVENTORY ENGINE WITH CLOSED LOTS HEADER
 function renderInventory(){
   const wrap = document.getElementById('inv-lots'); 
   if(!wrap) return;
   wrap.innerHTML='';
   
-  // 1. Data Prep & Completion Check
-  const mappedLots = DATA.lots.filter(l => !l.isDeleted).map(lot => {
+  const activeLots = DATA.lots.filter(l => !l.isDeleted);
+  activeLots.forEach(lot=>{
     const st = lotStats(lot);
-    const isCompleted = st.remainingBags <= 0;
-    
-    // Calculate actual closure date based on the last recorded sale for this lot
-    let closedDate = '';
-    if (isCompleted) {
-      const salesForLot = DATA.sales.filter(s => !s.isDeleted && saleLinesFor(s).some(line => line.lotId === lot.id));
-      if (salesForLot.length) {
-         closedDate = salesForLot.sort((a,b) => b.date.localeCompare(a.date))[0].date;
-      }
-    }
-    return { lot, st, isCompleted, closedDate };
-  });
-
-  // 2. Architectural Sort: Active first (newest to oldest), Completed bottom (newest to oldest)
-  mappedLots.sort((a, b) => {
-    if (a.isCompleted === b.isCompleted) {
-      return (b.lot.dateAdded || '').localeCompare(a.lot.dateAdded || '');
-    }
-    return a.isCompleted ? 1 : -1;
-  });
-
-  // 3. Lazy Render (DOM Pagination)
-  const paginatedLots = mappedLots.slice(0, invLimit);
-  
-  // Header tracker flag
-  let renderedClosedHeader = false;
-
-  paginatedLots.forEach(item => {
-    const {lot, st, isCompleted, closedDate} = item;
-    
-    // 🔥 DYNAMIC SECTION HEADER FOR CLOSED LOTS
-    if (isCompleted && !renderedClosedHeader) {
-      wrap.insertAdjacentHTML('beforeend', `
-        <h3 style="margin-top:24px; margin-bottom:12px; font-size:0.85rem; color:#8a8272; text-transform:uppercase; letter-spacing:1px; border-bottom:1px dashed var(--line); padding-bottom:6px;">
-          Historical / Closed Lots
-        </h3>
-      `);
-      renderedClosedHeader = true;
-    }
-
     const expId = `exp-details-${lot.id}`;
     
     let expensesHtml = '';
     if(st.linkedExpenses.length > 0) {
-      expensesHtml = st.linkedExpenses.sort((a,b)=>a.date.localeCompare(b.date)).map(x => {
+      expensesHtml = st.linkedExpenses.map(x => {
         let extra = '';
         if (x.type === 'Procurement') {
             let bagStr = [];
@@ -2068,67 +1655,62 @@ function renderInventory(){
         }
         const srcLabel = x.sourceOfFunds || 'Sales Revenue';
         return `<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:6px; font-size:0.75rem;">
-                  <span><span style="font-size:0.65rem; color:#8a8272; margin-right:4px;">${shortDate(x.date)}</span> <span class="badge type-tag" style="background:#b0a89a; padding:2px 5px; font-size:0.6rem;">${x.type}</span> ${x.desc} ${extra}</span>
+                  <span><span class="badge type-tag" style="background:#b0a89a; padding:2px 5px; font-size:0.6rem;">${x.type}</span> <span class="badge ${srcLabel==='Partner Capital'?'type-tag':'wholesale'}" style="padding:2px 5px; font-size:0.6rem;">${srcLabel}</span> ${x.desc} ${extra}</span>
                   <b>${fmt(x.amount)}</b>
                 </div>`;
       }).join('');
     } else {
-      expensesHtml = `<div style="color:#8a8272; font-size:0.75rem; font-style:italic;">No additional expenses linked.</div>`;
+      expensesHtml = `<div style="color:#8a8272; font-size:0.75rem; font-style:italic;">No additional expenses linked via Expenses tab.</div>`;
     }
     
-    const cardStyle = isCompleted ? 'opacity: 0.85; background: #EAE6DB; border-color: #D4CDBA;' : '';
-    const dateHeader = isCompleted ? `Procured: ${shortDate(lot.dateAdded)} · <span style="color:var(--rust);">Closed: ${shortDate(closedDate)}</span>` : `Procured: ${shortDate(lot.dateAdded)} · Active`;
-
     wrap.insertAdjacentHTML('beforeend', `
-      <div class="lot-card" style="${cardStyle}">
+      <div class="lot-card">
         <div class="lot-head">
-          <span class="lot-title">${lot.label} ${isCompleted ? '<span style="font-size:0.65rem; background:var(--rust); color:#fff; padding:2px 6px; border-radius:4px; margin-left:6px; vertical-align:middle;">SOLD OUT</span>' : ''}</span>
+          <span class="lot-title">${lot.label}</span>
           <span class="row-actions">
-            ${isCompleted ? '' : `<span class="badge type-tag">${getLocBadge(st)}</span>`}
+            <span class="badge type-tag">${getLocBadge(st)}</span>
             <button class="icon-btn edit" onclick='openLotModal(DATA.lots.find(x=>x.id==="${lot.id}"))'>✎</button>
+            <button class="icon-btn del" onclick="deleteLot('${lot.id}')">✕</button>
           </span>
         </div>
-        <div class="lot-sub" style="margin-bottom:8px; font-weight:bold; font-size:0.68rem;">${dateHeader}</div>
+        <div class="lot-sub">Actual Cost: ${fmt(st.costPerKg)}/KG · Funded by <b>${lot.sourceOfFunds}</b></div>
         <div class="bar"><div class="bar-fill" style="width:${st.totalBags ? (st.soldBags/st.totalBags*100) : 0}%"></div></div>
         
         <div class="lot-mini-grid" style="margin-top:8px;">
-          <div>Sold<b>${st.soldBags} Bags</b></div>
-          <div>Left<b>${st.remainingBags} Bags</b></div>
-          <div>Act. Cost<b>${fmt(st.costPerKg)}/KG</b></div>
+          <div>Sold<b>${st.soldBags} Bags / ${st.soldKg.toFixed(0)} KG</b></div>
+          <div>Left<b>${st.remainingBags} Bags / ${st.remainingKg.toFixed(0)} KG</b></div>
+          <div>Drying Loss<b>${lot.weightLossKg||0} KG (${st.shrinkagePct.toFixed(1)}%)</b></div>
         </div>
 
-        <button class="toggle-details-btn" onclick="toggleDetails('${expId}')">Cost Breakdown & Timeline ▼</button>
+        <button class="toggle-details-btn" onclick="toggleDetails('${expId}')">Show Cost Breakdown & Linked Expenses ▼</button>
         
         <div id="${expId}" class="details-expander">
           <div style="background:#fff; padding:10px; border-radius:6px; border:1px solid var(--line);">
-            <div style="margin-bottom: 6px; font-size:0.7rem; font-weight:bold; color:#8a8272; text-transform:uppercase;">Base Logistics</div>
-            <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-top:4px;">
-              <span><span style="font-size:0.65rem; color:#8a8272; margin-right:4px;">${shortDate(lot.dateAdded)}</span> Buying Price:</span> <b>${fmt(st.baseCost)}</b>
-            </div>
-            ${st.loadingCost ? `<div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-top:4px;"><span>Lorry / Unloading:</span> <b>${fmt(st.loadingCost)}</b></div>` : ''}
             
-            <div style="margin-top: 12px; margin-bottom: 6px; font-size:0.7rem; font-weight:bold; color:#8a8272; text-transform:uppercase;">Tagged Timeline</div>
+            <div style="margin-bottom: 6px; font-size:0.7rem; font-weight:bold; color:#8a8272; text-transform:uppercase;">Initial Setup Costs</div>
+            <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-top:4px;">
+              <span>Base Buying Price (${lot.bagsG0||0} G0, ${lot.bagsG1||0} G1 / ${lot.kg} KG):</span> <b>${fmt(st.baseCost)}</b>
+            </div>
+            ${st.loadingCost ? `<div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-top:4px;"><span>Lorry / Unloading Cost:</span> <b>${fmt(st.loadingCost)}</b></div>` : ''}
+            ${st.gradingCost ? `<div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-top:4px;"><span>Initial Grading Cost:</span> <b>${fmt(st.gradingCost)}</b></div>` : ''}
+            
+            <div style="margin-top: 12px; margin-bottom: 6px; font-size:0.7rem; font-weight:bold; color:#8a8272; text-transform:uppercase;">Additional Tagged Expenses</div>
             ${expensesHtml}
 
             <div style="display:flex; justify-content:space-between; margin-top:10px; padding-top:8px; border-top:1px dashed var(--line); font-size:0.85rem;">
-              <span>Total Effective Cost (${st.totalInitialKg} KG):</span> <b style="color:var(--plum-deep);">${fmt(st.totalEffectiveCost)}</b>
+              <span>Total Effective Cost (${st.totalBags} Bags / ${st.totalInitialKg} KG):</span> <b style="color:var(--plum-deep);">${fmt(st.totalEffectiveCost)}</b>
             </div>
           </div>
         </div>
       </div>`);
   });
-
-  if (mappedLots.length > invLimit) {
-    wrap.insertAdjacentHTML('beforeend', `<button class="btn ghost" onclick="loadMoreInventory()">Load More Lots (${mappedLots.length - invLimit} remaining) ↓</button>`);
-  }
-
   const emptyWrap = document.getElementById('inv-lots-empty');
-  if(emptyWrap) emptyWrap.style.display = mappedLots.length? 'none':'block';
+  if(emptyWrap) emptyWrap.style.display = activeLots.length? 'none':'block';
 }
 
 function renderSalesTable(){
   const body = document.getElementById('sales-table'); if(!body) return;
-  const sorted = DATA.sales.filter(s=> !s.isDeleted && inPeriod(s.date, salesFilter) && saleMatchesPayFilter(s, salesPayFilter)).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const sorted = DATA.sales.filter(s=> !s.isDeleted && inPeriod(s.date, salesFilter)).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
   body.innerHTML = sorted.map(s=>`
     <tr>
       <td>${s.date}<div class="by-line">${s.addedBy||'System'}</div></td>
@@ -2136,7 +1718,7 @@ function renderSalesTable(){
       <td><span class="badge ${s.channel==='Retail'?'retail':'wholesale'}">${s.channel}</span><div class="by-line">${contactLabel(s.contactId)}</div></td>
       <td>${s.bags}</td>
       <td>${Number(s.kg||0).toFixed(0)}</td>
-      <td>${fmt(s.amount)}<div class="by-line">${salePayModeBadge(s)}</div></td>
+      <td>${fmt(s.amount)}</td>
       <td class="row-actions"><button class="icon-btn edit" onclick='openSaleModal(DATA.sales.find(x=>x.id==="${s.id}"))'>✎</button><button class="icon-btn del" onclick="deleteSale('${s.id}')">✕</button></td>
     </tr>`).join('');
   const empty = document.getElementById('sales-empty');
@@ -2155,7 +1737,7 @@ function renderExpensesTable(){
       <td>${x.date}</td>
       <td><span class="badge type-tag">${x.referenceId ? 'Lot Expense' : 'Shop Overhead'}</span>${srcBadge}</td>
       <td>${x.desc} ${x.type === 'Procurement' ? `<br><span style="font-size:0.7rem;color:#8a8272;font-weight:600;">(+${Number(x.bags)||0} Bags, ${x.kg||0} KG)</span>` : ''}</td>
-      <td>${fmt(x.amount)}<div class="by-line"><span class="badge ${x.isCash!==false?'cash':'gpay'}">${x.isCash!==false?'Cash':'GPay'}</span></div></td>
+      <td>${fmt(x.amount)}</td>
       <td><span style="font-weight:bold; color:var(--plum-deep);">${x.referenceId ? lotLabel(x.referenceId) : 'Shop'}</span></td>
       <td class="row-actions">
         <button class="icon-btn edit" onclick='openExpenseModal(DATA.expenses.find(y=>y.id==="${x.id}"))'>✎</button>
@@ -2217,48 +1799,26 @@ function renderLoans(){
 function renderContactsTable(){
   const body = document.getElementById('contacts-table'); if(!body)return;
   const activeContacts = DATA.contacts.filter(c=>!c.isDeleted);
-  body.innerHTML = activeContacts.map(c=>{
-    const owed = contactBalanceOwed(c.id);
-    const owesBadge = owed > 0.5 ? `<span class="badge owe">${fmt(owed)}</span>` : `<span class="badge" style="background:var(--sage);">Clear</span>`;
-    return `
+  body.innerHTML = activeContacts.map(c=>`
     <tr>
       <td><b>${c.name}</b><div class="by-line">${c.note||''}</div></td>
       <td><span class="badge type-tag">${c.type}</span></td>
       <td>${c.phone||'—'}</td>
-      <td>${owesBadge}</td>
+      <td>${c.location||'—'}</td>
       <td class="row-actions">
-        ${owed > 0.5 ? `<button class="icon-btn" onclick="openRepaymentModal('${c.id}')" title="Log Repayment">₹</button>` : ''}
         <button class="icon-btn edit" onclick='openContactModal(DATA.contacts.find(x=>x.id==="${c.id}"))'>✎</button>
         <button class="icon-btn del" onclick="deleteContact('${c.id}')">✕</button>
       </td>
-    </tr>`;
-  }).join('');
+    </tr>`).join('');
   const empty = document.getElementById('contacts-empty');
   if(empty) empty.style.display = activeContacts.length ? 'none':'block';
-  const totalOwedEl = document.getElementById('c-total-owed');
-  if (totalOwedEl) totalOwedEl.textContent = fmt(totalOutstandingCredit());
 }
 
 function renderReportTable(){
   const tbody = document.getElementById('report-table'); if(!tbody) return;
   const rep = buildReportLocal(currentReportPeriod);
   if(!rep || !rep.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">No records for this period.</td></tr>'; return; }
-  
-  // Find highest revenue to scale the visual CSS bars perfectly
-  const maxRev = Math.max(...rep.map(b => b.revenue), 1);
-
-  tbody.innerHTML = rep.map(b=>`
-    <tr>
-      <td><b>${b.period}</b></td>
-      <td>
-        <div style="font-size:0.85rem; font-weight:bold; color:var(--plum-deep);">${fmt(b.revenue)}</div>
-        <div style="height:5px; background:var(--line); width:100%; border-radius:3px; margin-top:3px; overflow:hidden;">
-           <div style="height:100%; background:var(--sage); width:${(b.revenue/maxRev)*100}%; border-radius:3px;"></div>
-        </div>
-      </td>
-      <td style="font-size:0.8rem;">${fmt(b.expenses)}</td>
-      <td style="font-size:0.8rem;">${b.bags}</td>
-    </tr>`).join('');
+  tbody.innerHTML = rep.map(b=>`<tr><td><b>${b.period}</b></td><td>${fmt(b.revenue)}</td><td>${fmt(b.expenses)}</td><td>${b.bags}</td></tr>`).join('');
 }
 
 function buildReportLocal(period) {
@@ -2272,24 +1832,23 @@ function buildReportLocal(period) {
 
     if (period === 'daily') {
         const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
-        return `${shortDate(dateStr)}, ${y}`; 
+        return `${y}-${m}-${dd}`;
     }
     if (period === 'weekly') {
       const onejan = new Date(d.getFullYear(), 0, 1);
       const week = Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);
-      return `${d.getFullYear()} Wk ${week.toString().padStart(2,'0')}`;
+      return `${d.getFullYear()}-W${week.toString().padStart(2,'0')}`;
     }
-    if (period === 'quarterly') return `${d.getFullYear()} Q${Math.floor(d.getMonth() / 3) + 1}`;
-    if (period === 'yearly') return `${d.getFullYear()}`;
+    if (period === 'quarterly') return `${d.getFullYear()}-Q${Math.floor(d.getMonth() / 3) + 1}`;
     
-    // Monthly Default
-    return d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0');
+    return `${y}-${m}`;
   };
 
   DATA.sales.filter(s=>!s.isDeleted).forEach(s => {
     const k = getBucketKey(s.date);
     if (k === 'Unknown') return;
-    buckets[k] = buckets[k] || { period: k, revenue: 0, bags: 0, expenses: 0, sortKey: s.date };
+    buckets[k] = buckets[k] || { period: k, revenue: 0, bags: 0, expenses: 0 };
     buckets[k].revenue += (Number(s.amount)||0);
     buckets[k].bags += (Number(s.bags)||0);
   });
@@ -2297,12 +1856,11 @@ function buildReportLocal(period) {
   DATA.expenses.filter(x => !x.isDeleted && !x.referenceId && x.type !== 'Payout / Partner Draw').forEach(x => {
     const k = getBucketKey(x.date);
     if (k === 'Unknown') return;
-    buckets[k] = buckets[k] || { period: k, revenue: 0, bags: 0, expenses: 0, sortKey: x.date };
+    buckets[k] = buckets[k] || { period: k, revenue: 0, bags: 0, expenses: 0 };
     buckets[k].expenses += (Number(x.amount)||0);
   });
 
-  // Sort by the raw underlying date string so chronological order is perfectly preserved
-  return Object.values(buckets).sort((a,b) => b.sortKey.localeCompare(a.sortKey));
+  return Object.keys(buckets).sort().reverse().map(k => buckets[k]);
 }
 
 document.addEventListener('DOMContentLoaded', ()=>{ bindNav(); init(); });

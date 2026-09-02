@@ -1,53 +1,32 @@
 // 🛡️ Production Spreadsheet Connection
 const SPREADSHEET_ID = '1LUGAEclAgBU2H3KJhYPBlm8mTlIKy32gTA_b0z2ywlc';
-const EXPECTED_PIN = '7777'; // Change this to your preferred shared PIN
 
-// 🛡️ Master Schema
+// 🛡️ Master Schema: The Enforcer uses this to perfectly rebuild your sheet and wipe duplicates
 const SHEET_HEADERS = {
-  'lots': ['ID', 'Label', 'Bags', 'Bags G0', 'Bags G1', 'KG', 'Cost', 'Loading Cost', 'Grading Cost', 'Source of Funds', 'Is Cash', 'Weight Loss KG', 'Date Added', 'Location', 'Added By', 'Deleted Flag'],
-  'sales': ['ID', 'Date', 'Lot ID', 'Channel', 'Contact ID', 'Bags', 'KG', 'Amount', 'Is Cash', 'Is Credit', 'Note', 'Lines', 'Added By', 'Deleted Flag'],
-  'expenses': ['ID', 'Date', 'Type', 'Description', 'Amount', 'Reference ID', 'Bags', 'Bags G0', 'Bags G1', 'KG', 'Source of Funds', 'Is Cash', 'Added By', 'Deleted Flag'],
+  'lots': ['ID', 'Label', 'Bags', 'Bags G0', 'Bags G1', 'KG', 'Cost', 'Loading Cost', 'Grading Cost', 'Source of Funds', 'Weight Loss KG', 'Date Added', 'Location', 'Added By', 'Deleted Flag'],
+  'sales': ['ID', 'Date', 'Lot ID', 'Channel', 'Contact ID', 'Bags', 'KG', 'Amount', 'Note', 'Added By', 'Deleted Flag'],
+  'expenses': ['ID', 'Date', 'Type', 'Description', 'Amount', 'Reference ID', 'Bags', 'Bags G0', 'Bags G1', 'KG', 'Added By', 'Deleted Flag'],
   'capitalLoans': ['ID', 'Partner', 'Amount', 'Date Sent', 'Return Date', 'Note', 'Added By', 'Deleted Flag'],
-  'contacts': ['ID', 'Name', 'Type', 'Phone', 'Location', 'Note', 'Deleted Flag'],
-  'stockCounts': ['ID', 'Lot ID', 'Date', 'Counted Bags', 'Counted KG', 'Prev Weight Loss KG', 'New Weight Loss KG', 'Variance KG', 'Note', 'Counted By', 'Deleted Flag'],
-  'cashChecks': ['ID', 'Date', 'Expected Cash', 'Counted Cash', 'Variance', 'Note', 'Checked By', 'Deleted Flag'],
-  'creditPayments': ['ID', 'Date', 'Contact ID', 'Amount', 'Is Cash', 'Note', 'Allocations', 'Added By', 'Deleted Flag']
+  'contacts': ['ID', 'Name', 'Type', 'Phone', 'Location', 'Note', 'Deleted Flag']
 };
 
 const FIELD_MAP = {
   'ID': 'id', 'Deleted Flag': 'isDeleted', 'Added By': 'addedBy', 'Date': 'date', 'Note': 'note',
   'Amount': 'amount', 'Bags': 'bags', 'KG': 'kg', 'Bags G0': 'bagsG0', 'Bags G1': 'bagsG1',
   'Label': 'label', 'Cost': 'cost', 'Loading Cost': 'loadingCost', 'Grading Cost': 'gradingCost',
-  'Source of Funds': 'sourceOfFunds', 'Is Cash': 'isCash', 'Is Credit': 'isCredit', 'Weight Loss KG': 'weightLossKg', 'Date Added': 'dateAdded',
+  'Source of Funds': 'sourceOfFunds', 'Weight Loss KG': 'weightLossKg', 'Date Added': 'dateAdded',
   'Location': 'location', 'Lot ID': 'lotId', 'Channel': 'channel', 'Contact ID': 'contactId',
   'Type': 'type', 'Description': 'desc', 'Reference ID': 'referenceId', 'Partner': 'partner',
-  'Date Sent': 'dateSent', 'Return Date': 'returnDate', 'Name': 'name', 'Phone': 'phone',
-  'Counted Bags': 'countedBags', 'Counted KG': 'countedKg', 'Prev Weight Loss KG': 'prevWeightLossKg',
-  'New Weight Loss KG': 'newWeightLossKg', 'Variance KG': 'varianceKg', 'Counted By': 'countedBy',
-  'Expected Cash': 'expectedCash', 'Counted Cash': 'countedCash', 'Variance': 'variance', 'Checked By': 'checkedBy',
-  'Lines': 'lines', 'Allocations': 'allocations'
+  'Date Sent': 'dateSent', 'Return Date': 'returnDate', 'Name': 'name', 'Phone': 'phone'
 };
 
-const JSON_FIELDS = ['Lines', 'Allocations'];
 const DATE_FIELDS = ['Date', 'Date Added', 'Date Sent', 'Return Date'];
-// Fields stored as TRUE/FALSE text in the sheet, decoded to real booleans on read.
-// Each field has its own default for a blank/missing cell (legacy rows saved before the
-// column existed): "Is Cash" defaults to true, matching how the app always implicitly
-// behaved before payment-mode tracking existed. "Is Credit" defaults to false — an old
-// sale with no credit data was, by definition, never marked as a credit sale.
-const BOOL_FIELD_DEFAULTS = { 'Is Cash': true, 'Is Credit': false };
 
 function doGet(e) {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-
-    // SECURITY: Verify PIN
-    let requestPin = e.parameter.pin || '';
-    if (requestPin !== EXPECTED_PIN) {
-        return outputJson_({status: 'error', message: 'Unauthorized. Invalid PIN.'}, e.parameter.callback);
-    }
-
     const action = e.parameter.action;
+    
     if (action) {
         const payload = e.parameter.payload ? JSON.parse(e.parameter.payload) : null;
         return outputJson_(processAction_(ss, action, payload, e.parameter.id), e.parameter.callback);
@@ -58,9 +37,6 @@ function doGet(e) {
             expenses: getObjects_(ss, 'expenses'),
             capitalLoans: getObjects_(ss, 'capitalLoans'),
             contacts: getObjects_(ss, 'contacts'),
-            stockCounts: getObjects_(ss, 'stockCounts'),
-            cashChecks: getObjects_(ss, 'cashChecks'),
-            creditPayments: getObjects_(ss, 'creditPayments'),
             partners: getPartners_(ss),
             config: getConfig_(ss),
             status: 'success'
@@ -75,21 +51,15 @@ function doGet(e) {
 function doPost(e) {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    let action = '', payload = null, id = '', requestPin = '';
+    let action = '', payload = null, id = '';
 
     if (e.parameter.action) {
       action = e.parameter.action;
       payload = e.parameter.payload ? JSON.parse(e.parameter.payload) : null;
       id = e.parameter.id;
-      requestPin = e.parameter.pin || '';
     } else if (e.postData && e.postData.contents) {
       const body = JSON.parse(e.postData.contents);
-      action = body.action; payload = body.payload; id = body.id; requestPin = body.pin || '';
-    }
-
-    // SECURITY: Verify PIN
-    if (requestPin !== EXPECTED_PIN) {
-        return outputJson_({ status: 'error', message: 'Unauthorized. Invalid PIN.' });
+      action = body.action; payload = body.payload; id = body.id;
     }
 
     if (action) return outputJson_(processAction_(ss, action, payload, id));
@@ -105,26 +75,28 @@ function outputJson_(data, callback) {
   return ContentService.createTextOutput(out).setMimeType(ContentService.MimeType.JSON);
 }
 
-function getSheetData_(ss, sheetName) {
+function enforceStrictSchema_(ss, sheetName) {
   const requiredHeaders = SHEET_HEADERS[sheetName];
   let sh = ss.getSheetByName(sheetName);
-
+  
   if (!sh) {
     sh = ss.insertSheet(sheetName);
     sh.appendRow(requiredHeaders);
     sh.getRange(1, 1, 1, requiredHeaders.length).setFontWeight("bold").setBackground("#EDE6D6");
-    return { sh: sh, headers: requiredHeaders, values: [requiredHeaders] };
+    return requiredHeaders;
   }
-
-  let data = sh.getDataRange().getValues();
+  
+  const data = sh.getDataRange().getValues();
   if (data.length === 0) {
     sh.appendRow(requiredHeaders);
     sh.getRange(1, 1, 1, requiredHeaders.length).setFontWeight("bold").setBackground("#EDE6D6");
-    return { sh: sh, headers: requiredHeaders, values: [requiredHeaders] };
+    return requiredHeaders;
   }
-
+  
   const currentHeaders = data[0].map(h => String(h).trim());
   let needsRebuild = false;
+  
+  // Check if rebuilding is necessary
   if (currentHeaders.length !== requiredHeaders.length) {
     needsRebuild = true;
   } else {
@@ -132,48 +104,42 @@ function getSheetData_(ss, sheetName) {
       if (currentHeaders[i] !== requiredHeaders[i]) { needsRebuild = true; break; }
     }
   }
-
-  if (!needsRebuild) return { sh: sh, headers: requiredHeaders, values: data };
-
+  
+  if (!needsRebuild) return requiredHeaders;
+  
+  // Rebuild sheet to strict headers, resolving any duplicates by taking the right-most valid data
   const newRows = [requiredHeaders];
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    if (row.join('').trim() === '') continue;
-
+    if (row.join('').trim() === '') continue; // Skip totally blank rows
+    
     const newRow = requiredHeaders.map(reqH => {
+      // Find all indices where this header exists in the current messy sheet
       let indices = [];
       for (let c = 0; c < currentHeaders.length; c++) {
         if (currentHeaders[c] === reqH) indices.push(c);
       }
+      
       if (indices.length === 0) return '';
+      
+      // If duplicate columns exist, take the right-most one that has actual data
       let val = '';
       for (let idx of indices.reverse()) {
-        if (row[idx] !== '' && row[idx] !== undefined) { val = row[idx]; break; }
+        if (row[idx] !== '' && row[idx] !== undefined) {
+          val = row[idx];
+          break;
+        }
       }
       return val;
     });
     newRows.push(newRow);
   }
-
-  sh.clear();
+  
+  sh.clear(); // Wipe the messy duplicated data
   sh.getRange(1, 1, newRows.length, requiredHeaders.length).setValues(newRows);
   sh.getRange(1, 1, 1, requiredHeaders.length).setFontWeight("bold").setBackground("#EDE6D6");
-
-  return { sh: sh, headers: requiredHeaders, values: newRows };
-}
-
-function withLock_(fn) {
-  const lock = LockService.getScriptLock();
-  try {
-    lock.waitLock(10000);
-  } catch (e) {
-    return { status: 'error', message: 'Server busy — please try saving again in a moment.' };
-  }
-  try {
-    return fn();
-  } finally {
-    lock.releaseLock();
-  }
+  
+  return requiredHeaders;
 }
 
 function cleanDate_(val) {
@@ -193,13 +159,17 @@ function cleanDate_(val) {
 }
 
 function getObjects_(ss, sheetName) {
-  const { headers, values } = getSheetData_(ss, sheetName);
-  if (values.length < 2) return [];
+  const headers = enforceStrictSchema_(ss, sheetName);
+  const sh = ss.getSheetByName(sheetName);
+  if (sh.getLastRow() < 2) return [];
+  
+  const values = sh.getDataRange().getValues();
   const deletedIndex = headers.indexOf('Deleted Flag');
 
   return values.slice(1)
     .filter(row => row.join('').trim() !== '')
     .filter(row => {
+       // Hide soft-deleted rows from the UI
        if (deletedIndex === -1) return true;
        const delFlag = String(row[deletedIndex]).toUpperCase();
        return delFlag !== 'TRUE' && delFlag !== 'YES';
@@ -207,35 +177,28 @@ function getObjects_(ss, sheetName) {
     .map(row => {
       let obj = {};
       headers.forEach((h, i) => {
-         const key = FIELD_MAP[h] || h;
+         const key = FIELD_MAP[h] || h; 
          if (DATE_FIELDS.includes(h)) obj[key] = cleanDate_(row[i]);
-         else if (JSON_FIELDS.includes(h)) {
-           try { obj[key] = row[i] ? JSON.parse(row[i]) : []; } catch (e) { obj[key] = []; }
-         }
-         else if (BOOL_FIELD_DEFAULTS.hasOwnProperty(h)) {
-           const raw = row[i];
-           const def = BOOL_FIELD_DEFAULTS[h];
-           obj[key] = (raw === '' || raw === undefined || raw === null)
-             ? def
-             : (raw === true || String(raw).toUpperCase() === 'TRUE');
-         }
          else obj[key] = row[i];
       });
-      obj.isDeleted = false;
+      obj.isDeleted = false; // Set to false in memory so frontend works normally
       return obj;
     });
 }
 
 function deleteRowById_(ss, sheetName, id) {
-  const { sh, headers, values } = getSheetData_(ss, sheetName);
-  if (values.length < 2) return { status: 'error', message: 'Sheet empty.' };
+  const headers = enforceStrictSchema_(ss, sheetName);
+  const sh = ss.getSheetByName(sheetName);
+  if (sh.getLastRow() < 2) return { status: 'error', message: 'Sheet empty.' };
+  
+  const values = sh.getDataRange().getValues();
   const idIndex = headers.indexOf('ID');
   const deletedIndex = headers.indexOf('Deleted Flag');
-
+  
   for (let i = 1; i < values.length; i++) {
     if (String(values[i][idIndex]) === String(id)) {
-      if (deletedIndex !== -1) sh.getRange(i + 1, deletedIndex + 1).setValue('TRUE');
-      else sh.getRange(i + 1, headers.length).setValue('TRUE');
+      if (deletedIndex !== -1) sh.getRange(i + 1, deletedIndex + 1).setValue('TRUE'); // Soft Delete
+      else sh.getRange(i + 1, headers.length).setValue('TRUE'); 
       return { status: 'success', deleted: true };
     }
   }
@@ -243,18 +206,12 @@ function deleteRowById_(ss, sheetName, id) {
 }
 
 function addOrUpdateRow_(ss, sheetName, payload, isNew, id) {
-  const { sh, headers, values } = getSheetData_(ss, sheetName);
-
+  const headers = enforceStrictSchema_(ss, sheetName);
+  const sh = ss.getSheetByName(sheetName);
+  
   const rowData = headers.map(h => {
       const key = FIELD_MAP[h] || h;
       if (h === 'Deleted Flag') return payload[key] === true || String(payload[key]).toUpperCase() === 'TRUE' ? 'TRUE' : 'FALSE';
-      if (BOOL_FIELD_DEFAULTS.hasOwnProperty(h)) {
-        const def = BOOL_FIELD_DEFAULTS[h];
-        const v = payload[key];
-        const isTrue = (v === undefined || v === null) ? def : (v === true || String(v).toUpperCase() === 'TRUE');
-        return isTrue ? 'TRUE' : 'FALSE';
-      }
-      if (JSON_FIELDS.includes(h)) return payload[key] !== undefined ? JSON.stringify(payload[key]) : '';
       return payload[key] !== undefined ? payload[key] : '';
   });
 
@@ -262,6 +219,7 @@ function addOrUpdateRow_(ss, sheetName, payload, isNew, id) {
       sh.appendRow(rowData);
       return { status: 'success', updated: true };
   } else {
+      const values = sh.getDataRange().getValues();
       const idIndex = headers.indexOf('ID');
       for (let i = 1; i < values.length; i++) {
           if (String(values[i][idIndex]) === String(id)) {
@@ -274,12 +232,14 @@ function addOrUpdateRow_(ss, sheetName, payload, isNew, id) {
 }
 
 function processAction_(ss, action, payload, id) {
-  const entityMap = { 'Lot': 'lots', 'Sale': 'sales', 'Expense': 'expenses', 'CapitalLoan': 'capitalLoans', 'Contact': 'contacts', 'StockCount': 'stockCounts', 'CashCheck': 'cashChecks', 'CreditPayment': 'creditPayments' };
+  const entityMap = { 'Lot': 'lots', 'Sale': 'sales', 'Expense': 'expenses', 'CapitalLoan': 'capitalLoans', 'Contact': 'contacts' };
+
   for (let entity in entityMap) {
-      if (action === `add${entity}`) return withLock_(() => addOrUpdateRow_(ss, entityMap[entity], payload, true));
-      if (action === `update${entity}`) return withLock_(() => addOrUpdateRow_(ss, entityMap[entity], payload, false, id));
-      if (action === `delete${entity}`) return withLock_(() => deleteRowById_(ss, entityMap[entity], id));
+      if (action === `add${entity}`) return addOrUpdateRow_(ss, entityMap[entity], payload, true);
+      if (action === `update${entity}`) return addOrUpdateRow_(ss, entityMap[entity], payload, false, id);
+      if (action === `delete${entity}`) return deleteRowById_(ss, entityMap[entity], id);
   }
+
   if (action === 'updateConfig') { updateConfig_(ss, payload); return {status:'success'}; }
   if (action === 'updatePartners') { updatePartners_(ss, payload); return {status:'success'}; }
   return { status: 'error', message: 'Unknown action requested.' };
@@ -323,59 +283,4 @@ function updatePartners_(ss, payload) {
   const rows = [['Name', 'Required', 'Contributed']];
   for (let k in payload) rows.push([k, payload[k].required, payload[k].contributed]);
   sh.getRange(1, 1, rows.length, 3).setValues(rows);
-}
-
-// 🛡️ ARCHIVING & BACKUPS (Run these via Time-Driven Triggers)
-function backupLedger() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const file = DriveApp.getFileById(SPREADSHEET_ID);
-  const folder = file.getParents().next();
-  const dateStr = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
-  const backupName = `Backup_PoonduLedger_${dateStr}`;
-  file.makeCopy(backupName, folder);
-  const files = folder.searchFiles(`title contains 'Backup_PoonduLedger_'`);
-  const oneWeekAgo = new Date();
-  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-  while (files.hasNext()) {
-    const backupFile = files.next();
-    if (backupFile.getDateCreated() < oneWeekAgo) {
-      backupFile.setTrashed(true);
-    }
-  }
-}
-
-function archiveOldData() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const salesSheet = ss.getSheetByName('sales');
-  if (!salesSheet) return;
-
-  let archiveSheet = ss.getSheetByName('sales_archive');
-  if (!archiveSheet) {
-    archiveSheet = ss.insertSheet('sales_archive');
-    archiveSheet.appendRow(SHEET_HEADERS['sales']);
-  }
-
-  const data = salesSheet.getDataRange().getValues();
-  if (data.length <= 1) return;
-  const dateIndex = SHEET_HEADERS['sales'].indexOf('Date');
-  const ninetyDaysAgo = new Date();
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-
-  let rowsToKeep = [data[0]];
-  let rowsToArchive = [];
-
-  for (let i = 1; i < data.length; i++) {
-    const rowDate = new Date(data[i][dateIndex]);
-    if (!isNaN(rowDate.getTime()) && rowDate < ninetyDaysAgo) {
-      rowsToArchive.push(data[i]);
-    } else {
-      rowsToKeep.push(data[i]);
-    }
-  }
-
-  if (rowsToArchive.length > 0) {
-    archiveSheet.getRange(archiveSheet.getLastRow() + 1, 1, rowsToArchive.length, rowsToArchive[0].length).setValues(rowsToArchive);
-    salesSheet.clear();
-    salesSheet.getRange(1, 1, rowsToKeep.length, rowsToKeep[0].length).setValues(rowsToKeep);
-  }
 }

@@ -1,0 +1,48 @@
+Here is the exact process to push your updates from your local folder to GitHub.
+
+1. **Navigate to your project folder:** Use Command Prompt, PowerShell, or Git Bash.
+Open your terminal and change the directory to your project path:
+
+```bash
+cd C:\Users\hp\Documents\Poondu_Ledger
+
+```
+
+
+2. **Stage the changed file:**
+If you haven't already initialized Git in this folder, run `git init` first. Then, stage your specific HTML file for the next commit:
+
+```bash
+git add index.html
+
+```
+
+*(Tip: If you want to add all modified files in the folder at once, you can use `git add .` instead).*
+
+
+3. **Commit your changes:**
+Save the changes to your local Git history with a short, descriptive message:
+
+```bash
+git commit -m "Update index.html"
+
+```
+
+
+4. **Link your GitHub repository:** Skip this step if you have already connected this folder to GitHub.
+If this is your first time pushing this project, you need to connect your local folder to the remote GitHub repository. Replace the URL below with your actual repository URL:
+
+```bash
+git remote add origin https://github.com/your-username/your-repo-name.git
+git branch -M main
+
+```
+
+
+5. **Push the code to GitHub:**
+Upload your local commits to your GitHub repository:
+
+```bash
+git push -u origin main
+
+```
