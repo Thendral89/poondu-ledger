@@ -187,6 +187,12 @@
       </div>
     </div>
 
+    <div class="card big-stat" style="border: 2px solid var(--rust);">
+      <div class="label util">Amount Owed to Suppliers</div>
+      <div class="value" id="d-payable-owed">₹0</div>
+      <div class="note">Goods/expenses bought on credit, not yet paid off.</div>
+    </div>
+
     <div class="card">
       <h2>
         Financial Status
@@ -264,6 +270,14 @@
 
   <!-- VIEW: EXPENSES -->
   <div class="view" id="view-expenses">
+    <div class="card" style="border: 2px solid var(--rust);">
+      <h2>Credit Taken (Payables)</h2>
+      <div class="note">Money you owe suppliers for goods/expenses bought on credit — excluded from Cash In Hand until you pay it off.</div>
+      <div class="stat-grid" style="margin-top:10px;">
+        <div class="stat"><div class="label">Currently Owed to Suppliers</div><div class="value" id="e-total-payable">₹0</div></div>
+      </div>
+      <button class="btn secondary" style="margin-top:10px;" onclick="openPayablePaymentModal()">Log Payable Repayment</button>
+    </div>
     <div class="card">
       <div class="seg2" id="expenses-period-filter">
         <button type="button" class="on" data-p="all" onclick="setExpensesFilter('all')">All</button>
@@ -483,7 +497,7 @@ function defaultData(){
       Nagaraj:  {required:650000, contributed:289550},
       Senthil:  {required:650000, contributed:625953}
     },
-    lots: [], sales: [], expenses: [], capitalLoans: [], contacts: [], stockCounts: [], cashChecks: [], creditPayments: []
+    lots: [], sales: [], expenses: [], capitalLoans: [], contacts: [], stockCounts: [], cashChecks: [], creditPayments: [], payablePayments: []
   };
 }
 
@@ -603,7 +617,7 @@ async function fetchCloudState(){
   }
   
   if (!json || !json.config) return null;
-  ['lots', 'sales', 'expenses', 'capitalLoans', 'contacts', 'stockCounts', 'cashChecks', 'creditPayments'].forEach(k => json[k] = json[k] || []);
+  ['lots', 'sales', 'expenses', 'capitalLoans', 'contacts', 'stockCounts', 'cashChecks', 'creditPayments', 'payablePayments'].forEach(k => json[k] = json[k] || []);
   if (!json.partners || Object.keys(json.partners).length === 0) {
     json.partners = defaultData().partners;
   }
@@ -839,6 +853,23 @@ function lotStats(lot){
   };
 }
 
+// Bags/KG genuinely available to sell from a lot right now. `excludeSaleId` lets the Edit
+// Sale flow check availability as if that sale's own existing lines hadn't been deducted yet,
+// so editing a sale that already used up the last of a lot doesn't falsely show it sold out.
+function lotAvailableStats(lot, excludeSaleId){
+  let soldBags = 0, soldKg = 0;
+  DATA.sales.filter(s => !s.isDeleted && s.id !== excludeSaleId).forEach(s => {
+    saleLinesFor(s).forEach(line => {
+      if (line.lotId === lot.id) { soldBags += Number(line.bags)||0; soldKg += Number(line.kg)||0; }
+    });
+  });
+  const st = lotStats(lot);
+  return {
+    availBags: Math.max(0, st.totalBags - soldBags),
+    availKg: Math.max(0, st.totalInitialKg - soldKg)
+  };
+}
+
 function totals(period = 'all'){
   let remainingBags=0, remainingKg=0;
   let revenue=0, cogs=0, shopExpenseTotal=0;
@@ -876,6 +907,15 @@ function totals(period = 'all'){
   // these fields existed, matching how the app always implicitly behaved before.
   const isCashTrue = v => v !== false;
   const isCreditSale = s => s.isCredit === true;
+  // Goods/expenses bought "on credit" from a supplier: same idea as a credit sale but in
+  // reverse — the shop owes the money rather than being owed it. The cost still counts
+  // toward COGS/lot cost basis (it's a real cost regardless of payment terms) but is
+  // excluded from cash deductions until a payment is logged (see payablePayments below).
+  const isCreditExpense = x => x.isCredit === true;
+  const isCreditLot = l => l.isCredit === true;
+  const allTimePayablePayments = (DATA.payablePayments||[]).filter(p => !p.isDeleted);
+  const totalPayablePayments = allTimePayablePayments.reduce((s,x)=>s+(Number(x.amount)||0), 0);
+  const totalCashPayablePayments = allTimePayablePayments.filter(p => isCashTrue(p.isCash)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
 
   // "totalRevenue" = ALL sales booked (incl. credit) — accrual view, shown for reference.
   const totalRevenue = allTimeSales.reduce((s,x)=>s+(Number(x.amount)||0), 0);
@@ -886,18 +926,24 @@ function totals(period = 'all'){
   const totalCreditRepaid = allTimeCreditPayments.reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const outstandingCredit = totalCreditGiven - totalCreditRepaid;
 
-  const totalGeneralExpenses = allTimeExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw').reduce((s,x)=>s+(Number(x.amount)||0), 0);
+  const totalGeneralExpenses = allTimeExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw' && !isCreditExpense(x)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const totalPayouts = allTimeExpenses.filter(x => x.type === 'Payout / Partner Draw').reduce((s,x)=>s+(Number(x.amount)||0), 0);
 
   const taggedExpenses = allTimeExpenses.filter(x => !!x.referenceId);
   const revenueFundedTaggedExpenses = taggedExpenses
-    .filter(x => (x.sourceOfFunds || 'Sales Revenue') === 'Sales Revenue')
+    .filter(x => (x.sourceOfFunds || 'Sales Revenue') === 'Sales Revenue' && !isCreditExpense(x))
     .reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const capitalFundedTaggedExpenses = taggedExpenses
     .filter(x => x.sourceOfFunds === 'Partner Capital')
     .reduce((s,x)=>s+(Number(x.amount)||0), 0);
 
-  const revenueFundedLotsCost = activeLots.filter(l => l.sourceOfFunds === 'Sales Revenue').reduce((s, l) => s + (Number(l.cost)||0) + (Number(l.loadingCost)||0) + (Number(l.gradingCost)||0), 0);
+  const revenueFundedLotsCost = activeLots.filter(l => l.sourceOfFunds === 'Sales Revenue' && !isCreditLot(l)).reduce((s, l) => s + (Number(l.cost)||0) + (Number(l.loadingCost)||0) + (Number(l.gradingCost)||0), 0);
+
+  // Total owed to suppliers right now for goods/expenses taken on credit, minus whatever's
+  // already been paid off via the Expenses tab's "Log Payable Repayment".
+  const totalPayableTaken = allTimeExpenses.filter(isCreditExpense).reduce((s,x)=>s+(Number(x.amount)||0), 0)
+    + activeLots.filter(l => l.sourceOfFunds === 'Sales Revenue' && isCreditLot(l)).reduce((s, l) => s + (Number(l.cost)||0) + (Number(l.loadingCost)||0) + (Number(l.gradingCost)||0), 0);
+  const outstandingPayable = totalPayableTaken - totalPayablePayments;
 
   // "liquidCash" = TOTAL liquid funds actually collected (cash + GPay/bank combined),
   // payment-mode agnostic, credit-aware. Credit sales don't count until repaid; the
@@ -905,21 +951,21 @@ function totals(period = 'all'){
   // is what the 3-way payout engine distributes from — GPay revenue sitting in the
   // bank is real distributable profit even though it never enters the physical till,
   // but uncollected credit is not, since you don't actually have that money yet.
-  const liquidCash = totalCollectedRevenue + totalCreditRepaid - totalGeneralExpenses - totalPayouts - revenueFundedLotsCost - revenueFundedTaggedExpenses;
+  const liquidCash = totalCollectedRevenue + totalCreditRepaid - totalGeneralExpenses - totalPayouts - revenueFundedLotsCost - revenueFundedTaggedExpenses - totalPayablePayments;
 
   // ---- Physical cash (till) breakdown ----
   const totalCashRevenue = allTimeSales.filter(s => !isCreditSale(s) && isCashTrue(s.isCash)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const totalCashCreditRepaid = allTimeCreditPayments.filter(p => isCashTrue(p.isCash)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
-  const totalCashGeneralExpenses = allTimeExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw' && isCashTrue(x.isCash)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
+  const totalCashGeneralExpenses = allTimeExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw' && isCashTrue(x.isCash) && !isCreditExpense(x)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const totalCashPayouts = allTimeExpenses.filter(x => x.type === 'Payout / Partner Draw' && isCashTrue(x.isCash)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const cashFundedTaggedExpenses = taggedExpenses
-    .filter(x => (x.sourceOfFunds || 'Sales Revenue') === 'Sales Revenue' && isCashTrue(x.isCash))
+    .filter(x => (x.sourceOfFunds || 'Sales Revenue') === 'Sales Revenue' && isCashTrue(x.isCash) && !isCreditExpense(x))
     .reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const cashFundedLotsCost = activeLots
-    .filter(l => l.sourceOfFunds === 'Sales Revenue' && isCashTrue(l.isCash))
+    .filter(l => l.sourceOfFunds === 'Sales Revenue' && isCashTrue(l.isCash) && !isCreditLot(l))
     .reduce((s, l) => s + (Number(l.cost)||0) + (Number(l.loadingCost)||0) + (Number(l.gradingCost)||0), 0);
 
-  const physicalCashInHand = totalCashRevenue + totalCashCreditRepaid - totalCashGeneralExpenses - totalCashPayouts - cashFundedLotsCost - cashFundedTaggedExpenses;
+  const physicalCashInHand = totalCashRevenue + totalCashCreditRepaid - totalCashGeneralExpenses - totalCashPayouts - cashFundedLotsCost - cashFundedTaggedExpenses - totalCashPayablePayments;
 
   return {
     remainingBags, remainingKg, revenue, cogs, shopExpenseTotal,
@@ -929,7 +975,8 @@ function totals(period = 'all'){
     totalCreditGiven, totalCreditRepaid, outstandingCredit,
     revenueFundedLotsCost, revenueFundedTaggedExpenses, capitalFundedTaggedExpenses,
     physicalCashInHand, totalCashRevenue, totalCashCreditRepaid, totalCashGeneralExpenses, totalCashPayouts,
-    cashFundedLotsCost, cashFundedTaggedExpenses
+    cashFundedLotsCost, cashFundedTaggedExpenses,
+    totalPayableTaken, totalPayablePayments, outstandingPayable
   };
 }
 
@@ -965,9 +1012,9 @@ function populateFormsFromData(){
 }
 
 function openLotModal(existing){
-  const l = existing || { label:'', bagsG0:'', bagsG1:'', bags:'', kg:'', cost:'', loadingCost:'', gradingCost:'', sourceOfFunds:'Partner Capital', weightLossKg:0, dateAdded: todayISO(), isCash: true };
+  const l = existing || { label:'', bagsG0:'', bagsG1:'', bags:'', kg:'', cost:'', loadingCost:'', gradingCost:'', sourceOfFunds:'Partner Capital', weightLossKg:0, dateAdded: todayISO(), isCash: true, isCredit: false };
   window.__modalSource = l.sourceOfFunds;
-  window.__modalLotPayMode = l.isCash !== false;
+  window.__modalLotPayMode = l.isCredit ? 'credit' : (l.isCash === false ? 'gpay' : 'cash');
   
   let initG0 = l.bagsG0 || '';
   let initG1 = l.bagsG1 || '';
@@ -1005,10 +1052,11 @@ function openLotModal(existing){
     <div id="lot-paymode-row" style="display: ${l.sourceOfFunds==='Sales Revenue' ? 'block' : 'none'};">
       <label style="margin-top: 10px;">Paid Via</label>
       <div class="seg2">
-        <button type="button" id="m-lot-pay-cash" class="${l.isCash!==false?'on':''}" onclick="setModalLotPayMode(true)">Cash</button>
-        <button type="button" id="m-lot-pay-gpay" class="${l.isCash===false?'on':''}" onclick="setModalLotPayMode(false)">GPay</button>
+        <button type="button" id="m-lot-pay-cash" class="${(!l.isCredit && l.isCash!==false)?'on':''}" onclick="setModalLotPayMode('cash')">Cash</button>
+        <button type="button" id="m-lot-pay-gpay" class="${(!l.isCredit && l.isCash===false)?'on':''}" onclick="setModalLotPayMode('gpay')">GPay</button>
+        <button type="button" id="m-lot-pay-credit" class="${l.isCredit?'on':''}" onclick="setModalLotPayMode('credit')">Credit</button>
       </div>
-      <div class="note">Cash paid to a farmer/supplier reduces Physical Cash In Hand. GPay does not touch the till.</div>
+      <div class="note" id="lot-paymode-note"></div>
     </div>
     <div class="row2" style="margin-top: 10px;">
       <div><label>Date</label><input type="date" id="m-date" value="${safeDate(l.dateAdded)}"></div>
@@ -1025,22 +1073,25 @@ function openLotModal(existing){
     const loadingCost = Number(document.getElementById('m-loading').value)||0;
     const gradingCost = Number(document.getElementById('m-grading').value)||0;
     const sourceOfFunds = window.__modalSource || l.sourceOfFunds;
-    const isCash = sourceOfFunds === 'Sales Revenue' ? (window.__modalLotPayMode !== false) : true;
+    const lotPayMode = window.__modalLotPayMode || 'cash';
+    const isCredit = sourceOfFunds === 'Sales Revenue' && lotPayMode === 'credit';
+    const isCash = sourceOfFunds === 'Sales Revenue' ? (lotPayMode === 'cash') : true;
     const weightLossKg = Number(document.getElementById('m-loss').value)||0;
     const dateAdded = document.getElementById('m-date').value || todayISO();
 
     if (!label) { showToast('Please enter a lot name.', true); return false; }
 
     if (existing) {
-      Object.assign(existing, { label, bags, bagsG0, bagsG1, kg, cost, loadingCost, gradingCost, sourceOfFunds, isCash, weightLossKg, dateAdded });
+      Object.assign(existing, { label, bags, bagsG0, bagsG1, kg, cost, loadingCost, gradingCost, sourceOfFunds, isCash, isCredit, weightLossKg, dateAdded });
       renderActiveView(); sendAction('updateLot', existing, existing.id);
     } else {
       const id = uid();
-      const lot = { id, label, bags, bagsG0, bagsG1, kg, cost, loadingCost, gradingCost, sourceOfFunds, isCash, weightLossKg, dateAdded, location: bagsG1 > 0 && bagsG0 === 0 ? 'G+1' : 'Ground', addedBy: getActor(), isDeleted: false };
+      const lot = { id, label, bags, bagsG0, bagsG1, kg, cost, loadingCost, gradingCost, sourceOfFunds, isCash, isCredit, weightLossKg, dateAdded, location: bagsG1 > 0 && bagsG0 === 0 ? 'G+1' : 'Ground', addedBy: getActor(), isDeleted: false };
       DATA.lots.push(lot);
       renderActiveView(); sendAction('addLot', lot, id);
     }
   });
+  setTimeout(() => updateLotPayModeUI(window.__modalLotPayMode), 10);
 }
 
 function updateTotalBagsModal(type) {
@@ -1062,10 +1113,20 @@ function setModalSource(src){
   const row = document.getElementById('lot-paymode-row');
   if (row) row.style.display = src==='Sales Revenue' ? 'block' : 'none';
 }
-function setModalLotPayMode(isCash){
-  window.__modalLotPayMode = isCash;
-  document.getElementById('m-lot-pay-cash').classList.toggle('on', isCash===true);
-  document.getElementById('m-lot-pay-gpay').classList.toggle('on', isCash===false);
+function setModalLotPayMode(mode){
+  window.__modalLotPayMode = mode;
+  updateLotPayModeUI(mode);
+}
+function updateLotPayModeUI(mode){
+  document.getElementById('m-lot-pay-cash')?.classList.toggle('on', mode==='cash');
+  document.getElementById('m-lot-pay-gpay')?.classList.toggle('on', mode==='gpay');
+  document.getElementById('m-lot-pay-credit')?.classList.toggle('on', mode==='credit');
+  const note = document.getElementById('lot-paymode-note');
+  if (note) {
+    if (mode === 'credit') note.textContent = "Bought on credit from the farmer/supplier — this cost won't be deducted from Cash In Hand until you log a payment from the Expenses tab's Credit Taken section.";
+    else if (mode === 'gpay') note.textContent = 'GPay does not touch the till.';
+    else note.textContent = 'Cash paid to a farmer/supplier reduces Physical Cash In Hand.';
+  }
 }
 async function deleteLot(id){ confirmThen('Delete this lot?', async () => { const idx = DATA.lots.findIndex(l=>l.id===id); if(idx !== -1) { DATA.lots[idx].isDeleted = true; renderActiveView(); sendAction('deleteLot', {id}, id); } }); }
 
@@ -1073,6 +1134,7 @@ function openSaleModal(existing){
   const s = existing || { date: todayISO(), channel:'Retail', contactId:'', amount:'', note:'', isCash: true, isCredit: false };
   window.__modalChannel = s.channel;
   window.__modalSalePayMode = s.isCredit ? 'credit' : (s.isCash === false ? 'gpay' : 'cash');
+  window.__saleModalExcludeId = existing ? existing.id : null;
   window.__saleLineIdx = [];
   window.__saleLineSeq = 0;
 
@@ -1136,6 +1198,31 @@ function openSaleModal(existing){
 
     if (!lines.length) { showToast('Please select at least one lot with bags or KG.', true); return false; }
     if (!amount) { showToast('Please enter the amount collected.', true); return false; }
+
+    // Guard against tagging a sale to a lot that's already sold out (or overselling a lot).
+    const bagsByLot = {}, kgByLot = {};
+    lines.forEach(l => {
+      bagsByLot[l.lotId] = (bagsByLot[l.lotId]||0) + l.bags;
+      kgByLot[l.lotId] = (kgByLot[l.lotId]||0) + l.kg;
+    });
+    for (const lotId in bagsByLot) {
+      const lot = DATA.lots.find(l=>l.id===lotId);
+      if (!lot) continue;
+      const avail = lotAvailableStats(lot, window.__saleModalExcludeId);
+      if (avail.availBags <= 0 && bagsByLot[lotId] > 0) {
+        showToast(`"${lot.label}" is already sold out — pick a different lot.`, true);
+        return false;
+      }
+      if (bagsByLot[lotId] > avail.availBags) {
+        showToast(`Only ${avail.availBags} bag(s) left in "${lot.label}" — reduce the bags or split across another lot.`, true);
+        return false;
+      }
+      if (kgByLot[lotId] > avail.availKg + 0.5) {
+        showToast(`Only ${avail.availKg.toFixed(0)} KG left in "${lot.label}" — reduce the KG entered.`, true);
+        return false;
+      }
+    }
+
     if (isCredit && !contactId) { showToast('Select a buyer for a credit sale — that\'s who owes you.', true); return false; }
     if (existing && existing.isCredit === true && !isCredit && saleCreditRepaidAmount(existing.id) > 0) {
       showToast('This sale already has repayments logged against it — it converts to Paid automatically once fully repaid. Log or delete a repayment instead of changing its payment mode.', true);
@@ -1161,7 +1248,15 @@ function openSaleModal(existing){
 }
 
 function saleLineRowHtml(idx, line){
-  const lotOptions = DATA.lots.filter(l=>!l.isDeleted).map(l=>`<option value="${l.id}" ${line.lotId===l.id?'selected':''}>${l.label}</option>`).join('');
+  const excludeId = window.__saleModalExcludeId || null;
+  const lotOptions = DATA.lots.filter(l=>!l.isDeleted).map(l=>{
+    const avail = lotAvailableStats(l, excludeId);
+    const soldOut = avail.availBags <= 0;
+    const isCurrent = line.lotId === l.id;
+    const disabledAttr = (soldOut && !isCurrent) ? 'disabled' : '';
+    const labelText = soldOut ? `${l.label} — SOLD OUT` : l.label;
+    return `<option value="${l.id}" ${isCurrent?'selected':''} ${disabledAttr}>${labelText}</option>`;
+  }).join('');
   return `<div class="highlight-box" id="sl-row-${idx}" style="margin-top:8px;">
     <div class="row2">
       <div><label style="margin-top:0;">Lot</label><select id="sl-lot-${idx}">${lotOptions || '<option value="">-- No Active Lots --</option>'}</select></div>
@@ -1265,10 +1360,10 @@ function openExpenseModal(existing){
   let defaultLotType = existing?.type || 'Loading/Unloading';
   if (defaultLotType === 'Running Cost' || defaultLotType === 'Miscellaneous') defaultLotType = 'Loading/Unloading';
 
-  const x = existing || { date: todayISO(), type: defaultLotType, desc:'', amount:'', referenceId:'', bags:'', bagsG0:'', bagsG1:'', kg:'', sourceOfFunds:'Sales Revenue', isCash: true };
+  const x = existing || { date: todayISO(), type: defaultLotType, desc:'', amount:'', referenceId:'', bags:'', bagsG0:'', bagsG1:'', kg:'', sourceOfFunds:'Sales Revenue', isCash: true, isCredit: false };
   window.__modalExpenseType = x.referenceId ? 'lot' : 'shop';
   window.__modalExpenseSource = x.sourceOfFunds || 'Sales Revenue';
-  window.__modalExpensePayMode = x.isCash !== false;
+  window.__modalExpensePayMode = x.isCredit ? 'credit' : (x.isCash === false ? 'gpay' : 'cash');
   
   const lotOptions = '<option value="">-- Select Lot to tag cost --</option>' + DATA.lots.filter(l=>!l.isDeleted).map(l=>`<option value="${l.id}" ${x.referenceId===l.id?'selected':''}>${l.label}</option>`).join('');
 
@@ -1322,11 +1417,12 @@ function openExpenseModal(existing){
     </div>
 
     <label style="margin-top:10px;">Paid Via</label>
-    <div class="seg2">
-      <button type="button" id="m-exp-pay-cash" class="${x.isCash!==false?'on':''}" onclick="setModalExpensePayMode(true)">Cash</button>
-      <button type="button" id="m-exp-pay-gpay" class="${x.isCash===false?'on':''}" onclick="setModalExpensePayMode(false)">GPay</button>
+    <div class="seg2" style="grid-template-columns: 1fr 1fr 1fr;">
+      <button type="button" id="m-exp-pay-cash" class="${window.__modalExpensePayMode==='cash'?'on':''}" onclick="setModalExpensePayMode('cash')">Cash</button>
+      <button type="button" id="m-exp-pay-gpay" class="${window.__modalExpensePayMode==='gpay'?'on':''}" onclick="setModalExpensePayMode('gpay')">GPay</button>
+      <button type="button" id="m-exp-pay-credit" class="${window.__modalExpensePayMode==='credit'?'on':''}" onclick="setModalExpensePayMode('credit')">Credit</button>
     </div>
-    <div class="note">Cash expenses reduce Physical Cash In Hand directly. GPay expenses reduce total liquid funds but never touch the till — so a cash expense that isn't backed by matching cash sales will correctly show up as a deficit in Physical Cash In Hand.</div>
+    <div class="note" id="exp-paymode-note"></div>
 
     <label style="margin-top:10px;">Details / Custom Name</label>
     <input type="text" id="m-desc" value="${x.desc||''}" placeholder="e.g. Lorry Coolie">
@@ -1343,7 +1439,9 @@ function openExpenseModal(existing){
     const desc = document.getElementById('m-desc').value.trim();
     const amount = Number(document.getElementById('m-amount').value)||0;
     const sourceOfFunds = isLot ? (window.__modalExpenseSource || 'Sales Revenue') : 'Sales Revenue';
-    const isCash = window.__modalExpensePayMode !== false;
+    const expPayMode = window.__modalExpensePayMode || 'cash';
+    const isCredit = expPayMode === 'credit';
+    const isCash = expPayMode === 'cash';
 
     let bags = 0; let bagsG0 = 0; let bagsG1 = 0; let kg = 0;
     if (isLot && type === 'Procurement') {
@@ -1358,17 +1456,17 @@ function openExpenseModal(existing){
     if (isLot && !referenceId) { showToast('Please select a Lot to tag this expense to', true); return false; }
 
     if (existing) {
-      Object.assign(existing, { date, type, desc, amount, referenceId, bags, bagsG0, bagsG1, kg, sourceOfFunds, isCash });
+      Object.assign(existing, { date, type, desc, amount, referenceId, bags, bagsG0, bagsG1, kg, sourceOfFunds, isCash, isCredit });
       renderActiveView(); sendAction('updateExpense', existing, existing.id);
     } else {
       const id = uid();
-      const exp = { id, date, type, desc, amount, referenceId, bags, bagsG0, bagsG1, kg, sourceOfFunds, isCash, addedBy: getActor(), isDeleted: false };
+      const exp = { id, date, type, desc, amount, referenceId, bags, bagsG0, bagsG1, kg, sourceOfFunds, isCash, isCredit, addedBy: getActor(), isDeleted: false };
       DATA.expenses.push(exp);
       renderActiveView(); sendAction('addExpense', exp, id);
     }
   }, 'Save');
 
-  setTimeout(toggleProcurementFields, 10);
+  setTimeout(() => { toggleProcurementFields(); updateExpensePayModeUI(window.__modalExpensePayMode); }, 10);
 }
 
 function toggleProcurementFields(){
@@ -1392,10 +1490,20 @@ function setModalExpenseSource(src){
   if (revBtn) revBtn.classList.toggle('on', src==='Sales Revenue');
   if (capBtn) capBtn.classList.toggle('on', src==='Partner Capital');
 }
-function setModalExpensePayMode(isCash){
-  window.__modalExpensePayMode = isCash;
-  document.getElementById('m-exp-pay-cash').classList.toggle('on', isCash===true);
-  document.getElementById('m-exp-pay-gpay').classList.toggle('on', isCash===false);
+function setModalExpensePayMode(mode){
+  window.__modalExpensePayMode = mode;
+  updateExpensePayModeUI(mode);
+}
+function updateExpensePayModeUI(mode){
+  document.getElementById('m-exp-pay-cash')?.classList.toggle('on', mode==='cash');
+  document.getElementById('m-exp-pay-gpay')?.classList.toggle('on', mode==='gpay');
+  document.getElementById('m-exp-pay-credit')?.classList.toggle('on', mode==='credit');
+  const note = document.getElementById('exp-paymode-note');
+  if (note) {
+    if (mode === 'credit') note.textContent = "Bought on credit from the supplier — this amount won't be deducted from Cash In Hand until you log a payment from the Expenses tab's Credit Taken section.";
+    else if (mode === 'gpay') note.textContent = 'GPay expenses reduce total liquid funds but never touch the till.';
+    else note.textContent = 'Cash expenses reduce Physical Cash In Hand directly.';
+  }
 }
 
 async function quickMonthlyExpense(){
@@ -1565,6 +1673,47 @@ function setRepaymentPayMode(isCash){
   document.getElementById('rp-pay-gpay').classList.toggle('on', isCash===false);
 }
 async function deleteCreditPayment(id){ confirmThen('Delete this repayment record?', async () => { const idx = DATA.creditPayments.findIndex(p=>p.id===id); if(idx !== -1) { DATA.creditPayments[idx].isDeleted = true; renderActiveView(); sendAction('deleteCreditPayment', {id}, id); } }); }
+
+// ---- Payables (goods/expenses bought on credit from a supplier) ----
+// Simpler than the customer-credit side: one running balance rather than a per-supplier
+// FIFO ledger, since the ask here is "an easy way to track" what's owed overall.
+function openPayablePaymentModal(){
+  const t = totals('all');
+  const html = `
+    <div class="note">Currently owe suppliers: <b>${fmt(Math.max(0, t.outstandingPayable))}</b></div>
+    <label>Date</label><input type="date" id="pp-date" value="${todayISO()}">
+    <label>Amount Paid (₹)</label><input type="number" id="pp-amount" placeholder="0">
+    <label style="margin-top:10px;">Paid Via</label>
+    <div class="seg2">
+      <button type="button" id="pp-pay-cash" class="on" onclick="setPayablePayMode(true)">Cash</button>
+      <button type="button" id="pp-pay-gpay" onclick="setPayablePayMode(false)">GPay</button>
+    </div>
+    <label>Note</label><input type="text" id="pp-note" placeholder="e.g. cleared last month's credit purchase">`;
+
+  window.__payablePayIsCash = true;
+
+  openModal('Log Payable Repayment', html, async () => {
+    const date = document.getElementById('pp-date').value || todayISO();
+    const amount = Number(document.getElementById('pp-amount').value)||0;
+    const note = document.getElementById('pp-note').value.trim();
+    const isCash = window.__payablePayIsCash !== false;
+
+    if (!amount) { showToast('Enter the amount paid.', true); return false; }
+
+    const id = uid();
+    const record = { id, date, amount, isCash, note, addedBy: getActor(), isDeleted: false };
+    DATA.payablePayments.push(record);
+    renderActiveView();
+    sendAction('addPayablePayment', record, id);
+    showToast('Payment logged.');
+  }, 'Save');
+}
+function setPayablePayMode(isCash){
+  window.__payablePayIsCash = isCash;
+  document.getElementById('pp-pay-cash').classList.toggle('on', isCash===true);
+  document.getElementById('pp-pay-gpay').classList.toggle('on', isCash===false);
+}
+async function deletePayablePayment(id){ confirmThen('Delete this payment record?', async () => { const idx = DATA.payablePayments.findIndex(p=>p.id===id); if(idx !== -1) { DATA.payablePayments[idx].isDeleted = true; renderActiveView(); sendAction('deletePayablePayment', {id}, id); } }); }
 
 function openStockCountModal(){
   const activeLots = DATA.lots.filter(l=>!l.isDeleted);
@@ -1825,6 +1974,7 @@ function renderAll(){
 
 function renderDashboard(){
   const t = totals(dashFilter);
+  const allTime = totals('all');
   const elBags = document.getElementById('d-bags-left');
   const elKg = document.getElementById('d-kg-left');
   const elRev = document.getElementById('d-revenue');
@@ -1837,7 +1987,6 @@ function renderDashboard(){
 
   const elCash = document.getElementById('d-cash-hand');
   if(elCash) {
-    const allTime = totals('all');
     elCash.textContent = fmt(allTime.liquidCash);
     elCash.className = 'value ' + (allTime.liquidCash>=0 ? 'pos':'neg');
 
@@ -1861,8 +2010,11 @@ function renderDashboard(){
           <div style="display:flex; justify-content:space-between; margin-top:6px;">
             <span>Rev-Funded Lot Purchases (-)</span><span>${fmt(allTime.revenueFundedLotsCost)}</span>
           </div>
-          <div style="display:flex; justify-content:space-between; margin-top:6px; border-bottom:1px solid var(--line); padding-bottom:6px;">
+          <div style="display:flex; justify-content:space-between; margin-top:6px;">
             <span>Partner Payouts Drawn (-)</span><span>${fmt(allTime.totalPayouts)}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-top:6px; border-bottom:1px solid var(--line); padding-bottom:6px;">
+            <span>Payables Paid Off (-)</span><span>${fmt(allTime.totalPayablePayments)}</span>
           </div>
           <div style="display:flex; justify-content:space-between; margin-top:6px; font-weight:bold; color:var(--plum-deep);">
             <span>Calculated Liquid Cash (=)</span><span>${fmt(allTime.liquidCash)}</span>
@@ -1870,9 +2022,12 @@ function renderDashboard(){
           <div style="display:flex; justify-content:space-between; margin-top:10px; padding-top:6px; border-top:1px dashed var(--line); color:var(--rust);">
             <span>Outstanding Credit (not counted above)</span><span>${fmt(allTime.outstandingCredit)}</span>
           </div>
+          <div style="display:flex; justify-content:space-between; margin-top:6px; color:var(--rust);">
+            <span>Owed to Suppliers (not counted above)</span><span>${fmt(Math.max(0, allTime.outstandingPayable))}</span>
+          </div>
         </div>
         <div class="note" style="margin-top:10px; color: var(--rust);">
-          <b>Note:</b> This combines Cash and GPay — every Sales-Revenue-funded cost is deducted the same way regardless of payment mode. Credit sales are excluded until the buyer actually repays (see Contacts tab). If old expenses in your Google Sheet have a blank "Source of Funds" column, the app defaults to deducting them from Sales Revenue.
+          <b>Note:</b> This combines Cash and GPay — every Sales-Revenue-funded cost is deducted the same way regardless of payment mode. Credit sales are excluded until the buyer actually repays (see Contacts tab), and goods/expenses bought on credit are excluded until you pay the supplier (see Expenses tab). If old expenses in your Google Sheet have a blank "Source of Funds" column, the app defaults to deducting them from Sales Revenue.
         </div>
       `;
     }
@@ -1893,6 +2048,9 @@ function renderDashboard(){
         </div>`).join('') : '<div class="note">Nobody currently owes you on credit.</div>';
     }
   }
+
+  const elPayableOwed = document.getElementById('d-payable-owed');
+  if (elPayableOwed) elPayableOwed.textContent = fmt(Math.max(0, allTime.outstandingPayable));
 
   if(elRev) elRev.textContent = fmt(t.revenue);
   if(elCogs) elCogs.textContent = fmt(t.cogs);
@@ -1925,7 +2083,7 @@ function renderDashboard(){
             <span class="row-actions">
               <span class="badge type-tag">${getLocBadge(st)}</span>
               <span class="badge ${lot.sourceOfFunds==='Partner Capital'?'type-tag':'wholesale'}">${lot.sourceOfFunds === 'Partner Capital' ? 'Capital' : 'Sales Rev'}</span>
-              ${lot.sourceOfFunds!=='Partner Capital' ? `<span class="badge ${lot.isCash!==false?'cash':'gpay'}">${lot.isCash!==false?'Cash':'GPay'}</span>` : ''}
+              ${lot.sourceOfFunds!=='Partner Capital' ? `<span class="badge ${lot.isCredit?'owe':(lot.isCash!==false?'cash':'gpay')}">${lot.isCredit?'Credit':(lot.isCash!==false?'Cash':'GPay')}</span>` : ''}
             </span>
           </div>
           <div class="bar"><div class="bar-fill ${st.shrinkagePct > 8 ? 'warning':''}" style="width:${st.totalBags ? (st.soldBags/st.totalBags*100) : 0}%"></div></div>
@@ -2067,8 +2225,9 @@ function renderInventory(){
             extra = `<br><span style="font-size:0.68rem; color:var(--sage); font-weight:bold;"> (+${bagStr.join(', ')} | +${x.kg||0} KG)</span>`;
         }
         const srcLabel = x.sourceOfFunds || 'Sales Revenue';
+        const creditTag = x.isCredit ? `<span class="badge owe" style="padding:2px 5px; font-size:0.6rem; margin-left:3px;">Credit</span>` : '';
         return `<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:6px; font-size:0.75rem;">
-                  <span><span style="font-size:0.65rem; color:#8a8272; margin-right:4px;">${shortDate(x.date)}</span> <span class="badge type-tag" style="background:#b0a89a; padding:2px 5px; font-size:0.6rem;">${x.type}</span> ${x.desc} ${extra}</span>
+                  <span><span style="font-size:0.65rem; color:#8a8272; margin-right:4px;">${shortDate(x.date)}</span> <span class="badge type-tag" style="background:#b0a89a; padding:2px 5px; font-size:0.6rem;">${x.type}</span>${creditTag} ${x.desc} ${extra}</span>
                   <b>${fmt(x.amount)}</b>
                 </div>`;
       }).join('');
@@ -2090,8 +2249,10 @@ function renderInventory(){
         </div>
         <div class="lot-sub" style="margin-bottom:8px; font-weight:bold; font-size:0.68rem;">${dateHeader}</div>
         <div class="bar"><div class="bar-fill" style="width:${st.totalBags ? (st.soldBags/st.totalBags*100) : 0}%"></div></div>
-        
-        <div class="lot-mini-grid" style="margin-top:8px;">
+        <div style="text-align:right; font-size:0.65rem; color:#8a8272; margin-top:-2px; margin-bottom:4px;">${st.soldBags} of ${st.totalBags} bags sold</div>
+
+        <div class="lot-mini-grid" style="margin-top:8px; grid-template-columns: 1fr 1fr 1fr 1fr;">
+          <div>Total<b>${st.totalBags} Bags</b></div>
           <div>Sold<b>${st.soldBags} Bags</b></div>
           <div>Left<b>${st.remainingBags} Bags</b></div>
           <div>Act. Cost<b>${fmt(st.costPerKg)}/KG</b></div>
@@ -2146,16 +2307,20 @@ function renderSalesTable(){
 
 function renderExpensesTable(){
   const body = document.getElementById('expenses-table'); if(!body) return;
+  const elPayable = document.getElementById('e-total-payable');
+  if (elPayable) elPayable.textContent = fmt(Math.max(0, totals('all').outstandingPayable));
   const sorted = DATA.expenses.filter(x=> !x.isDeleted && inPeriod(x.date, expensesFilter)).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
   body.innerHTML = sorted.map(x=>{
     const srcLabel = x.referenceId ? (x.sourceOfFunds || 'Sales Revenue') : '';
     const srcBadge = x.referenceId ? `<br><span class="badge ${srcLabel==='Partner Capital'?'type-tag':'wholesale'}" style="margin-top:3px;">${srcLabel}</span>` : '';
+    const payBadgeClass = x.isCredit ? 'owe' : (x.isCash!==false ? 'cash' : 'gpay');
+    const payBadgeLabel = x.isCredit ? 'Credit' : (x.isCash!==false ? 'Cash' : 'GPay');
     return `
     <tr>
       <td>${x.date}</td>
       <td><span class="badge type-tag">${x.referenceId ? 'Lot Expense' : 'Shop Overhead'}</span>${srcBadge}</td>
       <td>${x.desc} ${x.type === 'Procurement' ? `<br><span style="font-size:0.7rem;color:#8a8272;font-weight:600;">(+${Number(x.bags)||0} Bags, ${x.kg||0} KG)</span>` : ''}</td>
-      <td>${fmt(x.amount)}<div class="by-line"><span class="badge ${x.isCash!==false?'cash':'gpay'}">${x.isCash!==false?'Cash':'GPay'}</span></div></td>
+      <td>${fmt(x.amount)}<div class="by-line"><span class="badge ${payBadgeClass}">${payBadgeLabel}</span></div></td>
       <td><span style="font-weight:bold; color:var(--plum-deep);">${x.referenceId ? lotLabel(x.referenceId) : 'Shop'}</span></td>
       <td class="row-actions">
         <button class="icon-btn edit" onclick='openExpenseModal(DATA.expenses.find(y=>y.id==="${x.id}"))'>✎</button>
