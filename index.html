@@ -277,6 +277,7 @@
         <div class="stat"><div class="label">Currently Owed to Suppliers</div><div class="value" id="e-total-payable">₹0</div></div>
       </div>
       <button class="btn secondary" style="margin-top:10px;" onclick="openPayablePaymentModal()">Log Payable Repayment</button>
+      <div id="e-payable-history" style="margin-top:12px;"></div>
     </div>
     <div class="card">
       <div class="seg2" id="expenses-period-filter">
@@ -440,7 +441,7 @@
 <div id="toast" class="util"></div>
 
 <script>
-// 🔥 YOUR APPS SCRIPT URL HERE
+// 🔥 YOUR APPS SCRIPT URL HERE https://script.google.com/macros/s/AKfycbwzfMCYsD2UREni9V9K3aRQsFdp-xRUBX7njKDU1Fjp3W50ds49Fn8vWwY6VNkUqKFp/exec
 const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwzfMCYsD2UREni9V9K3aRQsFdp-xRUBX7njKDU1Fjp3W50ds49Fn8vWwY6VNkUqKFp/exec";
 const KEY = 'garlic-business-data';
 const ACTOR_KEY = 'poondu-actor';
@@ -1080,6 +1081,13 @@ function openLotModal(existing){
     const dateAdded = document.getElementById('m-date').value || todayISO();
 
     if (!label) { showToast('Please enter a lot name.', true); return false; }
+    if (existing) {
+      const lotPaid = payableAllocatedTo('lot', existing.id);
+      if (lotPaid > 0 && (!isCredit || (cost+loadingCost+gradingCost) < lotPaid)) {
+        showToast('This lot\'s credit purchase is already marked paid. Delete that repayment first, then edit.', true);
+        return false;
+      }
+    }
 
     if (existing) {
       Object.assign(existing, { label, bags, bagsG0, bagsG1, kg, cost, loadingCost, gradingCost, sourceOfFunds, isCash, isCredit, weightLossKg, dateAdded });
@@ -1128,7 +1136,7 @@ function updateLotPayModeUI(mode){
     else note.textContent = 'Cash paid to a farmer/supplier reduces Physical Cash In Hand.';
   }
 }
-async function deleteLot(id){ confirmThen('Delete this lot?', async () => { const idx = DATA.lots.findIndex(l=>l.id===id); if(idx !== -1) { DATA.lots[idx].isDeleted = true; renderActiveView(); sendAction('deleteLot', {id}, id); } }); }
+async function deleteLot(id){ if (payableAllocatedTo('lot', id) > 0) { showToast('This lot\'s credit purchase is marked paid. Delete that repayment first.', true); return; } confirmThen('Delete this lot?', async () => { const idx = DATA.lots.findIndex(l=>l.id===id); if(idx !== -1) { DATA.lots[idx].isDeleted = true; renderActiveView(); sendAction('deleteLot', {id}, id); } }); }
 
 function openSaleModal(existing){
   const s = existing || { date: todayISO(), channel:'Retail', contactId:'', amount:'', note:'', isCash: true, isCredit: false };
@@ -1454,6 +1462,13 @@ function openExpenseModal(existing){
 
     if (!desc || !amount) { showToast('Please enter description and amount', true); return false; }
     if (isLot && !referenceId) { showToast('Please select a Lot to tag this expense to', true); return false; }
+    if (existing && existing.isCredit === true) {
+      const paidAlloc = payableAllocatedTo('expense', existing.id);
+      if (paidAlloc > 0 && (!isCredit || amount < paidAlloc)) {
+        showToast('This credit purchase is already marked paid. Delete that repayment first, then edit.', true);
+        return false;
+      }
+    }
 
     if (existing) {
       Object.assign(existing, { date, type, desc, amount, referenceId, bags, bagsG0, bagsG1, kg, sourceOfFunds, isCash, isCredit });
@@ -1512,7 +1527,7 @@ async function quickMonthlyExpense(){
   const exp = { id, date: todayISO(), type:'Running Cost', desc: 'Auto-added Shop Overhead (Rent + Wages)', amount, referenceId:'', sourceOfFunds:'Sales Revenue', isCash: true, addedBy: getActor(), isDeleted: false };
   DATA.expenses.push(exp); renderActiveView(); sendAction('addExpense', exp, id);
 }
-async function deleteExpense(id){ confirmThen('Delete this expense?', async () => { const idx = DATA.expenses.findIndex(x=>x.id===id); if(idx !== -1) { DATA.expenses[idx].isDeleted = true; renderActiveView(); sendAction('deleteExpense', {id}, id); } }); }
+async function deleteExpense(id){ if (payableAllocatedTo('expense', id) > 0) { showToast('This credit purchase is marked paid. Delete that repayment first.', true); return; } confirmThen('Delete this expense?', async () => { const idx = DATA.expenses.findIndex(x=>x.id===id); if(idx !== -1) { DATA.expenses[idx].isDeleted = true; renderActiveView(); sendAction('deleteExpense', {id}, id); } }); }
 
 function openContactModal(existing){
   const c = existing || { name:'', type:'Buyer', phone:'', location:'', note:'' };
@@ -1675,45 +1690,173 @@ function setRepaymentPayMode(isCash){
 async function deleteCreditPayment(id){ confirmThen('Delete this repayment record?', async () => { const idx = DATA.creditPayments.findIndex(p=>p.id===id); if(idx !== -1) { DATA.creditPayments[idx].isDeleted = true; renderActiveView(); sendAction('deleteCreditPayment', {id}, id); } }); }
 
 // ---- Payables (goods/expenses bought on credit from a supplier) ----
-// Simpler than the customer-credit side: one running balance rather than a per-supplier
-// FIFO ledger, since the ask here is "an easy way to track" what's owed overall.
+// Mirrors the customer-credit design: a repayment stores `allocations` naming the exact
+// credit expenses / lots it settles. Items are never flipped out of Credit — they DISPLAY
+// as Paid once allocations cover them, so liquidCash/physicalCashInHand (aggregate-only
+// math in totals()) can't double count. Deleting a repayment puts its items back to Credit.
+// Legacy repayments saved before allocations existed (no allocations) are applied FIFO to
+// whatever is still unsettled, so old data keeps working.
+function payableItems(){
+  const items = [];
+  DATA.expenses.filter(x=>!x.isDeleted && x.isCredit===true).forEach(x=>items.push({
+    kind:'expense', id:x.id, key:'expense:'+x.id, date:x.date||'',
+    label:(x.desc||x.type||'Expense') + (x.referenceId ? ' · '+lotLabel(x.referenceId) : ''),
+    amount:Number(x.amount)||0 }));
+  DATA.lots.filter(l=>!l.isDeleted && l.isCredit===true && l.sourceOfFunds==='Sales Revenue').forEach(l=>items.push({
+    kind:'lot', id:l.id, key:'lot:'+l.id, date:l.dateAdded||'',
+    label:(l.label||'Lot')+' · lot purchase',
+    amount:(Number(l.cost)||0)+(Number(l.loadingCost)||0)+(Number(l.gradingCost)||0) }));
+  return items.sort((a,b)=>a.date.localeCompare(b.date) || a.key.localeCompare(b.key));
+}
+function payableLedger(){
+  const items = payableItems();
+  const pays = (DATA.payablePayments||[]).filter(p=>!p.isDeleted)
+    .sort((a,b)=>(a.date||'').localeCompare(b.date||'') || String(a.id).localeCompare(String(b.id)));
+  const explicit = {}, mode = {};
+  let legacyPool = 0;
+  pays.forEach(p=>{
+    const allocs = Array.isArray(p.allocations) ? p.allocations : [];
+    if (!allocs.length) { legacyPool += Number(p.amount)||0; return; }
+    allocs.forEach(a=>{
+      const k = a.kind+':'+a.id;
+      explicit[k] = (explicit[k]||0) + (Number(a.amount)||0);
+      mode[k] = p.isCash!==false ? 'Cash' : 'GPay';
+    });
+  });
+  const map = {};
+  items.forEach(i=>{
+    let paid = Math.min(explicit[i.key]||0, i.amount);
+    const fromLegacy = Math.min(legacyPool, i.amount - paid);
+    legacyPool -= fromLegacy; paid += fromLegacy;
+    map[i.key] = { paid, due: Math.max(0, i.amount - paid), mode: mode[i.key]||'' };
+  });
+  return { items, map, overpaid: legacyPool };
+}
+function payableAllocatedTo(kind, id){
+  return (DATA.payablePayments||[]).filter(p=>!p.isDeleted).reduce((sum,p)=>{
+    const allocs = Array.isArray(p.allocations) ? p.allocations : [];
+    return sum + allocs.filter(a=>a.kind===kind && a.id===id).reduce((t,a)=>t+(Number(a.amount)||0),0);
+  }, 0);
+}
+function payableBadge(led, key, extraStyle){
+  const st = extraStyle ? ` style="${extraStyle}"` : '';
+  const m = led.map[key];
+  if (!m) return `<span class="badge owe"${st}>Credit</span>`;
+  if (m.due <= 0.5) return `<span class="badge ${m.mode==='GPay'?'gpay':'cash'}"${st}>Paid${m.mode?' · '+m.mode:''}</span>`;
+  if (m.paid > 0.5) return `<span class="badge owe"${st}>Credit · ${fmt(m.due)} left</span>`;
+  return `<span class="badge owe"${st}>Credit</span>`;
+}
+
 function openPayablePaymentModal(){
-  const t = totals('all');
+  const led = payableLedger();
+  const open = led.items.filter(i => led.map[i.key].due > 0.5);
+  if (!open.length) { showToast('No unpaid credit purchases.', true); return; }
+
+  const rows = open.map(i => {
+    const m = led.map[i.key];
+    return `
+    <div onclick="togglePayableRow(event,this)" style="display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer;">
+      <input type="checkbox" class="pp-chk" data-key="${i.key}" data-due="${m.due}" onchange="updatePayableSelTotal()" style="width:auto;margin-top:3px;">
+      <div style="flex:1;font-size:0.85rem;">
+        <span style="font-size:0.7rem;color:#8a8272;">${shortDate(i.date)}</span> ${i.label}
+        ${m.paid>0.5 ? `<div class="by-line">${fmt(m.paid)} already paid of ${fmt(i.amount)}</div>` : ''}
+      </div>
+      <b style="font-size:0.85rem;">${fmt(m.due)}</b>
+    </div>`;
+  }).join('');
+
   const html = `
-    <div class="note">Currently owe suppliers: <b>${fmt(Math.max(0, t.outstandingPayable))}</b></div>
+    <div class="note">Tick the credit purchases you've paid. Each is settled in full.</div>
+    <button type="button" class="btn ghost" style="margin-top:8px;padding:7px;" onclick="togglePayableSelectAll()">Select / clear all</button>
+    <div style="max-height:38vh;overflow-y:auto;margin-top:6px;">${rows}</div>
+    <div class="note" id="pp-sel-note" style="font-weight:bold;">Selected: 0 items · ₹0</div>
     <label>Date</label><input type="date" id="pp-date" value="${todayISO()}">
-    <label>Amount Paid (₹)</label><input type="number" id="pp-amount" placeholder="0">
     <label style="margin-top:10px;">Paid Via</label>
     <div class="seg2">
       <button type="button" id="pp-pay-cash" class="on" onclick="setPayablePayMode(true)">Cash</button>
       <button type="button" id="pp-pay-gpay" onclick="setPayablePayMode(false)">GPay</button>
     </div>
-    <label>Note</label><input type="text" id="pp-note" placeholder="e.g. cleared last month's credit purchase">`;
+    <label>Note</label><input type="text" id="pp-note" placeholder="optional">`;
 
   window.__payablePayIsCash = true;
+  const byKey = Object.fromEntries(open.map(i => [i.key, i]));
 
   openModal('Log Payable Repayment', html, async () => {
+    const chosen = [...document.querySelectorAll('.pp-chk:checked')];
+    if (!chosen.length) { showToast('Tick at least one credit purchase you paid.', true); return false; }
     const date = document.getElementById('pp-date').value || todayISO();
-    const amount = Number(document.getElementById('pp-amount').value)||0;
     const note = document.getElementById('pp-note').value.trim();
     const isCash = window.__payablePayIsCash !== false;
-
-    if (!amount) { showToast('Enter the amount paid.', true); return false; }
+    const allocations = chosen.map(c => {
+      const i = byKey[c.dataset.key];
+      return { kind: i.kind, id: i.id, amount: Math.round((Number(c.dataset.due)||0)*100)/100 };
+    });
+    const amount = Math.round(allocations.reduce((s,a)=>s+a.amount,0)*100)/100;
+    if (!amount) { showToast('Nothing to pay.', true); return false; }
 
     const id = uid();
-    const record = { id, date, amount, isCash, note, addedBy: getActor(), isDeleted: false };
+    const record = { id, date, amount, isCash, note, allocations, addedBy: getActor(), isDeleted: false };
     DATA.payablePayments.push(record);
     renderActiveView();
     sendAction('addPayablePayment', record, id);
-    showToast('Payment logged.');
-  }, 'Save');
+  }, 'Mark as Paid');
+}
+function togglePayableRow(ev, row){
+  const cb = row.querySelector('.pp-chk');
+  if (ev.target !== cb) cb.checked = !cb.checked;
+  updatePayableSelTotal();
+}
+function togglePayableSelectAll(){
+  const all = [...document.querySelectorAll('.pp-chk')];
+  const allOn = all.every(c=>c.checked);
+  all.forEach(c=>c.checked = !allOn);
+  updatePayableSelTotal();
+}
+function updatePayableSelTotal(){
+  const chosen = [...document.querySelectorAll('.pp-chk:checked')];
+  const total = chosen.reduce((s,c)=>s+(Number(c.dataset.due)||0),0);
+  const el = document.getElementById('pp-sel-note');
+  if (el) el.textContent = `Selected: ${chosen.length} item${chosen.length===1?'':'s'} · ${fmt(total)}`;
 }
 function setPayablePayMode(isCash){
   window.__payablePayIsCash = isCash;
   document.getElementById('pp-pay-cash').classList.toggle('on', isCash===true);
   document.getElementById('pp-pay-gpay').classList.toggle('on', isCash===false);
 }
-async function deletePayablePayment(id){ confirmThen('Delete this payment record?', async () => { const idx = DATA.payablePayments.findIndex(p=>p.id===id); if(idx !== -1) { DATA.payablePayments[idx].isDeleted = true; renderActiveView(); sendAction('deletePayablePayment', {id}, id); } }); }
+async function deletePayablePayment(id){ confirmThen('Delete this repayment? The purchases it paid will go back to Credit.', async () => { const idx = DATA.payablePayments.findIndex(p=>p.id===id); if(idx !== -1) { DATA.payablePayments[idx].isDeleted = true; renderActiveView(); sendAction('deletePayablePayment', {id}, id); } }); }
+
+function payableAllocLabel(a){
+  if (a.kind === 'lot') { const l = DATA.lots.find(x=>x.id===a.id); return (l ? l.label : 'Lot') + ' (lot)'; }
+  const x = DATA.expenses.find(y=>y.id===a.id); return x ? (x.desc || x.type) : 'Expense';
+}
+let payableHistoryOpen = false;
+function togglePayableHistory(){ payableHistoryOpen = !payableHistoryOpen; renderPayableHistory(); }
+function renderPayableHistory(){
+  const wrap = document.getElementById('e-payable-history'); if (!wrap) return;
+  const led = payableLedger();
+  const allPays = (DATA.payablePayments||[]).filter(p=>!p.isDeleted)
+    .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const pays = allPays.slice(0,10);
+  let html = '';
+  if (led.overpaid > 0.5) html += `<div class="note" style="color:var(--rust);font-weight:bold;">Old repayments exceed credit purchases by ${fmt(led.overpaid)} — check for deleted/edited purchases.</div>`;
+  if (allPays.length) {
+    html += `<button type="button" class="btn ghost" style="margin-top:8px;padding:7px;" onclick="togglePayableHistory()">${payableHistoryOpen ? 'Hide' : 'Show'} repayment history (${allPays.length}) ${payableHistoryOpen ? '▴' : '▾'}</button>`;
+  }
+  if (payableHistoryOpen && pays.length) {
+    html += pays.map(p => {
+      const allocs = Array.isArray(p.allocations) ? p.allocations : [];
+      const what = allocs.length ? allocs.map(payableAllocLabel).join(', ') : 'Earlier payment (not tied to specific purchases)';
+      return `<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;padding:7px 0;border-top:1px solid var(--line);font-size:0.8rem;">
+        <div style="flex:1;"><span style="font-size:0.7rem;color:#8a8272;">${shortDate(p.date)}</span>
+          <span class="badge ${p.isCash!==false?'cash':'gpay'}">${p.isCash!==false?'Cash':'GPay'}</span>
+          <div class="by-line">${what}${p.note?' · '+p.note:''}</div></div>
+        <b>${fmt(p.amount)}</b>
+        <button class="icon-btn del" onclick="deletePayablePayment('${p.id}')">✕</button>
+      </div>`;
+    }).join('');
+  }
+  wrap.innerHTML = html;
+}
 
 function openStockCountModal(){
   const activeLots = DATA.lots.filter(l=>!l.isDeleted);
@@ -2083,7 +2226,7 @@ function renderDashboard(){
             <span class="row-actions">
               <span class="badge type-tag">${getLocBadge(st)}</span>
               <span class="badge ${lot.sourceOfFunds==='Partner Capital'?'type-tag':'wholesale'}">${lot.sourceOfFunds === 'Partner Capital' ? 'Capital' : 'Sales Rev'}</span>
-              ${lot.sourceOfFunds!=='Partner Capital' ? `<span class="badge ${lot.isCredit?'owe':(lot.isCash!==false?'cash':'gpay')}">${lot.isCredit?'Credit':(lot.isCash!==false?'Cash':'GPay')}</span>` : ''}
+              ${lot.sourceOfFunds!=='Partner Capital' ? `${lot.isCredit ? payableBadge(payableLedger(), 'lot:'+lot.id) : `<span class="badge ${lot.isCash!==false?'cash':'gpay'}">${lot.isCash!==false?'Cash':'GPay'}</span>`}` : ''}
             </span>
           </div>
           <div class="bar"><div class="bar-fill ${st.shrinkagePct > 8 ? 'warning':''}" style="width:${st.totalBags ? (st.soldBags/st.totalBags*100) : 0}%"></div></div>
@@ -2225,7 +2368,7 @@ function renderInventory(){
             extra = `<br><span style="font-size:0.68rem; color:var(--sage); font-weight:bold;"> (+${bagStr.join(', ')} | +${x.kg||0} KG)</span>`;
         }
         const srcLabel = x.sourceOfFunds || 'Sales Revenue';
-        const creditTag = x.isCredit ? `<span class="badge owe" style="padding:2px 5px; font-size:0.6rem; margin-left:3px;">Credit</span>` : '';
+        const creditTag = x.isCredit ? payableBadge(payableLedger(), 'expense:'+x.id, 'padding:2px 5px; font-size:0.6rem; margin-left:3px;') : '';
         return `<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:6px; font-size:0.75rem;">
                   <span><span style="font-size:0.65rem; color:#8a8272; margin-right:4px;">${shortDate(x.date)}</span> <span class="badge type-tag" style="background:#b0a89a; padding:2px 5px; font-size:0.6rem;">${x.type}</span>${creditTag} ${x.desc} ${extra}</span>
                   <b>${fmt(x.amount)}</b>
@@ -2309,6 +2452,8 @@ function renderExpensesTable(){
   const body = document.getElementById('expenses-table'); if(!body) return;
   const elPayable = document.getElementById('e-total-payable');
   if (elPayable) elPayable.textContent = fmt(Math.max(0, totals('all').outstandingPayable));
+  renderPayableHistory();
+  const payLed = payableLedger();
   const sorted = DATA.expenses.filter(x=> !x.isDeleted && inPeriod(x.date, expensesFilter)).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
   body.innerHTML = sorted.map(x=>{
     const srcLabel = x.referenceId ? (x.sourceOfFunds || 'Sales Revenue') : '';
@@ -2320,7 +2465,7 @@ function renderExpensesTable(){
       <td>${x.date}</td>
       <td><span class="badge type-tag">${x.referenceId ? 'Lot Expense' : 'Shop Overhead'}</span>${srcBadge}</td>
       <td>${x.desc} ${x.type === 'Procurement' ? `<br><span style="font-size:0.7rem;color:#8a8272;font-weight:600;">(+${Number(x.bags)||0} Bags, ${x.kg||0} KG)</span>` : ''}</td>
-      <td>${fmt(x.amount)}<div class="by-line"><span class="badge ${payBadgeClass}">${payBadgeLabel}</span></div></td>
+      <td>${fmt(x.amount)}<div class="by-line">${x.isCredit ? payableBadge(payLed, 'expense:'+x.id) : `<span class="badge ${payBadgeClass}">${payBadgeLabel}</span>`}</div></td>
       <td><span style="font-weight:bold; color:var(--plum-deep);">${x.referenceId ? lotLabel(x.referenceId) : 'Shop'}</span></td>
       <td class="row-actions">
         <button class="icon-btn edit" onclick='openExpenseModal(DATA.expenses.find(y=>y.id==="${x.id}"))'>✎</button>
