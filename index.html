@@ -137,7 +137,7 @@
     <div class="sub">TNS Traders</div>
   </div>
   <div class="header-right">
-    <div id="sync-badge" class="sync-badge pending util">connecting…</div>
+    <div id="sync-badge" class="sync-badge pending util">connecting…<span id="sync-pending"></span></div>
     <button id="actor-pill" class="actor-pill" onclick="openActorPicker()">who am I?</button>
   </div>
 </header>
@@ -441,7 +441,7 @@
 <div id="toast" class="util"></div>
 
 <script>
-// 🔥 YOUR APPS SCRIPT URL HERE https://script.google.com/macros/s/AKfycbwzfMCYsD2UREni9V9K3aRQsFdp-xRUBX7njKDU1Fjp3W50ds49Fn8vWwY6VNkUqKFp/exec
+// 🔥 YOUR APPS SCRIPT URL HERE 
 const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwzfMCYsD2UREni9V9K3aRQsFdp-xRUBX7njKDU1Fjp3W50ds49Fn8vWwY6VNkUqKFp/exec";
 const KEY = 'garlic-business-data';
 const ACTOR_KEY = 'poondu-actor';
@@ -625,8 +625,45 @@ async function fetchCloudState(){
   return json;
 }
 
-// 🚀 FAST BACKGROUND SYNC
+// 🚀 FAST BACKGROUND SYNC + PERSISTED RETRY QUEUE
+// Every write is recorded in localStorage BEFORE the network call. If the call fails or
+// times out, the op stays queued (visible in the sync badge as "N pending") instead of
+// vanishing — fixing the bug where a failed save just showed a toast and was then
+// silently discarded the next time the app refreshed.
+const PENDING_KEY = 'poondu_pending_ops';
+
+function loadPendingQueue(){
+  try { return JSON.parse(localStorage.getItem(PENDING_KEY) || '[]'); }
+  catch(e){ return []; }
+}
+function savePendingQueue(q){
+  localStorage.setItem(PENDING_KEY, JSON.stringify(q));
+  updatePendingBadge();
+}
+function pendingCount(){ return loadPendingQueue().length; }
+function updatePendingBadge(){
+  const n = pendingCount();
+  const el = document.getElementById('sync-pending');
+  if (!el) return;
+  el.textContent = n ? `· ${n} pending` : '';
+}
+
 async function sendAction(action, payload, id){
+  const opId = 'op_' + Date.now() + '_' + Math.floor(Math.random()*100000);
+  const q = loadPendingQueue();
+  q.push({ opId, action, payload: payload || {}, id: id || '', ts: Date.now() });
+  savePendingQueue(q);
+  localStorage.setItem(KEY, JSON.stringify(DATA));
+
+  const ok = await trySendOne_(action, payload, id);
+  if (ok) removeFromQueue_(opId);
+  // Any other queued ops (from earlier failures) are retried by the periodic flush
+  // (every 20s), the 'online' event, and init()/manualRefresh() — not fired from here,
+  // to avoid two flushes racing each other.
+  return ok;
+}
+
+async function trySendOne_(action, payload, id){
   setSyncBadge('pending', 'syncing…');
   try {
     const pin = localStorage.getItem(PIN_KEY) || '';
@@ -634,33 +671,52 @@ async function sendAction(action, payload, id){
       + '&payload=' + encodeURIComponent(JSON.stringify(payload || {}))
       + '&pin=' + encodeURIComponent(pin)
       + (id ? '&id=' + encodeURIComponent(id) : '');
-      
+
     const res = await jsonp(url);
     if (res && res.status === 'success') {
-      setSyncBadge('ok', 'synced');
+      setSyncBadge('ok', pendingCount() > 1 ? 'syncing…' : 'synced');
       showToast('Saved to cloud ✓');
-      localStorage.setItem(KEY, JSON.stringify(DATA)); 
       return true;
     }
-    
-    // ERROR REVERT
     setSyncBadge('err', 'failed');
     showToast('Failed to save: ' + (res?.message || 'Unknown error'), true);
-    fetchCloudState().then(fresh => {
-      if (fresh) { DATA = fresh; localStorage.setItem(KEY, JSON.stringify(DATA)); renderActiveView(); }
-    });
     return false;
   } catch(e){
-    setSyncBadge('err', 'offline');
-    showToast('Offline Mode: Saved locally.', true);
-    localStorage.setItem(KEY, JSON.stringify(DATA));
+    setSyncBadge('err', pendingCount() ? 'pending' : 'offline');
     return false;
   }
 }
 
+function removeFromQueue_(opId){
+  const q = loadPendingQueue().filter(o => o.opId !== opId);
+  savePendingQueue(q);
+}
+
+let flushInFlight = false;
+async function flushPendingQueue(){
+  if (flushInFlight) return;
+  flushInFlight = true;
+  try {
+    // Send oldest-first, IN ORDER, and stop at the first failure — an update or delete
+    // queued after an add for the same record must not be sent ahead of it.
+    let q = loadPendingQueue();
+    for (const op of q) {
+      const ok = await trySendOne_(op.action, op.payload, op.id);
+      if (!ok) break;
+      removeFromQueue_(op.opId);
+    }
+    if (pendingCount() === 0) setSyncBadge('ok', 'synced');
+  } finally {
+    flushInFlight = false;
+  }
+}
+
+window.addEventListener('online', flushPendingQueue);
+setInterval(flushPendingQueue, 20000);
+
 async function init(){
   document.getElementById('settings-url').textContent = CLOUD_URL;
-  
+
   // 🚀 PIN CHECK
   let myPin = localStorage.getItem(PIN_KEY);
   if (!myPin) {
@@ -672,16 +728,29 @@ async function init(){
   const actor = getActor();
   if (actor) document.getElementById('actor-pill').textContent = actor;
 
-  let cloud = null;
-  try { cloud = await fetchCloudState(); } catch(e){ console.warn(e); }
+  // Load whatever's cached locally first so the app isn't blank while we sync.
+  try { const raw = localStorage.getItem(KEY); DATA = raw ? JSON.parse(raw) : defaultData(); } catch(e){ DATA = defaultData(); }
+  updatePendingBadge();
 
-  if (cloud) {
-    DATA = cloud;
-    localStorage.setItem(KEY, JSON.stringify(DATA));
-    setSyncBadge('ok', 'synced');
+  // Flush any saves that didn't make it to the cloud last session BEFORE pulling fresh
+  // state — otherwise a full cloud overwrite would silently discard them (the bug this
+  // fixes: "updates sometimes not carried out").
+  await flushPendingQueue();
+
+  if (pendingCount() > 0) {
+    // Still couldn't sync (still offline). Do NOT overwrite local DATA — it holds
+    // changes the cloud doesn't have yet.
+    setSyncBadge('err', 'pending');
   } else {
-    setSyncBadge('err', 'offline');
-    try { const raw = localStorage.getItem(KEY); DATA = raw ? JSON.parse(raw) : defaultData(); } catch(e){ DATA = defaultData(); }
+    let cloud = null;
+    try { cloud = await fetchCloudState(); } catch(e){ console.warn(e); }
+    if (cloud) {
+      DATA = cloud;
+      localStorage.setItem(KEY, JSON.stringify(DATA));
+      setSyncBadge('ok', 'synced');
+    } else {
+      setSyncBadge('err', 'offline');
+    }
   }
 
   document.getElementById('loading').style.display='none';
@@ -692,6 +761,12 @@ async function init(){
 
 async function manualRefresh(){
   showToast('Refreshing data…');
+  await flushPendingQueue();
+  if (pendingCount() > 0) {
+    setSyncBadge('err', 'pending');
+    showToast(`${pendingCount()} change(s) still saving — refresh again once those finish.`, true);
+    return;
+  }
   const cloud = await fetchCloudState();
   if (cloud) {
     DATA = cloud;
@@ -1825,9 +1900,20 @@ function setPayablePayMode(isCash){
 }
 async function deletePayablePayment(id){ confirmThen('Delete this repayment? The purchases it paid will go back to Credit.', async () => { const idx = DATA.payablePayments.findIndex(p=>p.id===id); if(idx !== -1) { DATA.payablePayments[idx].isDeleted = true; renderActiveView(); sendAction('deletePayablePayment', {id}, id); } }); }
 
-function payableAllocLabel(a){
-  if (a.kind === 'lot') { const l = DATA.lots.find(x=>x.id===a.id); return (l ? l.label : 'Lot') + ' (lot)'; }
-  const x = DATA.expenses.find(y=>y.id===a.id); return x ? (x.desc || x.type) : 'Expense';
+function payableAllocDetail(a, closedDate){
+  let label, addedDate;
+  if (a.kind === 'lot') {
+    const l = DATA.lots.find(x=>x.id===a.id);
+    label = (l ? l.label : 'Lot') + ' (lot)';
+    addedDate = l ? l.dateAdded : '';
+  } else {
+    const x = DATA.expenses.find(y=>y.id===a.id);
+    label = x ? (x.desc || x.type) : 'Expense';
+    addedDate = x ? x.date : '';
+  }
+  const addedTxt = addedDate ? `Added ${shortDate(addedDate)}` : '';
+  const closedTxt = closedDate ? `Closed ${shortDate(closedDate)}` : '';
+  return `${label}${addedTxt ? ' · '+addedTxt : ''}${closedTxt ? ' · '+closedTxt : ''}`;
 }
 let payableHistoryOpen = false;
 function togglePayableHistory(){ payableHistoryOpen = !payableHistoryOpen; renderPayableHistory(); }
@@ -1845,7 +1931,9 @@ function renderPayableHistory(){
   if (payableHistoryOpen && pays.length) {
     html += pays.map(p => {
       const allocs = Array.isArray(p.allocations) ? p.allocations : [];
-      const what = allocs.length ? allocs.map(payableAllocLabel).join(', ') : 'Earlier payment (not tied to specific purchases)';
+      const what = allocs.length
+        ? allocs.map(a => payableAllocDetail(a, p.date)).join('<br>')
+        : 'Earlier payment (not tied to specific purchases — added/closed dates unavailable)';
       return `<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;padding:7px 0;border-top:1px solid var(--line);font-size:0.8rem;">
         <div style="flex:1;"><span style="font-size:0.7rem;color:#8a8272;">${shortDate(p.date)}</span>
           <span class="badge ${p.isCash!==false?'cash':'gpay'}">${p.isCash!==false?'Cash':'GPay'}</span>
