@@ -345,8 +345,15 @@
       </div>
       <div class="stat-grid" style="margin: 12px 0;">
         <div class="stat"><div class="label">Total Liquid Funds (Cash+Bank)</div><div class="value" id="rep-liquid-cash">₹0</div></div>
-        <div class="stat"><div class="label">Cash to Distribute</div><div class="value" id="rep-distributable">₹0</div></div>
+        <div class="stat"><div class="label">Max Distributable</div><div class="value" id="rep-distributable">₹0</div></div>
         <div class="stat"><div class="label">Per Partner (1/3)</div><div class="value" id="rep-per-head">₹0</div></div>
+      </div>
+      <label>Amount To Actually Distribute (₹) — edit to pay out less than the max</label>
+      <input type="number" id="payout-amount-input" oninput="onPayoutAmountEdited()">
+      <label style="margin-top:10px;">Paid Via</label>
+      <div class="seg2">
+        <button type="button" id="payout-pay-cash" class="on" onclick="setPayoutPayMode(true)">Cash</button>
+        <button type="button" id="payout-pay-gpay" onclick="setPayoutPayMode(false)">GPay</button>
       </div>
       <div class="note" id="rep-capital-excluded-note" style="display:none;"></div>
       <button class="btn" onclick="executeBalancedThreeWayPayout()">Save Payout to Ledger</button>
@@ -441,7 +448,7 @@
 <div id="toast" class="util"></div>
 
 <script>
-// 🔥 YOUR APPS SCRIPT URL HERE 
+// 🔥 YOUR APPS SCRIPT URL HERE
 const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwzfMCYsD2UREni9V9K3aRQsFdp-xRUBX7njKDU1Fjp3W50ds49Fn8vWwY6VNkUqKFp/exec";
 const KEY = 'garlic-business-data';
 const ACTOR_KEY = 'poondu-actor';
@@ -972,7 +979,7 @@ function totals(period = 'all'){
     });
   });
 
-  const shopExpensesOnly = filteredExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw');
+  const shopExpensesOnly = filteredExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw' && x.type !== 'Capital Repayment');
   shopExpenseTotal = shopExpensesOnly.reduce((s,x)=>s+(Number(x.amount)||0), 0);
   
   const allTimeSales = DATA.sales.filter(s => !s.isDeleted);
@@ -1002,8 +1009,13 @@ function totals(period = 'all'){
   const totalCreditRepaid = allTimeCreditPayments.reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const outstandingCredit = totalCreditGiven - totalCreditRepaid;
 
-  const totalGeneralExpenses = allTimeExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw' && !isCreditExpense(x)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
+  const totalGeneralExpenses = allTimeExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw' && x.type !== 'Capital Repayment' && !isCreditExpense(x)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const totalPayouts = allTimeExpenses.filter(x => x.type === 'Payout / Partner Draw').reduce((s,x)=>s+(Number(x.amount)||0), 0);
+  // Capital-loan principal repayments: real cash out, but a balance-sheet movement (paying
+  // back a loan), not a P&L cost — same treatment as partner payouts above, kept separate
+  // from both totalGeneralExpenses and totalPayouts so neither profit nor the payout pool
+  // is affected by the shop returning a partner's advance.
+  const totalCapitalRepayments = allTimeExpenses.filter(x => x.type === 'Capital Repayment').reduce((s,x)=>s+(Number(x.amount)||0), 0);
 
   const taggedExpenses = allTimeExpenses.filter(x => !!x.referenceId);
   const revenueFundedTaggedExpenses = taggedExpenses
@@ -1027,13 +1039,14 @@ function totals(period = 'all'){
   // is what the 3-way payout engine distributes from — GPay revenue sitting in the
   // bank is real distributable profit even though it never enters the physical till,
   // but uncollected credit is not, since you don't actually have that money yet.
-  const liquidCash = totalCollectedRevenue + totalCreditRepaid - totalGeneralExpenses - totalPayouts - revenueFundedLotsCost - revenueFundedTaggedExpenses - totalPayablePayments;
+  const liquidCash = totalCollectedRevenue + totalCreditRepaid - totalGeneralExpenses - totalPayouts - totalCapitalRepayments - revenueFundedLotsCost - revenueFundedTaggedExpenses - totalPayablePayments;
 
   // ---- Physical cash (till) breakdown ----
   const totalCashRevenue = allTimeSales.filter(s => !isCreditSale(s) && isCashTrue(s.isCash)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const totalCashCreditRepaid = allTimeCreditPayments.filter(p => isCashTrue(p.isCash)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
-  const totalCashGeneralExpenses = allTimeExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw' && isCashTrue(x.isCash) && !isCreditExpense(x)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
+  const totalCashGeneralExpenses = allTimeExpenses.filter(x => !x.referenceId && x.type !== 'Payout / Partner Draw' && x.type !== 'Capital Repayment' && isCashTrue(x.isCash) && !isCreditExpense(x)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const totalCashPayouts = allTimeExpenses.filter(x => x.type === 'Payout / Partner Draw' && isCashTrue(x.isCash)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
+  const totalCashCapitalRepayments = allTimeExpenses.filter(x => x.type === 'Capital Repayment' && isCashTrue(x.isCash)).reduce((s,x)=>s+(Number(x.amount)||0), 0);
   const cashFundedTaggedExpenses = taggedExpenses
     .filter(x => (x.sourceOfFunds || 'Sales Revenue') === 'Sales Revenue' && isCashTrue(x.isCash) && !isCreditExpense(x))
     .reduce((s,x)=>s+(Number(x.amount)||0), 0);
@@ -1041,16 +1054,16 @@ function totals(period = 'all'){
     .filter(l => l.sourceOfFunds === 'Sales Revenue' && isCashTrue(l.isCash) && !isCreditLot(l))
     .reduce((s, l) => s + (Number(l.cost)||0) + (Number(l.loadingCost)||0) + (Number(l.gradingCost)||0), 0);
 
-  const physicalCashInHand = totalCashRevenue + totalCashCreditRepaid - totalCashGeneralExpenses - totalCashPayouts - cashFundedLotsCost - cashFundedTaggedExpenses - totalCashPayablePayments;
+  const physicalCashInHand = totalCashRevenue + totalCashCreditRepaid - totalCashGeneralExpenses - totalCashPayouts - totalCashCapitalRepayments - cashFundedLotsCost - cashFundedTaggedExpenses - totalCashPayablePayments;
 
   return {
     remainingBags, remainingKg, revenue, cogs, shopExpenseTotal,
     profit: revenue - cogs - shopExpenseTotal,
     liquidCash,
-    totalRevenue, totalCollectedRevenue, totalGeneralExpenses, totalPayouts,
+    totalRevenue, totalCollectedRevenue, totalGeneralExpenses, totalPayouts, totalCapitalRepayments,
     totalCreditGiven, totalCreditRepaid, outstandingCredit,
     revenueFundedLotsCost, revenueFundedTaggedExpenses, capitalFundedTaggedExpenses,
-    physicalCashInHand, totalCashRevenue, totalCashCreditRepaid, totalCashGeneralExpenses, totalCashPayouts,
+    physicalCashInHand, totalCashRevenue, totalCashCreditRepaid, totalCashGeneralExpenses, totalCashPayouts, totalCashCapitalRepayments,
     cashFundedLotsCost, cashFundedTaggedExpenses,
     totalPayableTaken, totalPayablePayments, outstandingPayable
   };
@@ -1220,6 +1233,7 @@ function openSaleModal(existing){
   window.__saleModalExcludeId = existing ? existing.id : null;
   window.__saleLineIdx = [];
   window.__saleLineSeq = 0;
+  window.__saleTargetKg = 0;
 
   const initialLines = saleLinesFor(s).length ? saleLinesFor(s) : [{ lotId:'', bags:'', kg:'' }];
   const contactOptions = '<option value="">-- Optional (Select Buyer if registered) --</option>'
@@ -1255,11 +1269,16 @@ function openSaleModal(existing){
       <button type="button" id="m-sale-pay-credit" class="${window.__modalSalePayMode==='credit'?'on':''}" onclick="setModalSalePayMode('credit')">Credit</button>
     </div>
     <div class="note" id="sale-paymode-note">Cash sales add to Physical Cash In Hand. GPay sales go straight to the bank and never enter the till.</div>
+    <label>Total Amount Collected (₹)</label><input type="number" id="m-amount" value="${s.amount}" oninput="refreshSaleLineChrome()">
+    <div class="note" style="margin-top:4px;">Quick-fill from an average rate — optional, just computes the target KG below; you still pick which lots it came from.</div>
+    <div class="row2">
+      <div><label>Average Rate (₹/kg)</label><input type="number" id="sale-avg-rate" placeholder="e.g. 85"></div>
+      <div style="display:flex;align-items:flex-end;"><button type="button" class="btn secondary" style="margin-top:0;width:100%;" onclick="calcSaleTargetKg()">Calculate Target KG</button></div>
+    </div>
     <label style="margin-top:12px;">Lots Sold From</label>
     <div id="sale-lines-wrap">${linesHtml}</div>
     <button type="button" class="btn ghost" style="margin-top:8px;" onclick="addSaleLine()">+ Add Another Lot</button>
     <div class="note" id="sale-lines-total" style="text-align:right; font-weight:bold; color:var(--sage);"></div>
-    <label>Total Amount Collected (₹)</label><input type="number" id="m-amount" value="${s.amount}">
     <label>Note / Comments</label><input type="text" id="m-note" value="${s.note||''}">`;
 
   openModal(existing ? 'Edit Sale' : 'Add Sale', html, async () => {
@@ -1410,6 +1429,13 @@ function autoFillSaleLine(idx){
   updateSaleLineTotals();
 }
 
+function calcSaleTargetKg(){
+  const amount = Number(document.getElementById('m-amount')?.value)||0;
+  const rate = Number(document.getElementById('sale-avg-rate')?.value)||0;
+  if (!amount || !rate) { showToast('Enter both the amount and an average rate first.', true); return; }
+  window.__saleTargetKg = amount / rate;
+  updateSaleLineTotals();
+}
 function updateSaleLineTotals(){
   let totalBags=0, totalKg=0;
   window.__saleLineIdx.forEach(idx=>{
@@ -1417,7 +1443,16 @@ function updateSaleLineTotals(){
     totalKg += Number(document.getElementById(`sl-kg-${idx}`)?.value)||0;
   });
   const el = document.getElementById('sale-lines-total');
-  if (el) el.textContent = `Total: ${totalBags} bags / ${totalKg.toFixed(0)} KG`;
+  if (el) {
+    let text = `Total: ${totalBags} bags / ${totalKg.toFixed(0)} KG`;
+    if (window.__saleTargetKg) {
+      const remaining = window.__saleTargetKg - totalKg;
+      text += ` · Target ${window.__saleTargetKg.toFixed(0)} KG` + (Math.abs(remaining) > 0.5
+        ? ` (${remaining > 0 ? remaining.toFixed(0)+' KG left to allocate' : Math.abs(remaining).toFixed(0)+' KG over target'})`
+        : ' ✓ fully allocated');
+    }
+    el.textContent = text;
+  }
 }
 
 function setModalChannel(ch){ window.__modalChannel = ch; document.getElementById('m-ch-retail').classList.toggle('on', ch==='Retail'); document.getElementById('m-ch-wholesale').classList.toggle('on', ch==='Wholesale'); }
@@ -2106,19 +2141,31 @@ function renderReconcile(){
   renderCashChecks();
 }
 
+let payoutAmountManuallyEdited = false;
+function onPayoutAmountEdited(){ payoutAmountManuallyEdited = true; calculatePayoutState(); }
+function setPayoutPayMode(isCash){
+  window.__payoutIsCash = isCash;
+  document.getElementById('payout-pay-cash').classList.toggle('on', isCash===true);
+  document.getElementById('payout-pay-gpay').classList.toggle('on', isCash===false);
+}
 function calculatePayoutState(){
   const t = totals('all'); 
   const reserveTarget = Number(document.getElementById('payout-reserve-input')?.value)||0;
-  const distributionsCalculatedPool = Math.max(0, t.liquidCash - reserveTarget);
-  
+  const maxPool = Math.max(0, t.liquidCash - reserveTarget);
+
   const elLiq = document.getElementById('rep-liquid-cash');
   const elDist = document.getElementById('rep-distributable');
   const elHead = document.getElementById('rep-per-head');
   const elCapNote = document.getElementById('rep-capital-excluded-note');
-  
+  const elAmount = document.getElementById('payout-amount-input');
+
+  if (elAmount && !payoutAmountManuallyEdited) elAmount.value = maxPool || '';
+  let chosen = Number(elAmount?.value)||0;
+  if (chosen > maxPool) { chosen = maxPool; if (elAmount) elAmount.value = maxPool; }
+
   if(elLiq) elLiq.textContent = fmt(t.liquidCash);
-  if(elDist) elDist.textContent = fmt(distributionsCalculatedPool);
-  if(elHead) elHead.textContent = fmt(distributionsCalculatedPool > 0 ? distributionsCalculatedPool / 3 : 0);
+  if(elDist) elDist.textContent = fmt(maxPool);
+  if(elHead) elHead.textContent = fmt(chosen > 0 ? chosen / 3 : 0);
   if(elCapNote) {
     if (t.capitalFundedTaggedExpenses > 0) {
       elCapNote.style.display = 'block';
@@ -2132,26 +2179,36 @@ function calculatePayoutState(){
 async function executeBalancedThreeWayPayout(){
   const reserveTarget = Number(document.getElementById('payout-reserve-input').value)||0;
   const t = totals('all');
-  const pool = Math.max(0, t.liquidCash - reserveTarget);
+  const maxPool = Math.max(0, t.liquidCash - reserveTarget);
+  const pool = Math.min(maxPool, Number(document.getElementById('payout-amount-input').value)||0);
+  const isCash = window.__payoutIsCash !== false;
 
   if (pool <= 500) { showToast('Not enough liquid cash to distribute.', true); return; }
-  
+
   const perShareValue = Math.floor(pool / 3);
-  confirmThen(`Save this payout of ${fmt(perShareValue)} per partner to the ledger?`, async () => {
+  const modeLabel = isCash ? 'Cash' : 'GPay';
+  confirmThen(`Save this payout of ${fmt(perShareValue)} per partner (${modeLabel}) to the ledger?`, async () => {
     const timestamp = todayISO();
-    const partners = ['Thendral', 'Nagaraj', 'Senthil'];
-    
-    for (const name of partners) {
+    const partners = Object.keys(DATA.partners);
+    const entries = partners.map(name => {
       const id = uid();
-      const logPayout = {
-        id, date: timestamp, type: 'Payout / Partner Draw', desc: `Profit Share Drawn: ${name}`,
-        amount: perShareValue, referenceId: '', sourceOfFunds: 'Sales Revenue', isCash: true, addedBy: getActor(), isDeleted: false
-      };
-      DATA.expenses.push(logPayout);
-      sendAction('addExpense', logPayout, id); 
-    }
+      return { id, date: timestamp, type: 'Payout / Partner Draw', desc: `Profit Share Drawn: ${name}`,
+        amount: perShareValue, referenceId: '', sourceOfFunds: 'Sales Revenue', isCash, addedBy: getActor(), isDeleted: false };
+    });
+    entries.forEach(e => DATA.expenses.push(e));
     renderActiveView();
-    showToast('Payouts saved.');
+
+    // Wait for all three writes so a silent partial failure (two partners paid, one not)
+    // is caught and reported here, instead of discovered later.
+    const results = await Promise.all(entries.map(e => sendAction('addExpense', e, e.id)));
+    const failedNames = entries.filter((e,i) => !results[i]).map(e => e.desc.replace('Profit Share Drawn: ',''));
+    if (failedNames.length) {
+      showToast(`⚠ Saved ${entries.length - failedNames.length}/${entries.length} — still retrying for: ${failedNames.join(', ')}. Don't repeat this payout; it'll sync automatically.`, true);
+    } else {
+      showToast('Payouts saved — all partners confirmed.');
+    }
+    payoutAmountManuallyEdited = false;
+    calculatePayoutState();
   });
 }
 
@@ -2162,36 +2219,193 @@ async function savePartners(){
 async function saveInterestRate(){ DATA.config.interestRatePct = Number(document.getElementById('p-interest').value)||0; sendAction('updateConfig', DATA.config); }
 async function saveConfig(){ DATA.config.rent1 = Number(document.getElementById('c-rent1').value)||0; DATA.config.rent2 = Number(document.getElementById('c-rent2').value)||0; DATA.config.labour = Number(document.getElementById('c-labour').value)||0; populateFormsFromData(); sendAction('updateConfig', DATA.config); }
 
-function openLoanModal(existing){
-  const l = existing || { partner: Object.keys(DATA.partners)[0], amount:'', dateSent: todayISO(), note:'' };
-  const partnerOptions = Object.keys(DATA.partners).map(n=>`<option value="${n}" ${l.partner===n?'selected':''}>${n}</option>`).join('');
-  const html = `
-    <label>Partner</label><select id="m-partner">${partnerOptions}</select>
-    <label>Amount (₹)</label><input type="number" id="m-amount" value="${l.amount}">
-    <label>Date</label><input type="date" id="m-date" value="${safeDate(l.dateSent)}">
-    <label>Note / Comments</label><input type="text" id="m-note" value="${l.note||''}">`;
+// ---- Capital Loans: a partner's own-pocket advance to the shop, split into equal
+// notional shares (one per partner, including the lender's own non-interest share).
+// The shop owes the FULL principal to the lender alone; the "shares" only exist to work
+// out how much interest each OTHER partner personally owes the lender, individually, on
+// their notional share as it shrinks with each part-repayment. Interest is never shop
+// money and never reduces any payout automatically — it's tracked here so the partners
+// can settle it between themselves.
+function loanShareCount(loan){
+  // 1 share for the lender (interest-free) + 1 share per other partner named in `shares`.
+  const others = Array.isArray(loan.shares) ? loan.shares : [];
+  return Math.max(1, others.length + 1);
+}
+function loanRepaymentsSorted(loan){
+  return (Array.isArray(loan.repayments) ? loan.repayments : [])
+    .slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'') || (a.ts||0)-(b.ts||0));
+}
+function loanTotalRepaid(loan){
+  return loanRepaymentsSorted(loan).reduce((s,r)=>s+(Number(r.amount)||0), 0);
+}
+function loanIsClosed(loan){
+  return loanTotalRepaid(loan) >= (Number(loan.amount)||0) - 0.5;
+}
+function loanOpenBalance(loan){
+  return Math.max(0, (Number(loan.amount)||0) - loanTotalRepaid(loan));
+}
+function daysBetween_(d1, d2){
+  return Math.max(0, Math.round((new Date(d2) - new Date(d1)) / 86400000));
+}
+// Interest owed BY one specific other-partner, computed segment by segment: full share
+// balance from the advance date until the first repayment, then the reduced balance
+// from that repayment until the next, and so on — stopping the moment the loan is fully
+// closed (no interest accrues past that, per the shop-settles-principal-only rule).
+function loanShareInterest(loan, partnerName){
+  const others = Array.isArray(loan.shares) ? loan.shares : [];
+  const share = others.find(x => x.partner === partnerName);
+  if (!share) return { balance: 0, interest: 0, ratePct: 0 };
+  const shares = loanShareCount(loan);
+  const principalShare = (Number(loan.amount)||0) / shares;
+  const ratePct = Number(share.ratePct)||0;
+  const reps = loanRepaymentsSorted(loan);
 
-  openModal(existing ? 'Edit Advance' : 'Add Advance Money', html, async () => {
-    const partner = document.getElementById('m-partner').value;
-    const amount = Number(document.getElementById('m-amount').value)||0;
-    const dateSent = document.getElementById('m-date').value || todayISO();
+  let balance = principalShare, lastDate = loan.dateSent, interest = 0;
+  reps.forEach(r => {
+    const days = daysBetween_(lastDate, r.date);
+    interest += balance * (ratePct/100) * (days/30);
+    balance = Math.max(0, balance - ((Number(r.amount)||0) / shares));
+    lastDate = r.date;
+  });
+  if (balance > 0.5) {
+    // Loan still open — keep accruing up to today on whatever's left.
+    const days = daysBetween_(lastDate, todayISO());
+    interest += balance * (ratePct/100) * (days/30);
+  }
+  return { balance, interest, ratePct };
+}
+
+function openLoanModal(existing){
+  const partnerNames = Object.keys(DATA.partners);
+  const defaultRate = DATA.config.interestRatePct || 1.5;
+  const l = existing || { partner: partnerNames[0], amount:'', dateSent: todayISO(), note:'', shares: [] };
+  window.__loanOtherPartners = partnerNames.filter(n => n !== l.partner);
+
+  const partnerOptions = partnerNames.map(n=>`<option value="${n}" ${l.partner===n?'selected':''}>${n}</option>`).join('');
+
+  function shareRateFor(name){
+    const existingShare = (l.shares||[]).find(x=>x.partner===name);
+    return existingShare ? existingShare.ratePct : defaultRate;
+  }
+
+  function sharesHtml(){
+    return window.__loanOtherPartners.map(name => `
+      <div class="row2" style="align-items:center;">
+        <span style="font-size:0.85rem;">${name}'s interest rate (%/month)</span>
+        <input type="number" step="0.1" class="loan-share-rate" data-partner="${name}" value="${shareRateFor(name)}">
+      </div>`).join('');
+  }
+
+  const html = `
+    <label>${existing ? 'Advanced By' : 'Which partner is advancing this?'}</label>
+    <select id="m-partner" ${existing?'disabled':''} onchange="refreshLoanShareRows()">${partnerOptions}</select>
+    <label>Amount (₹)</label><input type="number" id="m-amount" value="${l.amount}" ${existing?'disabled':''}>
+    <label>Date</label><input type="date" id="m-date" value="${safeDate(l.dateSent)}" ${existing?'disabled':''}>
+    <label>Note / Comments</label><input type="text" id="m-note" value="${l.note||''}">
+    <div class="note" style="margin-top:12px;font-weight:bold;">Split equally across all ${partnerNames.length} partners — ${existing?'':`₹${fmt0_(((Number(document.getElementById('m-amount')?.value)||l.amount||0))/partnerNames.length)} `}each share. ${l.partner}'s own share is interest-free; set a rate for everyone else below.</div>
+    <div id="loan-share-rows">${sharesHtml()}</div>
+    ${existing ? '<div class="note">Amount, date and lender can\'t be changed once a loan has repayments — delete and re-add instead.</div>' : ''}`;
+
+  openModal(existing ? 'Edit Advance' : 'Add Capital Advance', html, async () => {
+    const partner = existing ? existing.partner : document.getElementById('m-partner').value;
+    const amount = existing ? existing.amount : (Number(document.getElementById('m-amount').value)||0);
+    const dateSent = existing ? existing.dateSent : (document.getElementById('m-date').value || todayISO());
     const note = document.getElementById('m-note').value.trim();
 
     if (!partner || !amount) { showToast('Please enter an amount.', true); return false; }
 
+    const shares = [...document.querySelectorAll('.loan-share-rate')].map(inp => ({
+      partner: inp.dataset.partner, ratePct: Number(inp.value)||0
+    }));
+
     if (existing) {
-      Object.assign(existing, { partner, amount, dateSent, note });
+      Object.assign(existing, { note, shares });
       renderLoans(); sendAction('updateCapitalLoan', existing, existing.id);
     } else {
       const id = uid();
-      const loan = { id, partner, amount, dateSent, returnDate:'', note, addedBy: getActor(), isDeleted: false };
+      const loan = { id, partner, amount, dateSent, returnDate:'', note, shares, repayments: [], addedBy: getActor(), isDeleted: false };
       DATA.capitalLoans.push(loan);
       renderLoans(); sendAction('addCapitalLoan', loan, id);
     }
   });
 }
-async function setLoanReturnDate(id, val){ const loan = DATA.capitalLoans.find(l=>l.id===id); if(!loan)return; loan.returnDate = val; renderLoans(); sendAction('updateCapitalLoan', loan, id); }
-async function deleteCapitalLoan(id){ confirmThen('Delete this advance?', async () => { const idx = DATA.capitalLoans.findIndex(l=>l.id===id); if(idx !== -1) { DATA.capitalLoans[idx].isDeleted = true; renderLoans(); sendAction('deleteCapitalLoan', {id}, id); } }); }
+function refreshLoanShareRows(){
+  const partnerNames = Object.keys(DATA.partners);
+  const lender = document.getElementById('m-partner').value;
+  window.__loanOtherPartners = partnerNames.filter(n => n !== lender);
+  const defaultRate = DATA.config.interestRatePct || 1.5;
+  document.getElementById('loan-share-rows').innerHTML = window.__loanOtherPartners.map(name => `
+      <div class="row2" style="align-items:center;">
+        <span style="font-size:0.85rem;">${name}'s interest rate (%/month)</span>
+        <input type="number" step="0.1" class="loan-share-rate" data-partner="${name}" value="${defaultRate}">
+      </div>`).join('');
+}
+function fmt0_(n){ return Math.round(Number(n)||0).toLocaleString('en-IN'); }
+
+async function deleteCapitalLoan(id){ confirmThen('Delete this advance? Any repayments logged against it will be removed too (the cash movements themselves are not reversed — delete those separately in Expenses if needed).', async () => { const idx = DATA.capitalLoans.findIndex(l=>l.id===id); if(idx !== -1) { DATA.capitalLoans[idx].isDeleted = true; renderLoans(); sendAction('deleteCapitalLoan', {id}, id); } }); }
+
+function openLoanRepaymentModal(loanId){
+  const loan = DATA.capitalLoans.find(l=>l.id===loanId); if (!loan) return;
+  const openBal = loanOpenBalance(loan);
+  if (openBal <= 0.5) { showToast('This advance is already fully settled.', true); return; }
+
+  const html = `
+    <div class="note">Remaining principal owed to ${loan.partner}: <b>${fmt(openBal)}</b></div>
+    <label>Amount Being Repaid (₹)</label><input type="number" id="lr-amount" value="${openBal}">
+    <label>Date</label><input type="date" id="lr-date" value="${todayISO()}">
+    <label style="margin-top:10px;">Paid Via</label>
+    <div class="seg2">
+      <button type="button" id="lr-pay-cash" class="on" onclick="setLoanRepayMode(true)">Cash</button>
+      <button type="button" id="lr-pay-gpay" onclick="setLoanRepayMode(false)">GPay</button>
+    </div>
+    <label>Note</label><input type="text" id="lr-note" placeholder="optional">`;
+
+  window.__loanRepayIsCash = true;
+  openModal('Repay Advance — ' + loan.partner, html, async () => {
+    const amount = Number(document.getElementById('lr-amount').value)||0;
+    const date = document.getElementById('lr-date').value || todayISO();
+    const note = document.getElementById('lr-note').value.trim();
+    const isCash = window.__loanRepayIsCash !== false;
+    if (!amount) { showToast('Enter an amount.', true); return false; }
+    if (amount > openBal + 0.5) { showToast(`Only ${fmt(openBal)} is left on this advance.`, true); return false; }
+
+    const expenseId = uid();
+    const expense = {
+      id: expenseId, date, type: 'Capital Repayment',
+      desc: `Capital Repayment — ${loan.partner}`, amount,
+      referenceId: '', bags:'', bagsG0:'', bagsG1:'', kg:'',
+      sourceOfFunds: 'Sales Revenue', isCash, isCredit: false,
+      addedBy: getActor(), isDeleted: false
+    };
+    DATA.expenses.push(expense);
+
+    loan.repayments = loanRepaymentsSorted(loan);
+    loan.repayments.push({ date, amount, note, expenseId, ts: Date.now() });
+
+    renderActiveView();
+    sendAction('addExpense', expense, expenseId);
+    sendAction('updateCapitalLoan', loan, loan.id);
+  }, 'Log Repayment');
+}
+function setLoanRepayMode(isCash){
+  window.__loanRepayIsCash = isCash;
+  document.getElementById('lr-pay-cash').classList.toggle('on', isCash===true);
+  document.getElementById('lr-pay-gpay').classList.toggle('on', isCash===false);
+}
+async function deleteLoanRepayment(loanId, ts){
+  confirmThen('Delete this repayment? Its cash entry in Expenses will be removed too.', async () => {
+    const loan = DATA.capitalLoans.find(l=>l.id===loanId); if (!loan) return;
+    const reps = loanRepaymentsSorted(loan);
+    const rep = reps.find(r=>r.ts===ts); if (!rep) return;
+    loan.repayments = reps.filter(r=>r.ts!==ts);
+    if (rep.expenseId) {
+      const exp = DATA.expenses.find(e=>e.id===rep.expenseId);
+      if (exp) { exp.isDeleted = true; sendAction('deleteExpense', {id:exp.id}, exp.id); }
+    }
+    renderActiveView();
+    sendAction('updateCapitalLoan', loan, loan.id);
+  });
+}
 
 function toggleDetails(id) {
   const el = document.getElementById(id);
@@ -2581,31 +2795,66 @@ function renderPartners(){
 function renderLoans(){
   const wrap = document.getElementById('loans-list'); if(!wrap)return; wrap.innerHTML = '';
   const activeLoans = [...DATA.capitalLoans].filter(l=>!l.isDeleted).sort((a,b)=> (b.dateSent||'').localeCompare(a.dateSent||''));
+
   activeLoans.forEach(loan=>{
-    const days = Math.max(0, Math.round((new Date(loan.returnDate || todayISO()) - new Date(loan.dateSent)) / 86400000));
-    const rate = DATA.config.interestRatePct || 1.5;
-    const interest = loan.amount * (rate/100) * (days / 30);
-    const total = loan.amount + interest;
-    const isReturned = !!loan.returnDate;
-    
+    const hasShareData = Array.isArray(loan.shares);
+    if (!hasShareData) {
+      // Legacy advance, logged before this feature existed — no shares/repayments to
+      // compute interest from. Show it plainly rather than guessing.
+      const isReturned = !!loan.returnDate;
+      wrap.insertAdjacentHTML('beforeend', `
+        <div class="lot-card">
+          <div class="lot-head">
+            <span class="lot-title">${loan.partner} · ${fmt(loan.amount)}</span>
+            <span class="row-actions">
+              <span class="badge ${isReturned?'':'owe'}">${isReturned?'Returned (legacy)':'Active (legacy)'}</span>
+              <button class="icon-btn del" onclick="deleteCapitalLoan('${loan.id}')">✕</button>
+            </span>
+          </div>
+          <div class="lot-sub">Sent: ${loan.dateSent} ${loan.note?'· '+loan.note:''}</div>
+          <div class="note">Logged before per-partner interest tracking existed — no split or interest available. Delete and re-add as a new advance if you need tracking on this one.</div>
+        </div>`);
+      return;
+    }
+
+    const shares = loanShareCount(loan);
+    const principalShare = (Number(loan.amount)||0) / shares;
+    const totalRepaid = loanTotalRepaid(loan);
+    const openBal = loanOpenBalance(loan);
+    const closed = loanIsClosed(loan);
+    const reps = loanRepaymentsSorted(loan);
+
+    const shareRows = (loan.shares||[]).map(sh => {
+      const r = loanShareInterest(loan, sh.partner);
+      return `<div class="lot-mini-grid" style="margin-top:4px;">
+        <div>${sh.partner}'s share<b>${fmt(principalShare)}</b></div>
+        <div>Balance left<b>${fmt(r.balance)}</b></div>
+        <div>Interest owed (${r.ratePct}%/mo)<b style="color:var(--rust);">${fmt(r.interest)}</b></div>
+      </div>`;
+    }).join('');
+
+    const repRows = reps.map(r => `
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;padding:5px 0;border-top:1px solid var(--line);font-size:0.78rem;">
+        <div>${shortDate(r.date)}${r.note?' · '+r.note:''}</div>
+        <b>${fmt(r.amount)}</b>
+        <button class="icon-btn del" onclick="deleteLoanRepayment('${loan.id}', ${r.ts})">✕</button>
+      </div>`).join('');
+
     wrap.insertAdjacentHTML('beforeend', `
       <div class="lot-card">
         <div class="lot-head">
           <span class="lot-title">${loan.partner} · ${fmt(loan.amount)}</span>
           <span class="row-actions">
-            <span class="badge ${isReturned?'':'owe'}">${isReturned?'Returned':'Active'}</span>
+            <span class="badge ${closed?'':'owe'}">${closed?'Closed':'Open · '+fmt(openBal)+' left'}</span>
             <button class="icon-btn edit" onclick='openLoanModal(DATA.capitalLoans.find(x=>x.id==="${loan.id}"))'>✎</button>
             <button class="icon-btn del" onclick="deleteCapitalLoan('${loan.id}')">✕</button>
           </span>
         </div>
-        <div class="lot-sub">Sent: ${loan.dateSent} ${loan.note?'· '+loan.note:''}</div>
-        <div class="lot-mini-grid" style="margin-top:8px;">
-          <div>Days<b>${days}</b></div>
-          <div>Interest<b>${fmt(interest)}</b></div>
-          <div>Total<b>${fmt(total)}</b></div>
-        </div>
-        <label style="margin-top:10px;">Return Date</label>
-        <input type="date" value="${safeDate(loan.returnDate)}" onchange="setLoanReturnDate('${loan.id}', this.value)">
+        <div class="lot-sub">Sent: ${loan.dateSent} ${loan.note?'· '+loan.note:''} · Split ${shares} ways, ${loan.partner}'s own share interest-free</div>
+        ${shareRows}
+        ${!closed ? `<button class="btn secondary" style="margin-top:10px;" onclick="openLoanRepaymentModal('${loan.id}')">Log Shop Repayment</button>` : ''}
+        ${reps.length ? `<div class="note" style="font-weight:bold;margin-top:8px;">Repayments</div>${repRows}` : ''}
+        <div class="note" style="margin-top:6px;">Principal is repaid by the shop; interest shown above is owed personally by each partner to ${loan.partner} and is never deducted from payouts automatically.</div>
       </div>`);
   });
   const empty = document.getElementById('loans-empty');
@@ -2692,7 +2941,7 @@ function buildReportLocal(period) {
     buckets[k].bags += (Number(s.bags)||0);
   });
 
-  DATA.expenses.filter(x => !x.isDeleted && !x.referenceId && x.type !== 'Payout / Partner Draw').forEach(x => {
+  DATA.expenses.filter(x => !x.isDeleted && !x.referenceId && x.type !== 'Payout / Partner Draw' && x.type !== 'Capital Repayment').forEach(x => {
     const k = getBucketKey(x.date);
     if (k === 'Unknown') return;
     buckets[k] = buckets[k] || { period: k, revenue: 0, bags: 0, expenses: 0, sortKey: x.date };
