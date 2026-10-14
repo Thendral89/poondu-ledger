@@ -1234,6 +1234,7 @@ function openSaleModal(existing){
   window.__saleLineIdx = [];
   window.__saleLineSeq = 0;
   window.__saleTargetKg = 0;
+  window.__salePaidNowIsCash = true;
 
   const initialLines = saleLinesFor(s).length ? saleLinesFor(s) : [{ lotId:'', bags:'', kg:'' }];
   const contactOptions = '<option value="">-- Optional (Select Buyer if registered) --</option>'
@@ -1270,6 +1271,16 @@ function openSaleModal(existing){
     </div>
     <div class="note" id="sale-paymode-note">Cash sales add to Physical Cash In Hand. GPay sales go straight to the bank and never enter the till.</div>
     <label>Total Amount Collected (₹)</label><input type="number" id="m-amount" value="${s.amount}" oninput="refreshSaleLineChrome()">
+    ${existing ? '' : `
+    <div id="sale-partpaid-box" style="display:none; margin-top:8px;">
+      <label style="margin-top:0;">Paid Now (₹) — leave blank if nothing paid yet</label>
+      <input type="number" id="sale-paid-now" placeholder="0">
+      <div class="seg2" style="margin-top:6px;">
+        <button type="button" id="sale-paidnow-cash" class="on" onclick="setSalePaidNowMode(true)">Paid in Cash</button>
+        <button type="button" id="sale-paidnow-gpay" onclick="setSalePaidNowMode(false)">Paid via GPay</button>
+      </div>
+      <div class="note">The rest stays as credit owed by this buyer. Later payments go through Log Credit Repayment.</div>
+    </div>`}
     <div class="note" style="margin-top:4px;">Quick-fill from an average rate — optional, just computes the target KG below; you still pick which lots it came from.</div>
     <div class="row2">
       <div><label>Average Rate (₹/kg)</label><input type="number" id="sale-avg-rate" placeholder="e.g. 85"></div>
@@ -1334,6 +1345,13 @@ function openSaleModal(existing){
     const totalBags = lines.reduce((sum,l)=>sum+l.bags,0);
     const totalKg = lines.reduce((sum,l)=>sum+l.kg,0);
 
+    // Part-payment at time of a NEW credit sale: the sale stays credit for its full
+    // amount, and the amount paid now is logged as a normal credit repayment allocated
+    // to this sale — so Cash In Hand and the buyer's balance both stay correct.
+    const paidNow = (!existing && isCredit) ? (Number(document.getElementById('sale-paid-now')?.value)||0) : 0;
+    if (paidNow < 0) { showToast('Paid-now amount can\'t be negative.', true); return false; }
+    if (paidNow >= amount && paidNow > 0) { showToast('Paid-now is the full amount — switch this sale to Cash or GPay instead of Credit.', true); return false; }
+
     if (existing) {
       Object.assign(existing, { date, lotId: lines[0].lotId, channel, contactId, bags: totalBags, kg: totalKg, amount, note, lines, isCash, isCredit });
       renderActiveView(); sendAction('updateSale', existing, existing.id);
@@ -1341,7 +1359,16 @@ function openSaleModal(existing){
       const id = uid();
       const sale = { id, date, lotId: lines[0].lotId, channel, contactId, bags: totalBags, kg: totalKg, amount, note, lines, isCash, isCredit, addedBy: getActor(), isDeleted: false };
       DATA.sales.push(sale);
-      renderActiveView(); sendAction('addSale', sale, id);
+      let partPay = null;
+      if (paidNow > 0) {
+        const payId = uid();
+        partPay = { id: payId, date, contactId, amount: paidNow, isCash: window.__salePaidNowIsCash !== false,
+          note: 'Part-paid at time of sale', allocations: [{ saleId: id, amount: paidNow }], addedBy: getActor(), isDeleted: false };
+        DATA.creditPayments.push(partPay);
+      }
+      renderActiveView();
+      sendAction('addSale', sale, id);
+      if (partPay) sendAction('addCreditPayment', partPay, partPay.id);
     }
   });
 
@@ -1457,6 +1484,11 @@ function updateSaleLineTotals(){
 
 function setModalChannel(ch){ window.__modalChannel = ch; document.getElementById('m-ch-retail').classList.toggle('on', ch==='Retail'); document.getElementById('m-ch-wholesale').classList.toggle('on', ch==='Wholesale'); }
 function setModalSalePayMode(mode){ window.__modalSalePayMode = mode; updateSalePayModeUI(mode); }
+function setSalePaidNowMode(isCash){
+  window.__salePaidNowIsCash = isCash;
+  document.getElementById('sale-paidnow-cash')?.classList.toggle('on', isCash===true);
+  document.getElementById('sale-paidnow-gpay')?.classList.toggle('on', isCash===false);
+}
 function updateSalePayModeUI(mode){
   document.getElementById('m-sale-pay-cash')?.classList.toggle('on', mode==='cash');
   document.getElementById('m-sale-pay-gpay')?.classList.toggle('on', mode==='gpay');
@@ -1470,6 +1502,8 @@ function updateSalePayModeUI(mode){
     else note.textContent = 'Cash sales add to Physical Cash In Hand.';
   }
   if (reqNote) reqNote.style.display = mode === 'credit' ? 'block' : 'none';
+  const partBox = document.getElementById('sale-partpaid-box');
+  if (partBox) partBox.style.display = mode === 'credit' ? 'block' : 'none';
   if (contactLabel) contactLabel.textContent = mode === 'credit' ? 'Buyer Name (required for credit)' : 'Buyer Name';
 }
 async function deleteSale(id){ confirmThen('Delete this sale?', async () => { const idx = DATA.sales.findIndex(s=>s.id===id); if(idx !== -1) { DATA.sales[idx].isDeleted = true; renderActiveView(); sendAction('deleteSale', {id}, id); } }); }
